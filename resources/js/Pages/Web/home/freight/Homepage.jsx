@@ -1,5 +1,5 @@
 import React from "react";
-import Header from "../multiModel/HeaderTwo";
+import Header from "../client/ClientHeader";
 import HeroSection from "../../components/freight/HeroSection";
 import Brands from "../../components/freight/Brands";
 import AboutUs from "../../components/freight/AboutUs";

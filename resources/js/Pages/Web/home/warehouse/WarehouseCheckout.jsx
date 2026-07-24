@@ -1,5 +1,5 @@
 import React from 'react'
-import Header from "../../layouts/Header"
+import Header from "../client/ClientHeader"
 import WarehouseCheckoutContent from '../../components/warehouseDetails/WarehouseCheckoutContent'
 
 const WarehouseCheckout = () => {

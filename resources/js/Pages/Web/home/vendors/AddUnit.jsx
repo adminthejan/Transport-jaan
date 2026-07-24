@@ -113,10 +113,16 @@ const fromOptions = (val, opts) => { const v = norm(val); if (!v) return ""; con
 const isGearsIrrelevant = (tt) => ["automatic", "cvt"].includes(String(tt || "").toLowerCase());
 const mapConditionToUI = (v) => { v = String(v || "").toLowerCase(); if (v === "new") return "New"; if (v === "refurbished" || v === "excellent") return "Excellent"; if (v === "good" || v === "used") return "Good"; if (v === "fair") return "Fair"; if (v === "needs repair" || v === "needs_repair") return "Needs Repair"; return ""; };
 const mapOwnershipToUI = (v) => { v = String(v || "").toLowerCase(); if (v === "company_owned" || v === "owned") return "Owned"; if (v === "financed") return "Financed"; if (v === "leased") return "Leased"; if (v === "partner_owned" || v === "rented") return "Rented"; return ""; };
-const mapTransmissionToUI = (v) => { v = String(v || ""); if (!v) return ""; if (/semi[-_\s]?automatic/i.test(v)) return "Semi-Automatic"; if (/cvt/i.test(v)) return "CVT"; if (/automatic/i.test(v)) return "Automatic"; if (/manual/i.test(v)) return "Manual"; if (/other/i.test(v)) return "Other"; return ""; };
+const mapTransmissionToUI = (v) => { v = String(v || ""); if (!v) return ""; if (/^amt$/i.test(v) || /semi[-_\s]?automatic/i.test(v)) return "Semi-Automatic"; if (/cvt/i.test(v)) return "CVT"; if (/automatic/i.test(v)) return "Automatic"; if (/manual/i.test(v)) return "Manual"; if (/other/i.test(v)) return "Other"; return ""; };
 const mapYesNo = (b) => !!b;
 const toEnum = (s) => String(s || "").trim().toLowerCase().replace(/[\s-]+/g, "_").replace(/_+/g, "_");
-const ALLOWED_TRANSMISSIONS = ["manual", "automatic", "semi_automatic", "cvt"];
+// The land_vehicle_specs.body_type/transmission_type DB columns are ENUMs whose
+// values don't all follow the generic "lowercase_with_underscores" convention
+// toEnum() produces (e.g. `familyMBP`, `sportcoupe`, `amt`) — map those explicitly
+// so a mismatched value never reaches the DB and blows up as a raw SQL error.
+const BODY_TYPE_ENUM_OVERRIDES = { family_mbp: "familyMBP", sport_coupe: "sportcoupe" };
+const TRANSMISSION_ENUM_OVERRIDES = { semi_automatic: "amt" };
+const ALLOWED_TRANSMISSIONS = ["manual", "automatic", "amt", "cvt", "dct"];
 const extractMediaEntries = (maybe) => { if (!maybe) return []; const arr = Array.isArray(maybe) ? maybe : []; const out = []; arr.forEach((it) => { if (typeof it === "string") out.push({ id: null, url: it }); else if (it && typeof it === "object") { const id = it.id ?? it.media_id ?? it.uuid ?? it.file_id ?? null; const url = it.url || it.src || it.path || it.preview_url || it.original_url || it.full_url || (it.attributes && (it.attributes.url || it.attributes.src)) || it.file_path; if (url) out.push({ id, url }); } }); return out; };
 const extractFromSpatieMedia = (media, names) => { if (!Array.isArray(media)) return []; const set = new Set(names.map((n) => String(n || "").toLowerCase())); return media.filter((m) => set.has(String(m.collection_name || "").toLowerCase())).map((m) => ({ id: m.id ?? null, url: m.original_url || m.url || m.preview_url || "" })).filter((x) => x.url); };
 const extractInsuranceFromDocuments = (docs) => { if (!Array.isArray(docs)) return []; const looks = (s = "") => /insurance/i.test(String(s)); const pick = (d) => d.original_url || d.full_url || d.preview_url || d.url || d.path || d.file_path || d.image || d.src; return docs.filter((d) => looks(d?.type) || looks(d?.doc_type) || looks(d?.document_type) || looks(d?.category) || looks(d?.label) || looks(d?.title) || looks(d?.name) || looks(d?.collection_name)).map((d) => ({ id: d.id ?? d.media_id ?? null, url: pick(d) })).filter((x) => x.url && /\.(png|jpe?g|webp|gif)$/i.test(x.url)); };
@@ -373,8 +379,11 @@ const AddUnit = () => {
     appendRemovalPayloads(data);
 
     if (form.category === "Land") {
-      const body_type = toEnum(form.bodyType), fuel_type = toEnum(form.fuelType);
-      const wanted = toEnum(form.transmissionType); const transmission_type = ALLOWED_TRANSMISSIONS.includes(wanted) ? wanted : "manual";
+      const bodyTypeRaw = toEnum(form.bodyType);
+      const body_type = BODY_TYPE_ENUM_OVERRIDES[bodyTypeRaw] || bodyTypeRaw;
+      const fuel_type = toEnum(form.fuelType);
+      const wanted = toEnum(form.transmissionType);
+      const transmission_type = TRANSMISSION_ENUM_OVERRIDES[wanted] || (ALLOWED_TRANSMISSIONS.includes(wanted) ? wanted : "manual");
       if (isGearsIrrelevant(transmission_type)) data.set("gears", "");
       data.set("bodyType", body_type); data.set("fuelType", fuel_type); data.set("transmissionType", transmission_type);
       data.set("body_type", body_type); data.set("fuel_type", fuel_type); data.set("transmission_type", transmission_type);

@@ -10,9 +10,13 @@ class VehicleDocumentSeeder extends Seeder
 {
     public function run(): void
     {
-        $vehicles = Vehicle::limit(2)->get();
+        $vehicles = Vehicle::all();
 
         foreach ($vehicles as $vehicle) {
+            if (VehicleDocument::where('vehicle_id', $vehicle->id)->exists()) {
+                continue;
+            }
+
             VehicleDocument::create([
                 'vehicle_id' => $vehicle->id,
                 'doc_type' => 'insurance',

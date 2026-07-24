@@ -11,18 +11,19 @@ class VehicleSeeder extends Seeder
 {
     public function run(): void
     {
-        // Get a provider user (vendor)
-        $provider = User::where('role', 'vendor')->first();
+        // Spread dummy vehicles across a few verified vendors so the vendor
+        // dashboard's "my units" views have realistic, non-overlapping data.
+        $vendors = User::where('role', 'vendor')->where('status', 'verified')->get();
+        $vendor = fn (int $i) => $vendors->isNotEmpty() ? $vendors[$i % $vendors->count()]->id : null;
 
-        // Get categories
-        $carCategory = VehicleCategory::where('type', 'land')->where('name', 'Car')->first();
-        $jetCategory = VehicleCategory::where('type', 'air')->where('name', 'Private Jet')->first();
+        $categoryId = fn (string $type, string $name) => VehicleCategory::where('type', $type)->where('name', $name)->value('id');
 
         $vehicles = [
+            // ---- Land ----
             [
-                'provider_id' => $provider?->id,
+                'provider_id' => $vendor(0),
                 'type' => 'land',
-                'category_id' => $carCategory?->id,
+                'category_id' => $categoryId('land', 'Car'),
                 'model' => 'Camry',
                 'manufacturer' => 'Toyota',
                 'manufacture_year' => 2022,
@@ -49,9 +50,69 @@ class VehicleSeeder extends Seeder
                 'description' => 'Comfortable sedan perfect for family trips and business travel.',
             ],
             [
-                'provider_id' => $provider?->id,
+                'provider_id' => $vendor(1),
+                'type' => 'land',
+                'category_id' => $categoryId('land', 'SUV'),
+                'model' => 'Land Cruiser Prado',
+                'manufacturer' => 'Toyota',
+                'manufacture_year' => 2023,
+                'registration_year' => 2023,
+                'registration_number' => 'SUV-7777',
+                'colour' => 'Pearl White',
+                'condition' => 'new',
+                'ownership_type' => 'company_owned',
+                'passenger_capacity' => 7,
+                'mileage_km' => 8000,
+                'rental_price_per_day' => 140.00,
+                'total_rental_price' => 4200.00,
+                'deposit_amount' => 400.00,
+                'advance_payment_amount' => 300.00,
+                'currency' => 'USD',
+                'insurance_provider' => 'ABC Insurance',
+                'gps' => true,
+                'child_seat' => true,
+                'wifi' => false,
+                'insurance_coverage' => true,
+                'extra' => 'Roof rack, 4WD, reverse camera',
+                'status' => 'active',
+                'approval_status' => 'approved',
+                'description' => 'Spacious SUV built for both city comfort and off-road trips.',
+            ],
+            [
+                'provider_id' => $vendor(2),
+                'type' => 'land',
+                'category_id' => $categoryId('land', 'Van'),
+                'model' => 'Hiace',
+                'manufacturer' => 'Toyota',
+                'manufacture_year' => 2021,
+                'registration_year' => 2021,
+                'registration_number' => 'VAN-3456',
+                'colour' => 'White',
+                'condition' => 'used',
+                'ownership_type' => 'partner_owned',
+                'passenger_capacity' => 12,
+                'mileage_km' => 42000,
+                'rental_price_per_day' => 95.00,
+                'total_rental_price' => 2850.00,
+                'deposit_amount' => 250.00,
+                'advance_payment_amount' => 150.00,
+                'currency' => 'USD',
+                'insurance_provider' => 'Global Insurance Co',
+                'gps' => true,
+                'child_seat' => false,
+                'wifi' => false,
+                'insurance_coverage' => true,
+                'extra' => 'Ideal for group travel and airport transfers',
+                'status' => 'active',
+                'approval_status' => 'approved',
+                'description' => 'Reliable passenger van for group tours and transfers.',
+            ],
+
+            // ---- Air ----
+            [
+                'provider_id' => $vendor(0),
                 'type' => 'air',
-                'category_id' => $jetCategory?->id,
+                'category_id' => $categoryId('air', 'Private Jet'),
                 'model' => 'Citation CJ3',
                 'manufacturer' => 'Cessna',
                 'manufacture_year' => 2020,
@@ -77,10 +138,102 @@ class VehicleSeeder extends Seeder
                 'approval_status' => 'approved',
                 'description' => 'Luxury private jet for executive travel and special occasions.',
             ],
+            [
+                'provider_id' => $vendor(1),
+                'type' => 'air',
+                'category_id' => $categoryId('air', 'Helicopter'),
+                'model' => 'H125',
+                'manufacturer' => 'Airbus',
+                'manufacture_year' => 2019,
+                'registration_year' => 2019,
+                'registration_number' => 'N456HEL',
+                'colour' => 'Blue/White',
+                'condition' => 'used',
+                'ownership_type' => 'leased',
+                'passenger_capacity' => 5,
+                'mileage_km' => null,
+                'rental_price_per_day' => 3200.00,
+                'total_rental_price' => 9600.00,
+                'deposit_amount' => 5000.00,
+                'advance_payment_amount' => 3000.00,
+                'currency' => 'USD',
+                'insurance_provider' => 'Global Aviation Insurance',
+                'gps' => true,
+                'child_seat' => false,
+                'wifi' => false,
+                'insurance_coverage' => true,
+                'extra' => 'Panoramic windows, ideal for scenic tours and transfers',
+                'status' => 'active',
+                'approval_status' => 'approved',
+                'description' => 'Agile helicopter for scenic tours, transfers, and charters.',
+            ],
+
+            // ---- Sea ----
+            [
+                'provider_id' => $vendor(2),
+                'type' => 'sea',
+                'category_id' => $categoryId('sea', 'Yacht'),
+                'model' => 'Oceanis 46.1',
+                'manufacturer' => 'Beneteau',
+                'manufacture_year' => 2021,
+                'registration_year' => 2021,
+                'registration_number' => 'SEA-9001',
+                'colour' => 'White',
+                'condition' => 'new',
+                'ownership_type' => 'company_owned',
+                'passenger_capacity' => 10,
+                'mileage_km' => null,
+                'rental_price_per_day' => 1200.00,
+                'total_rental_price' => 3600.00,
+                'deposit_amount' => 1000.00,
+                'advance_payment_amount' => 600.00,
+                'currency' => 'USD',
+                'insurance_provider' => 'Marine Cover Ltd',
+                'gps' => true,
+                'child_seat' => false,
+                'wifi' => true,
+                'insurance_coverage' => true,
+                'extra' => '3 cabins, sun deck, snorkeling gear included',
+                'status' => 'active',
+                'approval_status' => 'approved',
+                'description' => 'Elegant sailing yacht perfect for day charters and overnight trips.',
+            ],
+            [
+                'provider_id' => $vendor(0),
+                'type' => 'sea',
+                'category_id' => $categoryId('sea', 'Boat'),
+                'model' => 'Outrage 250',
+                'manufacturer' => 'Boston Whaler',
+                'manufacture_year' => 2022,
+                'registration_year' => 2022,
+                'registration_number' => 'SEA-9002',
+                'colour' => 'White/Blue',
+                'condition' => 'new',
+                'ownership_type' => 'company_owned',
+                'passenger_capacity' => 8,
+                'mileage_km' => null,
+                'rental_price_per_day' => 650.00,
+                'total_rental_price' => 1950.00,
+                'deposit_amount' => 500.00,
+                'advance_payment_amount' => 300.00,
+                'currency' => 'USD',
+                'insurance_provider' => 'Marine Cover Ltd',
+                'gps' => true,
+                'child_seat' => false,
+                'wifi' => false,
+                'insurance_coverage' => true,
+                'extra' => 'Twin outboard engines, fishing gear available on request',
+                'status' => 'active',
+                'approval_status' => 'approved',
+                'description' => 'Fast, stable center-console boat great for fishing trips and coastal cruising.',
+            ],
         ];
 
         foreach ($vehicles as $vehicle) {
-            Vehicle::create($vehicle);
+            Vehicle::firstOrCreate(
+                ['registration_number' => $vehicle['registration_number']],
+                $vehicle
+            );
         }
     }
 }

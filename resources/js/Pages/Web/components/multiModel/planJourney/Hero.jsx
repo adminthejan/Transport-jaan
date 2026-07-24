@@ -619,7 +619,7 @@ const Hero = () => {
             <div className="relative flex items-center pt-6 sm:pt-8 px-5 md:px-10">
                 {/* Back Button - left corner */}
                 <div className="absolute left-5 md:left-[70px]">
-                    <BackButton />
+                    <BackButton to="/" />
                 </div>
 
                 {/* Top Navigation Buttons - centered */}

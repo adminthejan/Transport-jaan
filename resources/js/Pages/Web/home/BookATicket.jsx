@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Header from "../layouts/Header";
+import Header from "./client/ClientHeader";
 import FilterSidebar from "../components/bookATicket/filters";
 import SearchForm from "../components/bookATicket/SearchForm";
 import Footer from "../layouts/Footer";

@@ -26,11 +26,14 @@ class BusBookingController extends Controller
         $from = $request->input('from');
         $to = $request->input('to');
         $date = $request->input('date');
+        $tripType = $request->input('tripType', 'oneway');
+        $returnDate = $request->input('returnDate');
 
         // Get stations for dropdown
         $stations = BusStation::where('status', 'active')->get();
 
         $schedules = collect();
+        $returnSchedules = collect();
 
         if ($from && $to && $date) {
             // Find departure and arrival stations
@@ -38,46 +41,58 @@ class BusBookingController extends Controller
             $arrivalStation = BusStation::where('name', $to)->first();
 
             if ($departureStation && $arrivalStation) {
-                $schedules = BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
-                    ->where('departure_station_id', $departureStation->id)
-                    ->where('arrival_station_id', $arrivalStation->id)
-                    ->where('date', $date)
-                    ->where('status', 'active')
-                    ->orderBy('departure_time')
-                    ->get()
-                    ->map(function ($schedule) {
-                        return [
-                            'id' => $schedule->id,
-                            'operator' => $schedule->bus->operator,
-                            'busType' => $schedule->bus->bus_type,
-                            'routeNo' => $schedule->bus->route_number,
-                            'busNo' => $schedule->bus->bus_number,
-                            'depart' => date('g:i A', strtotime($schedule->departure_time)),
-                            'arrive' => date('g:i A', strtotime($schedule->arrival_time)),
-                            'day' => date('j M', strtotime($schedule->date)),
-                            'duration' => $this->calculateDuration($schedule->departure_time, $schedule->arrival_time),
-                            'price' => $schedule->price,
-                            'seatsAvailable' => $schedule->available_seats,
-                            'totalSeats' => $schedule->bus->capacity,
-                            'expressway' => $schedule->is_expressway,
-                            'soldOut' => $schedule->available_seats <= 0,
-                            'facilities' => $schedule->bus->facilities ?? [],
-                            'departureStation' => $schedule->departureStation->name,
-                            'arrivalStation' => $schedule->arrivalStation->name,
-                        ];
-                    });
+                $schedules = $this->findBusSchedules($departureStation->id, $arrivalStation->id, $date);
+
+                if ($tripType === 'roundtrip' && $returnDate) {
+                    $returnSchedules = $this->findBusSchedules($arrivalStation->id, $departureStation->id, $returnDate);
+                }
             }
         }
 
         return Inertia::render('Web/home/ticketBooking/BusTicketBookingDetails', [
             'stations' => $stations,
             'schedules' => $schedules,
+            'returnSchedules' => $returnSchedules,
             'searchParams' => [
                 'from' => $from,
                 'to' => $to,
-                'date' => $date
+                'date' => $date,
+                'returnDate' => $returnDate,
+                'tripType' => $tripType,
             ]
         ]);
+    }
+
+    private function findBusSchedules(int $departureStationId, int $arrivalStationId, string $date)
+    {
+        return BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
+            ->where('departure_station_id', $departureStationId)
+            ->where('arrival_station_id', $arrivalStationId)
+            ->where('date', $date)
+            ->where('status', 'active')
+            ->orderBy('departure_time')
+            ->get()
+            ->map(function ($schedule) {
+                return [
+                    'id' => $schedule->id,
+                    'operator' => $schedule->bus->operator,
+                    'busType' => $schedule->bus->bus_type,
+                    'routeNo' => $schedule->bus->route_number,
+                    'busNo' => $schedule->bus->bus_number,
+                    'depart' => date('g:i A', strtotime($schedule->departure_time)),
+                    'arrive' => date('g:i A', strtotime($schedule->arrival_time)),
+                    'day' => date('j M', strtotime($schedule->date)),
+                    'duration' => $this->calculateDuration($schedule->departure_time, $schedule->arrival_time),
+                    'price' => $schedule->price,
+                    'seatsAvailable' => $schedule->available_seats,
+                    'totalSeats' => $schedule->bus->capacity,
+                    'expressway' => $schedule->is_expressway,
+                    'soldOut' => $schedule->available_seats <= 0,
+                    'facilities' => $schedule->bus->facilities ?? [],
+                    'departureStation' => $schedule->departureStation->name,
+                    'arrivalStation' => $schedule->arrivalStation->name,
+                ];
+            });
     }
 
     /**
@@ -104,68 +119,107 @@ class BusBookingController extends Controller
     public function preview(Request $request)
     {
         $scheduleId = $request->get('id');
+        $returnScheduleId = $request->get('return_id');
         $searchParams = [
             'from' => $request->get('from'),
             'to' => $request->get('to'),
             'date' => $request->get('date'),
-            'passengers' => $request->get('passengers', 1)
+            'passengers' => $request->get('passengers', 1),
+            'tripType' => $returnScheduleId ? 'roundtrip' : 'oneway',
         ];
 
-        $schedule = null;
-        $tripData = null;
-        $bookedSeats = [];
-        $seatLayout = null;
-
-        if ($scheduleId) {
-            $schedule = BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
-                ->find($scheduleId);
-
-            if ($schedule) {
-                // Get all booked seats for this schedule
-                $bookedSeats = BusBooking::where('bus_schedule_id', $schedule->id)
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->get()
-                    ->pluck('seat_numbers')
-                    ->flatten()
-                    ->toArray();
-
-                // Get seat layout configuration from bus
-                $busCapacity = $schedule->bus->capacity ?? 52;
-                $seatLayout = [
-                    'rows' => ceil($busCapacity / 4), // 4 seats per row (2+2)
-                    'columns' => 4,
-                    'totalSeats' => $busCapacity,
-                    'aisle' => 2, // Aisle after 2nd column
-                ];
-
-                $tripData = [
-                    'id' => $schedule->id,
-                    'operator' => $schedule->bus->operator,
-                    'busType' => $schedule->bus->bus_type,
-                    'routeNo' => $schedule->bus->route_number,
-                    'busNo' => $schedule->bus->bus_number,
-                    'depart' => date('g:i A', strtotime($schedule->departure_time)),
-                    'arrive' => date('g:i A', strtotime($schedule->arrival_time)),
-                    'day' => date('j M', strtotime($schedule->date)),
-                    'duration' => $this->calculateDuration($schedule->departure_time, $schedule->arrival_time),
-                    'price' => $schedule->price,
-                    'seatsAvailable' => $schedule->available_seats,
-                    'totalSeats' => $schedule->bus->capacity,
-                    'expressway' => $schedule->is_expressway,
-                    'soldOut' => $schedule->available_seats <= 0,
-                    'facilities' => $schedule->bus->facilities ?? [],
-                    'departureStation' => $schedule->departureStation->name,
-                    'arrivalStation' => $schedule->arrivalStation->name,
-                ];
-            }
-        }
+        $outbound = $this->buildTripPreview($scheduleId);
+        $return = $this->buildTripPreview($returnScheduleId);
 
         return Inertia::render('Web/home/ticketBooking/BusTicketBookingPreview', [
-            'trip' => $tripData,
+            'trip' => $outbound['tripData'],
+            'bookedSeats' => $outbound['bookedSeats'],
+            'seatLayout' => $outbound['seatLayout'],
+            'returnTrip' => $return['tripData'],
+            'returnBookedSeats' => $return['bookedSeats'],
+            'returnSeatLayout' => $return['seatLayout'],
             'searchParams' => $searchParams,
-            'bookedSeats' => $bookedSeats,
-            'seatLayout' => $seatLayout,
         ]);
+    }
+
+    /**
+     * Build the trip card + seat map data for a single schedule (used for
+     * both the outbound and, when present, return leg of a round trip).
+     */
+    private function buildTripPreview(?string $scheduleId): array
+    {
+        if (!$scheduleId) {
+            return ['tripData' => null, 'bookedSeats' => [], 'seatLayout' => null];
+        }
+
+        $schedule = BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])->find($scheduleId);
+
+        if (!$schedule) {
+            return ['tripData' => null, 'bookedSeats' => [], 'seatLayout' => null];
+        }
+
+        // Get all booked seats for this schedule
+        $bookedSeats = BusBooking::where('bus_schedule_id', $schedule->id)
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->get()
+            ->pluck('seat_numbers')
+            ->flatten()
+            ->toArray();
+
+        // Get seat layout configuration from bus
+        $busCapacity = $schedule->bus->capacity ?? 52;
+        $seatLayout = [
+            'rows' => ceil($busCapacity / 4), // 4 seats per row (2+2)
+            'columns' => 4,
+            'totalSeats' => $busCapacity,
+            'aisle' => 2, // Aisle after 2nd column
+        ];
+
+        $tripData = [
+            'id' => $schedule->id,
+            'operator' => $schedule->bus->operator,
+            'busType' => $schedule->bus->bus_type,
+            'routeNo' => $schedule->bus->route_number,
+            'busNo' => $schedule->bus->bus_number,
+            'depart' => date('g:i A', strtotime($schedule->departure_time)),
+            'arrive' => date('g:i A', strtotime($schedule->arrival_time)),
+            'day' => date('j M', strtotime($schedule->date)),
+            'duration' => $this->calculateDuration($schedule->departure_time, $schedule->arrival_time),
+            'price' => $schedule->price,
+            'seatsAvailable' => $schedule->available_seats,
+            'totalSeats' => $schedule->bus->capacity,
+            'expressway' => $schedule->is_expressway,
+            'soldOut' => $schedule->available_seats <= 0,
+            'facilities' => $schedule->bus->facilities ?? [],
+            'departureStation' => $schedule->departureStation->name,
+            'arrivalStation' => $schedule->arrivalStation->name,
+            'route' => $this->routeCoordinates($schedule->departureStation, $schedule->arrivalStation),
+        ];
+
+        return ['tripData' => $tripData, 'bookedSeats' => $bookedSeats, 'seatLayout' => $seatLayout];
+    }
+
+    /**
+     * Origin/destination lat-lng pair for rendering a route on the trip map.
+     */
+    private function routeCoordinates($departureStation, $arrivalStation): ?array
+    {
+        if (!$departureStation->latitude || !$arrivalStation->latitude) {
+            return null;
+        }
+
+        return [
+            'origin' => [
+                'lat' => (float) $departureStation->latitude,
+                'lng' => (float) $departureStation->longitude,
+                'label' => $departureStation->name,
+            ],
+            'destination' => [
+                'lat' => (float) $arrivalStation->latitude,
+                'lng' => (float) $arrivalStation->longitude,
+                'label' => $arrivalStation->name,
+            ],
+        ];
     }
 
     /**
@@ -190,8 +244,10 @@ class BusBookingController extends Controller
         // Log received data for debugging
         Log::info('Bus booking request data:', $request->all());
 
+        $isRoundTrip = (bool) $request->return_schedule_id;
+
         try {
-            $validatedData = $request->validate([
+            $rules = [
                 'schedule_id' => 'required|exists:bus_schedules,id',
                 'passenger_name' => 'required|string|max:255',
                 'passenger_email' => 'nullable|email|max:255',
@@ -199,10 +255,16 @@ class BusBookingController extends Controller
                 'seat_numbers' => 'required',
                 'passenger_count' => 'required|integer|min:1',
                 'boarding_point' => 'required|string|max:255',
-                'destination_point' => 'required|string|max:255'
-            ]);
+                'destination_point' => 'required|string|max:255',
+            ];
+
+            if ($isRoundTrip) {
+                $rules['return_schedule_id'] = 'required|exists:bus_schedules,id|different:schedule_id';
+                $rules['return_seat_numbers'] = 'required';
+            }
+
+            $request->validate($rules);
         } catch (ValidationException $e) {
-            // Log validation errors
             Log::error('Bus booking validation failed:', $e->errors());
 
             if ($request->expectsJson() || $request->isJson() || $request->ajax()) {
@@ -212,144 +274,77 @@ class BusBookingController extends Controller
             throw $e; // Re-throw for normal form processing
         }
 
-        // Parse seat numbers early for validation
-        $seatNumbers = $request->seat_numbers;
-        if (is_string($seatNumbers)) {
-            $seatNumbers = json_decode($seatNumbers, true);
-            // If JSON decode fails, treat it as a comma-separated list
-            if ($seatNumbers === null) {
-                $seatNumbers = explode(',', $request->seat_numbers);
-            }
-        }
-        // Clean up seat numbers array
-        $seatNumbers = array_map('trim', $seatNumbers);
-        $seatNumbers = array_values(array_filter($seatNumbers));
+        $seatNumbers = $this->parseSeatNumbers($request->seat_numbers);
+        $returnSeatNumbers = $isRoundTrip ? $this->parseSeatNumbers($request->return_seat_numbers) : [];
+
+        $passengerData = $request->only(['passenger_name', 'passenger_email', 'passenger_phone', 'boarding_point', 'destination_point']);
 
         try {
-            // Use database transaction with row locking to prevent race conditions
-            $booking = DB::transaction(function () use ($request, $seatNumbers) {
-                // Lock the schedule row for update to prevent concurrent modifications
-                $schedule = BusSchedule::where('id', $request->schedule_id)
-                    ->lockForUpdate()
-                    ->first();
+            // Both legs of a round trip are created in ONE transaction: either
+            // both bookings succeed, or neither does — never a stranded
+            // outbound leg with a failed return leg.
+            $result = DB::transaction(function () use ($request, $passengerData, $seatNumbers, $returnSeatNumbers, $isRoundTrip) {
+                $groupId = $isRoundTrip ? (string) \Illuminate\Support\Str::uuid() : null;
+                $tripType = $isRoundTrip ? 'round_trip' : 'one_way';
 
-                if (!$schedule) {
-                    throw ValidationException::withMessages([
-                        'schedule' => ['Schedule not found.']
-                    ]);
+                $outbound = $this->createBusLegBooking(
+                    $request->schedule_id,
+                    $passengerData,
+                    $seatNumbers,
+                    $request->passenger_count,
+                    $tripType,
+                    $groupId,
+                    $isRoundTrip ? 'outbound' : null
+                );
+
+                $return = null;
+                if ($isRoundTrip) {
+                    $return = $this->createBusLegBooking(
+                        $request->return_schedule_id,
+                        $passengerData,
+                        $returnSeatNumbers,
+                        $request->passenger_count,
+                        $tripType,
+                        $groupId,
+                        'return'
+                    );
                 }
 
-                // Check if schedule is active
-                if ($schedule->status !== 'active') {
-                    throw ValidationException::withMessages([
-                        'schedule' => ['This schedule is not currently available for booking.']
-                    ]);
-                }
-
-                // Check if booking date is not in the past
-                if (Carbon::parse($schedule->date)->isPast()) {
-                    throw ValidationException::withMessages([
-                        'schedule' => ['Cannot book a schedule in the past.']
-                    ]);
-                }
-
-                // Check seat availability (atomic check within transaction)
-                if ($schedule->available_seats < $request->passenger_count) {
-                    throw ValidationException::withMessages([
-                        'seats' => ["Only {$schedule->available_seats} seat(s) available. You requested {$request->passenger_count}"]
-                    ]);
-                }
-
-                // Check for seat collision - verify requested seats aren't already booked
-                $bookedSeats = BusBooking::where('bus_schedule_id', $schedule->id)
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->get()
-                    ->pluck('seat_numbers')
-                    ->flatten()
-                    ->toArray();
-
-                $conflicts = array_intersect($seatNumbers, $bookedSeats);
-                if (!empty($conflicts)) {
-                    throw ValidationException::withMessages([
-                        'seats' => ['The following seats are already booked: ' . implode(', ', $conflicts) . '. Please select different seats.']
-                    ]);
-                }
-
-                // Validate seat count matches requested seats
-                if (count($seatNumbers) !== $request->passenger_count) {
-                    throw ValidationException::withMessages([
-                        'seats' => ['Number of selected seats must match passenger count.']
-                    ]);
-                }
-
-                // Check that seats don't exceed bus capacity
-                $busCapacity = $schedule->bus->capacity ?? 50;
-                foreach ($seatNumbers as $seatNum) {
-                    if (is_numeric($seatNum) && $seatNum > $busCapacity) {
-                        throw ValidationException::withMessages([
-                            'seats' => ['Invalid seat number: ' . $seatNum . '. Bus capacity is ' . $busCapacity]
-                        ]);
-                    }
-                }
-
-                // Calculate total price from database (never trust client-side calculations)
-                $totalPrice = $schedule->price * $request->passenger_count;
-
-                // Create the booking
-                $bookingData = [
-                    'user_id' => Auth::check() ? Auth::id() : null,
-                    'bus_schedule_id' => $schedule->id,
-                    'passenger_name' => $request->passenger_name,
-                    'passenger_email' => $request->passenger_email,
-                    'passenger_phone' => $request->passenger_phone,
-                    'seat_numbers' => $seatNumbers,
-                    'passenger_count' => $request->passenger_count,
-                    'total_price' => $totalPrice,
-                    'booking_reference' => BusBooking::generateBookingReference(),
-                    'booking_date' => now(),
-                    'status' => 'pending', // Start as pending until payment
-                    'payment_status' => 'pending',
-                    'expires_at' => now()->addMinutes(15) // Booking expires in 15 minutes
-                ];
-
-                $booking = BusBooking::create($bookingData);
-
-                // Atomically decrement available seats
-                $schedule->decrement('available_seats', $request->passenger_count);
-
-                Log::info('Bus booking created successfully', [
-                    'booking_id' => $booking->id,
-                    'reference' => $booking->booking_reference,
-                    'seats_remaining' => $schedule->fresh()->available_seats
-                ]);
-
-                return $booking;
+                return [$outbound, $return];
             });
 
-            // Prepare the success response
+            [$booking, $returnBooking] = $result;
+
+            Log::info('Bus booking created successfully', [
+                'booking_id' => $booking->id,
+                'reference' => $booking->booking_reference,
+                'round_trip' => $isRoundTrip,
+                'return_booking_id' => $returnBooking?->id,
+            ]);
+
+            $message = $isRoundTrip ? 'Round-trip bus booking confirmed successfully!' : 'Bus booking confirmed successfully!';
+
             $successData = [
                 'success' => true,
-                'message' => 'Bus booking confirmed successfully!',
+                'message' => $message,
                 'reference' => $booking->booking_reference,
                 'redirect' => route('bus.booking.success', $booking->booking_reference)
             ];
 
-            // For AJAX/JSON requests
             if ($request->ajax() || $request->expectsJson() || $request->wantsJson() || $request->isJson()) {
                 return response()->json($successData);
             }
 
-            // For normal form submission
             return redirect()->route('bus.booking.success', $booking->booking_reference)
-                ->with('success', 'Bus booking confirmed successfully!');
+                ->with('success', $message);
 
         } catch (ValidationException $e) {
             Log::warning('Bus booking validation failed within transaction', ['errors' => $e->errors()]);
-            
+
             if ($request->ajax() || $request->expectsJson() || $request->wantsJson() || $request->isJson()) {
                 return response()->json(['errors' => $e->errors()], 422);
             }
-            
+
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Bus booking failed', [
@@ -370,6 +365,116 @@ class BusBookingController extends Controller
         }
     }
 
+    private function parseSeatNumbers($raw): array
+    {
+        $seatNumbers = $raw;
+        if (is_string($seatNumbers)) {
+            $seatNumbers = json_decode($seatNumbers, true);
+            // If JSON decode fails, treat it as a comma-separated list
+            if ($seatNumbers === null) {
+                $seatNumbers = explode(',', $raw);
+            }
+        }
+        $seatNumbers = array_map('trim', $seatNumbers);
+        return array_values(array_filter($seatNumbers));
+    }
+
+    /**
+     * Validate + create a single bus booking leg (with full seat-collision
+     * protection). Must be called inside a DB transaction — the caller is
+     * responsible for wrapping this (and, for round trips, the sibling leg)
+     * in one atomic transaction.
+     */
+    private function createBusLegBooking(
+        int $scheduleId,
+        array $passengerData,
+        array $seatNumbers,
+        int $passengerCount,
+        string $tripType,
+        ?string $groupId,
+        ?string $leg
+    ): BusBooking {
+        // Lock the schedule row for update to prevent concurrent modifications
+        $schedule = BusSchedule::where('id', $scheduleId)->lockForUpdate()->first();
+
+        if (!$schedule) {
+            throw ValidationException::withMessages([
+                'schedule' => ['Schedule not found.']
+            ]);
+        }
+
+        if ($schedule->status !== 'active') {
+            throw ValidationException::withMessages([
+                'schedule' => ['This schedule is not currently available for booking.']
+            ]);
+        }
+
+        if (Carbon::parse($schedule->date)->isPast()) {
+            throw ValidationException::withMessages([
+                'schedule' => ['Cannot book a schedule in the past.']
+            ]);
+        }
+
+        if ($schedule->available_seats < $passengerCount) {
+            throw ValidationException::withMessages([
+                'seats' => ["Only {$schedule->available_seats} seat(s) available. You requested {$passengerCount}"]
+            ]);
+        }
+
+        // Check for seat collision - verify requested seats aren't already booked
+        $bookedSeats = BusBooking::where('bus_schedule_id', $schedule->id)
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->get()
+            ->pluck('seat_numbers')
+            ->flatten()
+            ->toArray();
+
+        $conflicts = array_intersect($seatNumbers, $bookedSeats);
+        if (!empty($conflicts)) {
+            throw ValidationException::withMessages([
+                'seats' => ['The following seats are already booked: ' . implode(', ', $conflicts) . '. Please select different seats.']
+            ]);
+        }
+
+        if (count($seatNumbers) !== $passengerCount) {
+            throw ValidationException::withMessages([
+                'seats' => ['Number of selected seats must match passenger count.']
+            ]);
+        }
+
+        $busCapacity = $schedule->bus->capacity ?? 50;
+        foreach ($seatNumbers as $seatNum) {
+            if (is_numeric($seatNum) && $seatNum > $busCapacity) {
+                throw ValidationException::withMessages([
+                    'seats' => ['Invalid seat number: ' . $seatNum . '. Bus capacity is ' . $busCapacity]
+                ]);
+            }
+        }
+
+        // Calculate total price from database (never trust client-side calculations)
+        $totalPrice = $schedule->price * $passengerCount;
+
+        $booking = BusBooking::create(array_merge($passengerData, [
+            'user_id' => Auth::id(),
+            'bus_schedule_id' => $schedule->id,
+            'seat_numbers' => $seatNumbers,
+            'passenger_count' => $passengerCount,
+            'total_price' => $totalPrice,
+            'booking_reference' => BusBooking::generateBookingReference(),
+            'booking_date' => now(),
+            'trip_type' => $tripType,
+            'round_trip_group_id' => $groupId,
+            'leg' => $leg,
+            'status' => 'pending', // Start as pending until payment
+            'payment_status' => 'pending',
+            'expires_at' => now()->addMinutes(15), // Booking expires in 15 minutes
+        ]));
+
+        $schedule->decrement('available_seats', $passengerCount);
+
+        return $booking;
+    }
+
     /**
      * Display booking success page
      */
@@ -379,25 +484,40 @@ class BusBookingController extends Controller
             ->where('booking_reference', $reference)
             ->firstOrFail();
 
+        $returnBooking = $booking->round_trip_group_id
+            ? BusBooking::with(['busSchedule.bus', 'busSchedule.departureStation', 'busSchedule.arrivalStation'])
+                ->where('round_trip_group_id', $booking->round_trip_group_id)
+                ->where('id', '!=', $booking->id)
+                ->first()
+            : null;
+
         return Inertia::render('Web/home/ticketBooking/BusBookingSuccess', [
-            'booking' => [
-                'reference' => $booking->booking_reference,
-                'passengerName' => $booking->passenger_name,
-                'passengerEmail' => $booking->passenger_email,
-                'passengerPhone' => $booking->passenger_phone,
-                'seats' => $booking->seat_numbers,
-                'totalPrice' => $booking->total_price,
-                'status' => $booking->status,
-                'busOperator' => $booking->busSchedule->bus->operator,
-                'busNumber' => $booking->busSchedule->bus->bus_number,
-                'busType' => $booking->busSchedule->bus->bus_type,
-                'departureStation' => $booking->busSchedule->departureStation->name,
-                'arrivalStation' => $booking->busSchedule->arrivalStation->name,
-                'departureDate' => Carbon::parse($booking->busSchedule->date)->format('j M Y'),
-                'departureTime' => Carbon::parse($booking->busSchedule->departure_time)->format('g:i A'),
-                'arrivalTime' => Carbon::parse($booking->busSchedule->arrival_time)->format('g:i A'),
-            ]
+            'booking' => $this->formatBusBookingForDisplay($booking),
+            'returnBooking' => $returnBooking ? $this->formatBusBookingForDisplay($returnBooking) : null,
         ]);
+    }
+
+    private function formatBusBookingForDisplay(BusBooking $booking): array
+    {
+        return [
+            'reference' => $booking->booking_reference,
+            'passengerName' => $booking->passenger_name,
+            'passengerEmail' => $booking->passenger_email,
+            'passengerPhone' => $booking->passenger_phone,
+            'seats' => $booking->seat_numbers,
+            'totalPrice' => $booking->total_price,
+            'status' => $booking->status,
+            'tripType' => $booking->trip_type,
+            'leg' => $booking->leg,
+            'busOperator' => $booking->busSchedule->bus->operator,
+            'busNumber' => $booking->busSchedule->bus->bus_number,
+            'busType' => $booking->busSchedule->bus->bus_type,
+            'departureStation' => $booking->busSchedule->departureStation->name,
+            'arrivalStation' => $booking->busSchedule->arrivalStation->name,
+            'departureDate' => Carbon::parse($booking->busSchedule->date)->format('j M Y'),
+            'departureTime' => Carbon::parse($booking->busSchedule->departure_time)->format('g:i A'),
+            'arrivalTime' => Carbon::parse($booking->busSchedule->arrival_time)->format('g:i A'),
+        ];
     }
 
     /**

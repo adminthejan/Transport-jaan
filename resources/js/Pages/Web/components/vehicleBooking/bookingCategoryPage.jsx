@@ -1,5 +1,5 @@
 import React from 'react';
-import Header from '../../layouts/Header';
+import Header from '../../home/client/ClientHeader';
 import Footer from '../../layouts/Footer';
 import { Car, Ship, Plane } from 'lucide-react'; // Optional icons, install lucide-react
 

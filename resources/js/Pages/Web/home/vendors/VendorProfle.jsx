@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import Header from '../../layouts/Header'
+import Header from '../client/ClientHeader'
 import BackButton from "../../components/BackBtn";
 import InformationCard from '../../components/vendors/profile/InformationCard';
 import Btns from '../../components/vendors/profile/Btns';

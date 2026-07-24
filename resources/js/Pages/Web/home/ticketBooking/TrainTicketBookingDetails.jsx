@@ -1,5 +1,5 @@
 import React from "react";
-import Header from "../../layouts/Header";
+import Header from "../client/ClientHeader";
 import HeroDetails from "../../components/ticketBooking/HeroDetails";
 import Footer from "../../layouts/Footer";
 

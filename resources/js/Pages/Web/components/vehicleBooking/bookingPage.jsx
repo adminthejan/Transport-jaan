@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { Calendar, MapPin, Clock, Phone, CreditCard, Shield, Star, Users, Fuel, Settings, CheckCircle } from 'lucide-react';
-import Header from '../../layouts/Header';
+import Header from '../../home/client/ClientHeader';
 import Footer from '../../layouts/Footer';
 import axios from 'axios';
 import { redirect } from 'react-router-dom';

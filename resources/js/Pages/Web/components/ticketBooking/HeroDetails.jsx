@@ -1,6 +1,110 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
+import { Clock, Users, TrainFront } from "lucide-react";
 import TrainCard from "./TrainCard";
+
+function TripResultCard({ trip, mode, selected, onSelect, href }) {
+    const content = (
+        <div className="grid grid-cols-12 items-center gap-6 sm:gap-8">
+            {/* Left meta */}
+            <div className="col-span-12 sm:col-span-5">
+                <div className="flex items-center justify-between gap-4 sm:gap-6">
+                    <div>
+                        <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0955AC]/10 px-3 py-1 text-[12px] sm:text-[13px] font-bold text-[#0955AC]">
+                                <TrainFront className="w-3.5 h-3.5" /> {trip.class}
+                            </span>
+                            {selected && (
+                                <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-[11px] sm:text-[13px] font-bold text-green-700">
+                                    ✓ Selected
+                                </span>
+                            )}
+                        </div>
+                        <h3 className="text-[17px] sm:text-[20px] font-[800] text-[#0F172A]">{trip.name}</h3>
+                        <p className="mt-1 text-[13px] sm:text-[15px] text-[#64748B] font-[500]">{trip.route}</p>
+                        <p className="text-[12px] sm:text-[13px] text-[#94A3B8] font-[500]">
+                            Train {trip.train_number} · {trip.operator}
+                        </p>
+                    </div>
+                    <div className="hidden gap-2 sm:flex">
+                        {trip.facilities && trip.facilities.map((facility, index) => (
+                            <span
+                                key={index}
+                                title={facility}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9] text-[12px] font-bold text-[#0955AC]"
+                            >
+                                {facility}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Times */}
+            <div className="col-span-12 sm:col-span-4">
+                <div className="flex items-center justify-between sm:justify-start">
+                    <div className="text-center sm:text-left">
+                        <div className="text-[15px] sm:text-[18px] font-[800] text-[#0F172A]">{trip.depart}</div>
+                        <div className="text-[11px] sm:text-[13px] text-[#94A3B8] font-[600]">{trip.date}</div>
+                    </div>
+                    <div className="flex-1 flex items-center px-3 sm:px-4">
+                        <span className="h-[2px] flex-1 bg-[#E2E8F0]" />
+                        <Clock className="w-3.5 h-3.5 text-[#94A3B8] mx-1.5 shrink-0" />
+                        <span className="h-[2px] flex-1 bg-[#E2E8F0]" />
+                    </div>
+                    <div className="text-center sm:text-right shrink-0">
+                        <div className="text-[15px] sm:text-[18px] font-[800] text-[#0F172A]">{trip.arrive}</div>
+                        <div className="text-[11px] sm:text-[13px] text-[#94A3B8] font-[600]">{trip.date}</div>
+                    </div>
+                </div>
+                <div className="text-center text-[11px] sm:text-[12px] text-[#0955AC] font-[700] -mt-1">{trip.duration}</div>
+            </div>
+
+            {/* Price / action */}
+            <div className="col-span-12 sm:col-span-3">
+                <div className="flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end gap-3">
+                    <div className="text-left sm:text-right">
+                        <div className="text-[19px] sm:text-[24px] font-[800] text-[#0955AC]">LKR {trip.price.toLocaleString()}</div>
+                        <div className="flex items-center gap-1 text-[11px] sm:text-[13px] text-[#64748B] font-[600] sm:justify-end">
+                            <Users className="w-3.5 h-3.5" /> {trip.available_seats}/{trip.total_capacity} seats
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        disabled={trip.soldOut}
+                        className={`w-full rounded-full px-5 sm:px-7 py-2.5 sm:py-3 text-[13px] sm:text-[15px] font-[700] text-white sm:w-auto transition-colors ${
+                            trip.soldOut
+                                ? "bg-red-400 cursor-not-allowed"
+                                : selected
+                                ? "bg-green-600 hover:bg-green-700"
+                                : "bg-[#0955AC] hover:bg-[#073E82]"
+                        }`}
+                    >
+                        {trip.soldOut ? "Sold Out" : mode === "select" ? (selected ? "Selected" : "Select") : trip.status}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
+    const cardClass = `block w-full text-left rounded-[16px] border bg-white p-4 sm:p-7 shadow-[0_2px_10px_rgba(15,23,42,0.05)] transition-all duration-200 hover:shadow-[0_12px_28px_rgba(9,85,172,0.14)] hover:-translate-y-0.5 ${
+        selected ? "border-green-400 ring-2 ring-green-100" : "border-[#EEF2F6]"
+    }`;
+
+    if (mode === "select") {
+        return (
+            <button type="button" onClick={() => !trip.soldOut && onSelect(trip.id)} disabled={trip.soldOut} className={cardClass}>
+                {content}
+            </button>
+        );
+    }
+
+    return (
+        <Link href={href} className={cardClass}>
+            {content}
+        </Link>
+    );
+}
 
 export default function HeroDetails({
     outboundSchedules: propOutbound,
@@ -31,7 +135,11 @@ export default function HeroDetails({
     const hasActiveFilters = propHasFilters ?? pageProps.hasActiveFilters ?? false;
     const isShowingAllTrains = propShowAll ?? pageProps.isShowingAllTrains ?? false;
 
+    const isRoundTrip = searchParams.tripType === 'roundtrip';
+
     const [sortBy, setSortBy] = useState('fare');
+    const [selectedOutboundId, setSelectedOutboundId] = useState(null);
+    const [selectedReturnId, setSelectedReturnId] = useState(null);
 
     // Sort schedules based on selected criteria
     const sortSchedules = (schedules, criteria) => {
@@ -54,42 +162,66 @@ export default function HeroDetails({
     };
 
     const sortedOutboundSchedules = sortSchedules(outboundSchedules, sortBy);
+    const sortedReturnSchedules = sortSchedules(returnSchedules, sortBy);
+
+    const passengerQuery = `adults=${searchParams.adults}&children=${searchParams.children}&infants=${searchParams.infants}`;
+
+    const bothLegsSelected = isRoundTrip && selectedOutboundId && selectedReturnId;
+
+    const continueToBooking = () => {
+        if (!selectedOutboundId) return;
+        const params = new URLSearchParams({
+            schedule_id: selectedOutboundId,
+            adults: searchParams.adults ?? 1,
+            children: searchParams.children ?? 0,
+            infants: searchParams.infants ?? 0,
+        });
+        if (selectedReturnId) {
+            params.set('return_schedule_id', selectedReturnId);
+        }
+        router.visit(`/trainTicketBookingPreview?${params.toString()}`);
+    };
 
     return (
-        <section className="mx-auto w-full max-w-6xl px-6 py-8">
+        <section className="mx-auto w-full max-w-6xl px-6 py-8 pb-28">
 
             {/* Search Summary */}
             {hasActiveFilters && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <div className="mb-6 p-5 bg-[#0955AC]/5 rounded-[16px] border border-[#0955AC]/10">
                     <div className="flex items-start justify-between">
                         <div className="flex-1">
-                            <h2 className="text-lg font-semibold text-gray-800 mb-2">Search Results</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                            <h2 className="text-[15px] font-[800] text-[#0F172A] mb-3">Search Results</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-[13px]">
                                 <div>
-                                    <span className="font-medium text-gray-600">From:</span>
-                                    <p className="text-[#0955AC] font-semibold">{fromStationName || searchParams.from}</p>
+                                    <span className="font-[600] text-[#64748B]">From:</span>
+                                    <p className="text-[#0955AC] font-[700]">{fromStationName || searchParams.from}</p>
                                 </div>
                                 <div>
-                                    <span className="font-medium text-gray-600">To:</span>
-                                    <p className="text-[#0955AC] font-semibold">{toStationName || searchParams.to}</p>
+                                    <span className="font-[600] text-[#64748B]">To:</span>
+                                    <p className="text-[#0955AC] font-[700]">{toStationName || searchParams.to}</p>
                                 </div>
                                 <div>
-                                    <span className="font-medium text-gray-600">Date:</span>
-                                    <p className="text-[#0955AC] font-semibold">{searchParams.departureDate}</p>
+                                    <span className="font-[600] text-[#64748B]">Date:</span>
+                                    <p className="text-[#0955AC] font-[700]">{searchParams.departureDate}</p>
                                 </div>
                                 <div>
-                                    <span className="font-medium text-gray-600">Passengers:</span>
-                                    <p className="text-[#0955AC] font-semibold">
+                                    <span className="font-[600] text-[#64748B]">Passengers:</span>
+                                    <p className="text-[#0955AC] font-[700]">
                                         {searchParams.adults} Adults, {searchParams.children} Children, {searchParams.infants} Infants
                                     </p>
                                 </div>
                             </div>
+                            {isRoundTrip && (
+                                <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-[12px] font-[700] text-[#0955AC] border border-[#0955AC]/20">
+                                    ⇄ Round trip
+                                </div>
+                            )}
                         </div>
                         <button
                             onClick={() => router.get('/trainTicketBookingDetails')}
-                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-colors border border-gray-300 font-semibold ml-4"
+                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-[#334155] rounded-full transition-colors border border-[#E2E8F0] font-[700] text-[13px] ml-4"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
                             Clear Filters
@@ -99,16 +231,14 @@ export default function HeroDetails({
             )}
 
             {isShowingAllTrains && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                <div className="mb-6 p-4 bg-[#0955AC]/5 rounded-[16px] border-l-4 border-[#0955AC]">
                     <div className="flex items-start">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#0955AC] mr-3 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div>
-                            <p className="text-sm font-semibold text-blue-800">
-                                Showing all available trains
-                            </p>
-                            <p className="text-sm text-blue-700 mt-1">
+                            <p className="text-[13px] font-[700] text-[#0F172A]">Showing all available trains</p>
+                            <p className="text-[13px] text-[#64748B] mt-1">
                                 Use the search form above to filter trains by route, date, and passengers.
                             </p>
                         </div>
@@ -117,30 +247,28 @@ export default function HeroDetails({
             )}
 
             {/* Search form for modification */}
-            <div className="mb-20">
+            <div className="mb-14">
                 <TrainCard />
             </div>
 
             {/* Toolbar */}
-            <div className="sticky top-0 z-10 -mx-6 mb-4 border-b bg-white/80 px-6 py-5 backdrop-blur">
-                <div className="flex flex-wrap items-center gap-4">
-                    <span className="text-lg font-bold text-gray-800">
-                        Sort by:
-                    </span>
-                    <div className="flex flex-wrap gap-4">
+            <div className="sticky top-0 z-10 -mx-6 mb-6 bg-white/90 backdrop-blur px-4 sm:px-6 py-4 rounded-2xl shadow-[0_2px_10px_rgba(15,23,42,0.05)] border border-[#EEF2F6]">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <span className="text-[13px] sm:text-[14px] font-[700] text-[#0F172A] w-full sm:w-auto mb-1 sm:mb-0">Sort by</span>
+                    <div className="flex flex-wrap gap-2">
                         {[
                             { key: 'fare', label: 'Fare' },
                             { key: 'departure', label: 'Departure' },
                             { key: 'arrival', label: 'Arrival' },
-                            { key: 'seats', label: 'Seats Availability' },
+                            { key: 'seats', label: 'Seats' },
                             { key: 'name', label: 'Name' },
                         ].map((filter) => (
                             <button
                                 key={filter.key}
                                 onClick={() => setSortBy(filter.key)}
-                                className={`rounded border px-5 py-2 text-lg font-semibold transition-colors ${sortBy === filter.key
+                                className={`rounded-full border px-4 py-1.5 text-[12px] sm:text-[13px] font-[700] transition-colors ${sortBy === filter.key
                                         ? 'border-[#0955AC] bg-[#0955AC] text-white'
-                                        : 'border-gray-300 text-gray-800 hover:bg-gray-50'
+                                        : 'border-[#E2E8F0] text-[#475569] hover:border-[#0955AC]/40'
                                     }`}
                             >
                                 {filter.label}
@@ -148,239 +276,84 @@ export default function HeroDetails({
                         ))}
                     </div>
                     {hasActiveFilters && (
-                        <div className="ml-auto flex items-center gap-4 text-lg text-gray-600">
+                        <div className="ml-auto flex items-center gap-2 sm:gap-3 text-[12px] sm:text-[14px] font-[600] text-[#334155]">
                             <span>{fromStationName} → {toStationName}</span>
-                            <span>•</span>
-                            <span>{searchParams.departureDate}</span>
+                            <span className="text-[#CBD5E1]">•</span>
+                            <span className="text-[#64748B]">{searchParams.departureDate}</span>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Results list */}
-            <div className="space-y-6">
+            {/* Outbound results list */}
+            {isRoundTrip && (
+                <h3 className="text-[18px] sm:text-[22px] font-[800] text-[#0F172A] mb-4">
+                    Step 1 · Departure — {fromStationName} → {toStationName}
+                </h3>
+            )}
+            <div className="space-y-5">
                 {sortedOutboundSchedules.length > 0 ? (
                     sortedOutboundSchedules.map((trip) => (
-                        <Link
-                            href={`/trainTicketBookingPreview?schedule_id=${trip.id}&adults=${searchParams.adults}&children=${searchParams.children}&infants=${searchParams.infants}`}
+                        <TripResultCard
                             key={trip.id}
-                            className="block rounded-xl border border-gray-300 bg-white p-8 shadow-md transition hover:shadow-xl"
-                        >
-                            <div className="grid grid-cols-12 items-center gap-8">
-                                {/* Left meta */}
-                                <div className="col-span-12 sm:col-span-5">
-                                    <div className="flex items-center justify-between gap-6">
-                                        <div>
-                                            <div className="mb-3 flex items-center gap-3">
-                                                <span
-                                                    className={`inline-flex items-center rounded-md bg-[#0955AC]/10 px-4 py-2 text-lg font-bold text-[#0955AC] ring-1 ring-inset ring-[#0955AC]/40`}
-                                                >
-                                                    {trip.class}
-                                                </span>
-                                            </div>
-                                            <h3 className="text-xl font-extrabold text-gray-900">
-                                                {trip.name}
-                                            </h3>
-                                            <p className="mt-2 text-lg text-gray-600">
-                                                {trip.route}
-                                            </p>
-                                            <p className="text-sm text-gray-500">
-                                                Train: {trip.train_number} | {trip.operator}
-                                            </p>
-                                        </div>
-
-                                        <div className="hidden gap-3 sm:flex">
-                                            {trip.facilities && trip.facilities.map((facility, index) => (
-                                                <span
-                                                    key={index}
-                                                    title={facility}
-                                                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-base font-semibold text-gray-700"
-                                                >
-                                                    {facility}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Times */}
-                                <div className="col-span-12 sm:col-span-4">
-                                    <div className="flex items-center justify-center sm:justify-start">
-                                        <div className="text-center sm:text-left">
-                                            <div className="text-lg font-bold text-gray-900">
-                                                {trip.depart}
-                                            </div>
-                                            <div className="text-base text-gray-600">
-                                                {trip.date}
-                                            </div>
-                                        </div>
-
-                                        <span className="mx-4 inline-block h-3 w-3 rounded-full bg-gray-400 align-middle" />
-
-                                        <div className="text-center">
-                                            <div className="text-base text-gray-600">
-                                                Duration
-                                            </div>
-                                            <div className="text-lg font-bold text-gray-800">
-                                                {trip.duration}
-                                            </div>
-                                        </div>
-
-                                        <span className="mx-4 inline-block h-3 w-3 rounded-full bg-gray-400 align-middle" />
-
-                                        <div className="text-center sm:text-right">
-                                            <div className="text-lg font-bold text-gray-900">
-                                                {trip.arrive}
-                                            </div>
-                                            <div className="text-base text-gray-600">
-                                                {trip.date}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-5 flex flex-wrap gap-6 text-lg text-[#0955AC]">
-                                        <button className="hover:underline">
-                                            View train stops & times
-                                        </button>
-                                        <button className="hover:underline text-gray-600">
-                                            View cancellation policy
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Price / action */}
-                                <div className="col-span-12 sm:col-span-3">
-                                    <div className="flex flex-col items-end gap-4 sm:items-end">
-                                        <div className="text-right">
-                                            <div className="text-2xl font-extrabold text-gray-900">
-                                                LKR {trip.price.toLocaleString()}
-                                            </div>
-                                            <div className="text-lg text-gray-600">
-                                                Available seats: {trip.available_seats}/{trip.total_capacity}
-                                            </div>
-                                        </div>
-                                        <button
-                                            disabled={trip.soldOut}
-                                            className={`w-full rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${trip.soldOut
-                                                    ? "bg-red-500/70 cursor-not-allowed"
-                                                    : "bg-[#0955AC] hover:bg-[#074489]"
-                                                }`}
-                                        >
-                                            {trip.status}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </Link>
+                            trip={trip}
+                            mode={isRoundTrip ? "select" : "link"}
+                            selected={selectedOutboundId === trip.id}
+                            onSelect={setSelectedOutboundId}
+                            href={`/trainTicketBookingPreview?schedule_id=${trip.id}&${passengerQuery}`}
+                        />
                     ))
                 ) : (
-                    <div className="text-center py-12">
-                        <div className="text-gray-500 text-lg">
-                            No trains found for your search criteria.
-                        </div>
-                        <p className="text-gray-400 mt-2">
-                            Please try different dates or stations.
-                        </p>
+                    <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
+                        <div className="text-[#334155] text-[15px] sm:text-[17px] font-[700]">No trains found for your search criteria.</div>
+                        <p className="text-[#94A3B8] mt-2 text-[13px] sm:text-[14px]">Please try different dates or stations.</p>
                     </div>
                 )}
             </div>
 
             {/* Return journey schedules for round trip */}
-            {searchParams.tripType === 'roundtrip' && returnSchedules.length > 0 && (
+            {isRoundTrip && returnSchedules.length > 0 && (
                 <div className="mt-12">
-                    <h3 className="text-2xl font-bold text-gray-800 mb-6">
-                        Return Journey - {toStationName} → {fromStationName}
+                    <h3 className="text-[18px] sm:text-[22px] font-[800] text-[#0F172A] mb-6">
+                        Step 2 · Return — {toStationName} → {fromStationName}
                     </h3>
-                    <div className="space-y-6">
-                        {returnSchedules.map((trip) => (
-                            <Link
-                                href={`/trainTicketBookingPreview?schedule_id=${trip.id}&adults=${searchParams.adults}&children=${searchParams.children}&infants=${searchParams.infants}`}
+                    <div className="space-y-5">
+                        {sortedReturnSchedules.map((trip) => (
+                            <TripResultCard
                                 key={trip.id}
-                                className="block rounded-xl border border-gray-300 bg-white p-8 shadow-md transition hover:shadow-xl"
-                            >
-                                {/* Same structure as outbound trips */}
-                                <div className="grid grid-cols-12 items-center gap-8">
-                                    <div className="col-span-12 sm:col-span-5">
-                                        <div className="flex items-center justify-between gap-6">
-                                            <div>
-                                                <div className="mb-3 flex items-center gap-3">
-                                                    <span className="inline-flex items-center rounded-md bg-[#0955AC]/10 px-4 py-2 text-lg font-bold text-[#0955AC] ring-1 ring-inset ring-[#0955AC]/40">
-                                                        {trip.class}
-                                                    </span>
-                                                </div>
-                                                <h3 className="text-xl font-extrabold text-gray-900">
-                                                    {trip.name}
-                                                </h3>
-                                                <p className="mt-2 text-lg text-gray-600">
-                                                    {trip.route}
-                                                </p>
-                                            </div>
-                                            <div className="hidden gap-3 sm:flex">
-                                                {trip.facilities && trip.facilities.map((facility, index) => (
-                                                    <span
-                                                        key={index}
-                                                        title={facility}
-                                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-base font-semibold text-gray-700"
-                                                    >
-                                                        {facility}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="col-span-12 sm:col-span-4">
-                                        <div className="flex items-center justify-center sm:justify-start">
-                                            <div className="text-center sm:text-left">
-                                                <div className="text-lg font-bold text-gray-900">
-                                                    {trip.depart}
-                                                </div>
-                                                <div className="text-base text-gray-600">
-                                                    {trip.date}
-                                                </div>
-                                            </div>
-                                            <span className="mx-4 inline-block h-3 w-3 rounded-full bg-gray-400 align-middle" />
-                                            <div className="text-center">
-                                                <div className="text-base text-gray-600">
-                                                    Duration
-                                                </div>
-                                                <div className="text-lg font-bold text-gray-800">
-                                                    {trip.duration}
-                                                </div>
-                                            </div>
-                                            <span className="mx-4 inline-block h-3 w-3 rounded-full bg-gray-400 align-middle" />
-                                            <div className="text-center sm:text-right">
-                                                <div className="text-lg font-bold text-gray-900">
-                                                    {trip.arrive}
-                                                </div>
-                                                <div className="text-base text-gray-600">
-                                                    {trip.date}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="col-span-12 sm:col-span-3">
-                                        <div className="flex flex-col items-end gap-4 sm:items-end">
-                                            <div className="text-right">
-                                                <div className="text-2xl font-extrabold text-gray-900">
-                                                    LKR {trip.price.toLocaleString()}
-                                                </div>
-                                                <div className="text-lg text-gray-600">
-                                                    Available seats: {trip.available_seats}/{trip.total_capacity}
-                                                </div>
-                                            </div>
-                                            <button
-                                                disabled={trip.soldOut}
-                                                className={`w-full rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${trip.soldOut
-                                                        ? "bg-red-500/70 cursor-not-allowed"
-                                                        : "bg-[#0955AC] hover:bg-[#074489]"
-                                                    }`}
-                                            >
-                                                {trip.status}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
+                                trip={trip}
+                                mode="select"
+                                selected={selectedReturnId === trip.id}
+                                onSelect={setSelectedReturnId}
+                            />
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Sticky continue bar for round trips */}
+            {isRoundTrip && (selectedOutboundId || selectedReturnId) && (
+                <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#EEF2F6] bg-white/95 backdrop-blur px-6 py-4 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]">
+                    <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+                        <div className="text-[13px] sm:text-[15px] font-[600]">
+                            <span className={selectedOutboundId ? "text-green-600 font-[700]" : "text-[#94A3B8]"}>
+                                ✓ Departure {selectedOutboundId ? "selected" : "pending"}
+                            </span>
+                            <span className="mx-3 text-[#E2E8F0]">|</span>
+                            <span className={selectedReturnId ? "text-green-600 font-[700]" : "text-[#94A3B8]"}>
+                                ✓ Return {selectedReturnId ? "selected" : "pending"}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={continueToBooking}
+                            disabled={!bothLegsSelected}
+                            className={`rounded-full px-8 py-3 text-[14px] sm:text-[16px] font-[700] text-white transition-colors ${
+                                bothLegsSelected ? "bg-[#0955AC] hover:bg-[#073E82]" : "bg-[#CBD5E1] cursor-not-allowed"
+                            }`}
+                        >
+                            Continue to Booking
+                        </button>
                     </div>
                 </div>
             )}

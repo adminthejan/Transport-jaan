@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "@inertiajs/react";
-import Header from "../layouts/Header";
+import Header from "./client/ClientHeader";
 import HeroSection from "../components/courierService/HeroSection";
 import WhyOurService from "../components/courierService/WhyOurService";
 import Process from "../components/courierService/Process";

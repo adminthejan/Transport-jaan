@@ -1,5 +1,5 @@
 import React from 'react'
-import Header from "../HeaderTwo";
+import Header from "../../client/ClientHeader";
 import Hero from '../../../components/multiModel/bus/busDetails/Hero.jsx';
 import Footer from '../../../layouts/Footer';
 

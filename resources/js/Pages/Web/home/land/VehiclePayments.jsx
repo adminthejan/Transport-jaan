@@ -1,5 +1,5 @@
 import React from 'react'
-import Header from "../../layouts/Header"
+import Header from "../client/ClientHeader"
 import Payments from '../../components/LandVehicleDetails/Payments'
 
 const VehiclePayments = () => {

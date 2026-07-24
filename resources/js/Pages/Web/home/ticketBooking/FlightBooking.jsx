@@ -1,5 +1,5 @@
 import React from "react";
-import Header from "../../layouts/Header";
+import Header from "../client/ClientHeader";
 import FlightForm from "../../components/ticketBooking/FlightForm";
 import { usePage } from "@inertiajs/react";
 

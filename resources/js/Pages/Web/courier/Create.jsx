@@ -3,7 +3,7 @@ import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { createPortal } from "react-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import Header from "../layouts/Header";
+import Header from "../home/client/ClientHeader";
 import Footer from "../layouts/Footer";
 import bg from "../assets/courierService/bg.png";
 import dimensionGuideIcon from "../assets/landingPages/box.svg";

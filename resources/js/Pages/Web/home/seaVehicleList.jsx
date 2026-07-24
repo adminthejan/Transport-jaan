@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
-import Header from "../layouts/Header";
+import Header from "./client/ClientHeader";
 import FilterSidebar from "../components/seaVehicleList/FilterSidebar";
 import SeaVehicleListContent from "../components/seaVehicleList/SeaVehicleListContent";
 import SearchForm from "../components/seaVehicleList/SearchForm";

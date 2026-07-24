@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "@inertiajs/react";
+import { Search } from "lucide-react";
 
 // Train stations data for Sri Lanka
 const trainStations = [
@@ -217,14 +218,14 @@ const TrainCard = () => {
     };
 
     return (
-        <div className="bg-white/95 rounded-[20px] shadow-xl ring-1 ring-[#0955AC]/15 overflow-hidden">
-            <div className="bg-[#0955AC] text-yellow-400 font-bold text-lg py-5 text-center">
-                Find Your Trains
+        <div className="bg-white rounded-[20px] shadow-[0_10px_30px_rgba(9,85,172,0.10)] border border-black/5 overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-6 py-5 text-center">
+                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">Find Your Trains</span>
             </div>
 
-            <form onSubmit={onSubmitTrain} className="figtree flex flex-col justify-center items-center bg-white p-10 w-full h-auto text-[#286BB6] text-[13px] font-[400] space-y-6">
-                {/* Trip Type buttons */}
-                <div className="grid grid-cols-2 rounded-[12px] overflow-hidden border border-[#0955AC]/20 w-full">
+            <form onSubmit={onSubmitTrain} className="figtree flex flex-col justify-center items-center bg-white p-6 sm:p-10 w-full h-auto text-[#286BB6] text-[13px] font-[400] space-y-6">
+                {/* Trip Type segmented control */}
+                <div className="inline-flex bg-[#F1F5F9] rounded-full p-1 w-full sm:w-auto">
                     {["One way", "Round Trip"].map(
                         (type, index) => {
                             const value = type.toLowerCase().replace(" ", "");
@@ -233,10 +234,9 @@ const TrainCard = () => {
                                 <button
                                     type="button"
                                     key={index}
-                                    className={`${isActive
-                                        ? "bg-[#0955AC] text-white"
-                                        : "bg-gray-100 text-gray-700"
-                                    } py-5 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0955AC]/60`}
+                                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-full text-[13px] font-[700] transition-all ${
+                                        isActive ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
+                                    }`}
                                     onClick={() => setTripType(value)}
                                 >
                                     {type}
@@ -408,9 +408,10 @@ const TrainCard = () => {
                 <button
                     type="button"
                     onClick={handleSearchClick}
-                    className="bg-[#0955AC] text-white font-bold h-[56px] w-full rounded-[10px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#07448a] transition-colors flex justify-center items-center"
+                    className="bg-[#0955AC] text-white font-bold h-[52px] w-full rounded-[12px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#073E82] transition-colors flex justify-center items-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)]"
                 >
-                    Search
+                    <Search className="w-[18px] h-[18px]" />
+                    Search Trains
                 </button>
             </form>
         </div>

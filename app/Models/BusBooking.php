@@ -22,6 +22,9 @@ class BusBooking extends Model
         'passenger_count',
         'total_price',
         'booking_reference',
+        'trip_type',
+        'round_trip_group_id',
+        'leg',
         'status',
         'payment_status',
         'booking_date',
@@ -49,6 +52,20 @@ class BusBooking extends Model
     public function busSchedule()
     {
         return $this->belongsTo(BusSchedule::class);
+    }
+
+    /**
+     * The other leg of the same round trip (outbound <-> return), if any.
+     */
+    public function roundTripPartner()
+    {
+        if (!$this->round_trip_group_id) {
+            return null;
+        }
+
+        return static::where('round_trip_group_id', $this->round_trip_group_id)
+            ->where('id', '!=', $this->id)
+            ->first();
     }
 
     /**

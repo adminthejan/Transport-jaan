@@ -11,10 +11,14 @@ class VehicleMaintenanceSeeder extends Seeder
 {
     public function run(): void
     {
-        $vehicles = Vehicle::limit(2)->get();
+        $vehicles = Vehicle::all();
         $admin = User::where('role', 'admin')->first();
 
         foreach ($vehicles as $vehicle) {
+            if (VehicleMaintenance::where('vehicle_id', $vehicle->id)->exists()) {
+                continue;
+            }
+
             VehicleMaintenance::create([
                 'vehicle_id' => $vehicle->id,
                 'start_date' => now()->subMonths(2),

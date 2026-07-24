@@ -726,7 +726,7 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
     Route::get('/editUnit/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/EditUnit', ['unitId' => $id]))->name('editUnit');
     Route::get('/unitDetails/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/UnitDetails', ['unitId' => $id]))->name('unitDetails');
-    Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Booking'))->name('bookings');
+    Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Bookings'))->name('bookings');
     Route::get('/clients', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseClientController::class, 'index'])->name('clients');
     Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/warehouse/Expenses'))->name('expenses');
     Route::get('/payment', fn() => Inertia::render('Web/home/vendors/warehouse/Payment'))->name('payment');
@@ -802,6 +802,16 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     // Payment endpoints
     Route::get('/api/payment-transactions', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getPaymentTransactions'])->name('api.payments.transactions');
     Route::get('/api/payment-stats', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getPaymentStats'])->name('api.payments.stats');
+
+    // Tracking / occupancy overview
+    Route::get('/api/tracking', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getTrackingOverview'])->name('api.tracking');
+
+    // Expenses
+    Route::get('/api/expenses', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'index'])->name('api.expenses.index');
+    Route::get('/api/expenses/stats', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'stats'])->name('api.expenses.stats');
+    Route::post('/api/expenses', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'store'])->name('api.expenses.store');
+    Route::put('/api/expenses/{id}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'update'])->name('api.expenses.update');
+    Route::delete('/api/expenses/{id}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'destroy'])->name('api.expenses.destroy');
 });
 
 // Admin routes for warehouse approval (requires admin role)
@@ -1079,9 +1089,11 @@ Route::middleware(['auth'])->group(function () {
 // end
 
 // vendor dashboard - warehouse
-Route::get('/warehouse/bookings', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Bookings');
-})->name('warehouse.bookings');
+Route::middleware(['auth', 'vendor.verified'])->group(function () {
+    Route::get('/warehouse/bookings', function () {
+        return Inertia::render('Web/home/vendors/warehouse/Bookings');
+    })->name('warehouse.bookings');
+});
 
 // Legacy SuperAdmin report routes (mixed-case) redirected to canonical protected endpoints.
 Route::redirect('/SuperAdmin/reports/filter-options', '/superadmin/reports/filter-options')->name('SuperAdmin.reports.filterOptions');
@@ -1099,43 +1111,47 @@ Route::redirect('/SuperAdmin/reports/users/service-providers', '/superadmin/repo
 Route::redirect('/SuperAdmin/reports/users/drivers', '/superadmin/reports/users/drivers')->name('SuperAdmin.reports.users.drivers');
 
 // vendor - warehouse rent
-Route::get('/warehouse/unit', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Unit');
-})->name('warehouse.units');
+Route::middleware(['auth', 'vendor.verified'])->group(function () {
+    Route::get('/warehouse/unit', function () {
+        return Inertia::render('Web/home/vendors/warehouse/Unit');
+    })->name('warehouse.units');
 
-Route::get('/warehouse/dashboard', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Dashboard');
-})->name('warehouse.dashboard');
+    Route::get('/warehouse/dashboard', function () {
+        return Inertia::render('Web/home/vendors/warehouse/Dashboard');
+    })->name('warehouse.dashboard');
 
-Route::get('/warehouse/clients', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Client');
-})->name('warehouse.clients');
+    Route::get('/warehouse/clients', function () {
+        return Inertia::render('Web/home/vendors/warehouse/Client');
+    })->name('warehouse.clients');
 
-Route::get('/warehouse/expenses', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Expenses');
-})->name('warehouse.expenses');
+    Route::get('/warehouse/expenses', function () {
+        return Inertia::render('Web/home/vendors/warehouse/Expenses');
+    })->name('warehouse.expenses');
 
-Route::get('/warehouse/payment', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Payment');
-})->name('warehouse.payment');
+    Route::get('/warehouse/payment', function () {
+        return Inertia::render('Web/home/vendors/warehouse/Payment');
+    })->name('warehouse.payment');
 
-Route::get('/warehouse/tracking', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Tracking');
-})->name('warehouse.tracking');
+    Route::get('/warehouse/tracking', function () {
+        return Inertia::render('Web/home/vendors/warehouse/Tracking');
+    })->name('warehouse.tracking');
 
-Route::get('/warehouse/calendar', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseCalendarController::class, 'index'])->name('warehouse.calendar');
+    Route::get('/warehouse/calendar', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseCalendarController::class, 'index'])->name('warehouse.calendar');
 
-Route::get('/warehouse/addUnit', function () {
-    return Inertia::render('Web/home/vendors/warehouse/AddUnit');
-})->name('warehouse.addUnit');
+    Route::get('/warehouse/reservations', function () {
+        return Inertia::render('Web/home/vendors/warehouse/Reservation');
+    })->name('warehouse.reservations');
 
-Route::get('/warehouse/unitDetails', function () {
-    return Inertia::render('Web/home/vendors/warehouse/UnitDetails');
-})->name('warehouse.unitDetails');
+    Route::get('/warehouse/addUnit', function () {
+        return Inertia::render('Web/home/vendors/warehouse/AddUnit');
+    })->name('warehouse.addUnit');
 
-Route::get('/warehouse/settingsPage', function () {
-    return Inertia::render('Web/home/vendors/warehouse/SettingsPage');
-})->name('warehouse.settingsPage');
+    Route::get('/warehouse/unitDetails', function () {
+        return Inertia::render('Web/home/vendors/warehouse/UnitDetails');
+    })->name('warehouse.unitDetails');
+
+    Route::get('/warehouse/settingsPage', [\App\Http\Controllers\VendorSettingsController::class, 'showWarehouse'])->name('warehouse.settingsPage');
+});
 
 // vendor dashboard - warehouse (all protected under auth + role:vendor in group above)
 
@@ -2298,8 +2314,14 @@ Route::get('/warehouseBookingDashboard', function () {
 |  — generated compactly (no routes removed)
 |--------------------------------------------------------------------------
 */
+// NOTE: 'warehouse' intentionally omitted — every warehouse vendor page now has
+// an explicit, auth + vendor.verified-protected route defined above. This loop's
+// "skip if already registered" guard (Route::has()) cannot see routes named via
+// the standard fluent ->name() chain earlier in this same file (Laravel only
+// refreshes the route-collection name lookup on real HTTP dispatch, not while
+// the route file itself is still being loaded), so leaving 'warehouse' in this
+// list would silently re-register unauthenticated duplicates of those routes.
 $sections = [
-    'warehouse'     => 'Web/home/vendors/warehouse',
     'ticketBooking' => 'Web/home/vendors/ticketBooking',
     'freight'       => 'Web/home/vendors/freight',
     'multimodal'    => 'Web/home/vendors/multimodal',

@@ -140,82 +140,89 @@ const handleViewMore = () => {
           Ranging from elegant sedans to powerful vehicles, all carefully selected to provide
           our customers <br /> with the ultimate driving experience.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] justify-items-center p-4 sm:p-6 md:p-8 lg:p-10">
-          {vehicles.map((vehicle) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6 md:gap-7 justify-items-center p-4 sm:p-6 md:p-8 lg:p-10">
+          {vehicles.map((vehicle, idx) => (
             <div
               key={vehicle.id}
-              className="bg-[#EAEAE9] shadow-md overflow-hidden h-auto w-full sm:max-w-[286px] py-3 sm:py-4 md:py-5"
+              className="group relative bg-white rounded-[18px] overflow-hidden h-auto w-full sm:max-w-[300px] border border-black/5 shadow-[0_2px_10px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_32px_rgba(9,85,172,0.16)] hover:-translate-y-1.5 transition-all duration-300"
             >
-              {/* Specs */}
-              <div className="flex items-center justify-center mt-3 sm:mt-4 md:mt-5">
-                <div className="flex flex-wrap justify-center gap-6 w-full px-5 text-[9px] text-[#00000040]">
-                  <div className="flex flex-col items-center gap-1">
-                    <img src={meter} alt="Odometer" className="w-[17px] h-[17px]" />
-                    <span>{vehicle.mileage_km ?? "-"}</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <img src={gearBox} alt="Transmission" className="w-[17px] h-[17px]" />
-                    <span>{vehicle.transmission_type || "-"}</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <img src={user} alt="Seats" className="w-[17px] h-[17px]" />
-                    <span>{vehicle.landSpec?.seats || vehicle.passenger_capacity || "-"}</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <img src={gas} alt="Fuel" className="w-[17px] h-[17px]" />
-                    <span>{vehicle.landSpec?.fuel_type || "-"}</span>
-                  </div>
-                </div>
-              </div>
-
               {/* Vehicle Image */}
-              <div className="flex items-center justify-center p-2 sm:p-3 md:p-4">
-                    <div className="relative w-full overflow-hidden bg-white rounded" style={{ aspectRatio: '3 / 4' }}>
-                      <img
-                        src={getVehicleImageSrc(vehicle)}
-                        alt={vehicle.model || "Vehicle"}
-                        className="absolute inset-0 w-full h-full object-contain object-center"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = placeholderImg;
-                        }}
-                        loading="lazy"
-                      />
-                    </div>
+              <div className="relative w-full overflow-hidden bg-[#F3F5F8]" style={{ aspectRatio: '4 / 3' }}>
+                <img
+                  src={getVehicleImageSrc(vehicle)}
+                  alt={vehicle.model || "Vehicle"}
+                  className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = placeholderImg;
+                  }}
+                  loading="lazy"
+                />
+
+                {/* Availability badge */}
+                <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 bg-white/95 backdrop-blur rounded-full px-3 py-1 text-[11px] font-bold text-green-700 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Available Now
+                </span>
+                {idx < 3 && (
+                  <span className="absolute top-3 right-11 inline-flex items-center bg-[#0955AC] rounded-full px-3 py-1 text-[11px] font-bold text-white shadow-sm">
+                    Popular
+                  </span>
+                )}
+
+                {/* Like button */}
+                <button
+                  onClick={() => toggleLike(vehicle.id)}
+                  className="absolute top-3 right-3 h-8 w-8 rounded-full bg-white/95 backdrop-blur shadow-sm grid place-items-center hover:scale-110 transition-transform"
+                  aria-label={likedMap[vehicle.id] ? 'Unlike' : 'Like'}
+                >
+                  <img src={likedMap[vehicle.id] ? heartFill : heart} alt="" className="w-[15px] h-[15px]" />
+                </button>
               </div>
 
               {/* Vehicle Info */}
-                <div className="p-2 sm:p-3 flex flex-col items-center justify-center">
-                <h3 className="bebas-neue text-[24px] sm:text-[26px] md:text-[30px] font-[400] text-center">
-                  {(vehicle.model || "").split(" ").map((word, i) => (
-                    <span key={i} className={i === 1 ? "text-[#0955AC]" : ""}>
-                      {word}{" "}
-                    </span>
-                  ))}
-                </h3>
-                <p className="poppins font-[700] text-[20px] sm:text-[22px] md:text-[25px]">
-                  {vehicle.rental_price_per_day}
-                  <span className="text-[#00000080] text-[8px] sm:text-[9px] md:text-[10px] font-[600]"> /day</span>
-                </p>
+              <div className="p-4 sm:p-5 flex flex-col">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h3 className="poppins text-[16px] sm:text-[17px] font-[700] text-[#0F0F0F] truncate">
+                    {vehicle.model || "Vehicle"}
+                  </h3>
+                  <span className="flex items-center gap-1 text-[12px] font-[700] text-[#0F0F0F] shrink-0">
+                    <span className="text-[#F0BB0D]">★</span> 4.8
+                  </span>
+                </div>
+                <p className="text-[12px] text-[#0F0F0F80] mb-3">{vehicle.manufacturer || " "}</p>
 
-                {/* Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-4 w-full justify-center items-center">
+                {/* Specs */}
+                <div className="flex items-center gap-4 py-3 border-y border-black/5 mb-4 text-[10px] text-[#4B5563] font-[500]">
+                  <div className="flex items-center gap-1.5">
+                    <img src={meter} alt="" className="w-[14px] h-[14px] opacity-60" />
+                    <span>{vehicle.mileage_km ?? "-"} km</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <img src={gearBox} alt="" className="w-[14px] h-[14px] opacity-60" />
+                    <span className="capitalize">{vehicle.transmission_type || "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <img src={user} alt="" className="w-[14px] h-[14px] opacity-60" />
+                    <span>{vehicle.landSpec?.seats || vehicle.passenger_capacity || "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <img src={gas} alt="" className="w-[14px] h-[14px] opacity-60" />
+                    <span className="capitalize">{vehicle.landSpec?.fuel_type || "-"}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <p className="poppins">
+                    <span className="text-[20px] sm:text-[22px] font-[800] text-[#0955AC]">
+                      LKR {Number(vehicle.rental_price_per_day || 0).toLocaleString()}
+                    </span>
+                    <span className="text-[#00000066] text-[11px] font-[600]"> /day</span>
+                  </p>
                   <button
                     onClick={() => handleViewDetails(vehicle.id)}
-                    className="bebas-neue bg-[#0955AC] hover:bg-white hover:text-black text-white text-[10px] sm:text-[11px] font-[400] py-2 px-4 rounded w-full sm:w-[160px] md:w-[180px] h-[36px] sm:h-[38px] cursor-pointer"
+                    className="poppins bg-[#0955AC] hover:bg-[#073E82] text-white text-[12px] font-[700] py-2.5 px-5 rounded-full transition-colors cursor-pointer"
                   >
                     View Details
-                  </button>
-                  <button
-                    onClick={() => toggleLike(vehicle.id)}
-                    className="h-[42px] w-[42px] rounded border border-[#0955AC] grid place-items-center bg-white mt-2 sm:mt-0 sm:ml-2"
-                    aria-label={likedMap[vehicle.id] ? 'Unlike' : 'Like'}
-                  >
-                    <img
-                      src={likedMap[vehicle.id] ? heartFill : heart}
-                      alt=""
-                      className="w-[18px] h-[18px]"
-                    />
                   </button>
                 </div>
               </div>

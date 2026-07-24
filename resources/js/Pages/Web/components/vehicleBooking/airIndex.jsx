@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Car, Calendar, Palette, Users, Gauge, Shield, Settings, Wrench, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import Header from '../../layouts/Header';
+import Header from '../../home/client/ClientHeader';
 import Footer from '../../layouts/Footer';
 import { Link } from '@inertiajs/react';
 

@@ -11,7 +11,7 @@ class VehicleLikeSeeder extends Seeder
 {
     public function run(): void
     {
-        $vehicles = Vehicle::limit(2)->get();
+        $vehicles = Vehicle::all();
         $users = User::whereIn('role', ['client', 'vendor'])->limit(3)->get();
 
         if ($vehicles->isEmpty() || $users->isEmpty()) {

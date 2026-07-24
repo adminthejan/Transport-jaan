@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
-import Header from "./HeaderTwo";
+import Header from "../client/ClientHeader";
 import VehicleImages from "../../components/multiModel/vehicleDetails/VehicleImages";
 import VehicleInfo from "../../components/multiModel/vehicleDetails/VehicleInfo";
 import VehicleSearch from "../../components/multiModel/vehicleDetails/VehicleSearch";

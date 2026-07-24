@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
-import Header from '../../layouts/Header';
+import Header from '../../home/client/ClientHeader';
 import Footer from '../../layouts/Footer';
 import axios from 'axios';
 import { ChevronLeft } from 'lucide-react';

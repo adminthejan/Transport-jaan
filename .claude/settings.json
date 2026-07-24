@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^bus$|^train$|^yatch$\")",
+      "Bash(php -l app/Http/Controllers/Vendor/VehicleController.php)",
+      "Bash(python3)",
+      "Bash(php -l database/migrations/2026_07_24_000001_add_round_trip_fields_to_bus_and_train_bookings.php)",
+      "Bash(php -l app/Http/Controllers/TrainController.php)",
+      "Bash(php -l app/Models/TrainBooking.php)",
+      "Bash(php -l app/Models/BusBooking.php)",
+      "Bash(php -l app/Http/Controllers/BusBookingController.php)",
+      "Bash(php -l database/migrations/2026_07_24_000002_make_passenger_email_nullable_on_bus_bookings.php)"
+    ]
+  }
+}

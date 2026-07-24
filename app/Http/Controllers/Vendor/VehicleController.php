@@ -477,10 +477,11 @@ class VehicleController extends Controller
             'passengerCapacity'  => ['nullable','integer','min:0','max:65535'],
             'mileage'            => ['nullable','integer','min:0'],
 
-            // land
-            'bodyType'           => ['nullable','string','max:50'],
-            'fuelType'           => ['nullable','string','max:50'],
-            'transmissionType'   => ['nullable','string','max:50'],
+            // land — must match the land_vehicle_specs enum columns exactly
+            // (see database/migrations/2025_08_18_000200_create_land_vehicle_specs_table.php)
+            'bodyType'           => ['nullable', Rule::in(['sedan','hatchback','suv','van','bus','pickup','jeep','other','coupe','truck','convertible','limousine','crossover','wagon','familyMBP','sportcoupe','compact'])],
+            'fuelType'           => ['nullable', Rule::in(['petrol','diesel','hybrid','electric','cng','lpg','other'])],
+            'transmissionType'   => ['nullable', Rule::in(['manual','automatic','amt','cvt','dct'])],
             'gears'              => ['nullable','integer','min:0'],
             'seats'              => ['nullable','integer','min:0','max:255'],
             'doors'              => ['nullable','integer','min:0','max:255'],

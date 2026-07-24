@@ -1,5 +1,5 @@
 import React from "react";
-import Header from "../layouts/Header";
+import Header from "./client/ClientHeader";
 import HeroSection from "../components/driverBooking/HeroSection";
 import About from "../components/driverBooking/About";
 import FeaturedService from "../components/driverBooking/FeaturedService";

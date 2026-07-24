@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Head, usePage } from "@inertiajs/react";
-import ClientHeader from "../multiModel/HeaderTwo";
+import ClientHeader from "../client/ClientHeader";
 import WarehouseFilterSidebar from "../../components/warehouseList/WarehouseFilterSidebar";
 import WarehouseSearchForm from "../../components/warehouseList/WarehouseSearchForm";
 import WarehouseListContent from "../../components/warehouseList/WarehouseListContent";

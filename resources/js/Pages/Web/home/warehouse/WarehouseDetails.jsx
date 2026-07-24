@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { usePage } from "@inertiajs/react";
-import Header from "../../layouts/Header";
+import Header from "../client/ClientHeader";
 import WarehouseImages from "../../components/warehouseDetails/WarehouseImages";
 import WarehouseSearch from "../../components/warehouseDetails/WarehouseSearch";
 import WarehouseInfo from "../../components/warehouseDetails/WarehouseInfo";

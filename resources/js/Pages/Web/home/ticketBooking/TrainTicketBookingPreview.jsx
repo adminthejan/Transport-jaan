@@ -1,18 +1,20 @@
 import React, { useState } from "react";
-import { Link, usePage, useForm } from "@inertiajs/react";
-import Header from "../../layouts/Header";
+import { router, usePage, useForm } from "@inertiajs/react";
+import Header from "../client/ClientHeader";
+import TripRouteMap from "../../components/ticketBooking/TripRouteMap";
 
 const TrainTicketBookingPreview = () => {
     const { props } = usePage();
-    const { 
-        outboundSchedule, 
-        returnSchedule, 
-        passengers = {}, 
-        totalPrice = 0 
+    const {
+        outboundSchedule,
+        returnSchedule,
+        passengers = {},
+        totalPrice = 0
     } = props;
 
     const { data, setData, post, processing, errors } = useForm({
         train_schedule_id: outboundSchedule?.id || '',
+        return_schedule_id: returnSchedule?.id || '',
         passenger_name: '',
         passenger_email: '',
         passenger_phone: '',
@@ -30,17 +32,28 @@ const TrainTicketBookingPreview = () => {
         <div>
             <Header />
             <section className="mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8 py-6">
-                {/* Back */}
+                {/* Back — reached either from the standalone train search page or
+                    from the multimodal journey planner's inline results. Honor real
+                    navigation history so we return wherever the user actually came
+                    from, falling back to the standalone search page only if there's
+                    no history to go back to (e.g. page opened directly). */}
                 <div className="mb-4">
-                    <Link
-                        href="/trainTicketBookingDetails"
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (window.history.length > 1) {
+                                window.history.back();
+                                return;
+                            }
+                            router.visit("/trainTicketBookingDetails");
+                        }}
                         className="inline-flex items-center gap-2 text-[#0955AC] text-base font-semibold"
                     >
                         <span className="inline-block rounded-full border border-[#0955AC]/20 p-1 leading-none">
                             ←
                         </span>
                         Back
-                    </Link>
+                    </button>
                 </div>
 
                 {/* Title */}
@@ -88,6 +101,11 @@ const TrainTicketBookingPreview = () => {
                                         Hand baggage: 20kg/passenger
                                     </div>
                                 </div>
+                                {outboundSchedule.route && (
+                                    <div className="px-4 pb-4">
+                                        <TripRouteMap route={outboundSchedule.route} className="h-[220px]" />
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -127,6 +145,11 @@ const TrainTicketBookingPreview = () => {
                                         Hand baggage: 20kg/passenger
                                     </div>
                                 </div>
+                                {returnSchedule.route && (
+                                    <div className="px-4 pb-4">
+                                        <TripRouteMap route={returnSchedule.route} className="h-[220px]" />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

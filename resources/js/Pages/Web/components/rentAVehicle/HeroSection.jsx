@@ -132,8 +132,16 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
         });
     };
 
+    const stats = [
+        { value: "500+", label: "Vehicles Listed" },
+        { value: "4.8★", label: "Average Rating" },
+        { value: "24/7", label: "Customer Support" },
+        { value: "100%", label: "Verified Vendors" },
+    ];
+
     return (
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between min-h-screen px-4 md:px-16 gap-8 overflow-hidden pb-10">
+        <div className="relative z-10 flex flex-col">
+        <div className="flex flex-col md:flex-row items-center justify-between min-h-[85vh] px-4 md:px-16 gap-8 overflow-hidden pb-10">
             {/* Left: Text + Form */}
             <div className="text-black md:order-1 order-2 text-left p-8 md:p-0 w-full md:max-w-4xl md:w-1/3 flex-shrink-0 mt-8">
                 <div className="w-[50px] h-[5px] bg-[#000000] mb-6 rounded-sm"></div>
@@ -265,6 +273,19 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                     </div>
                 ))}
             </div>
+        </div>
+
+        {/* Trust / stats bar */}
+        <div className="relative z-10 w-full px-4 md:px-16 pb-14">
+            <div className="poppins bg-white rounded-[16px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-black/5 grid grid-cols-2 sm:grid-cols-4 divide-x divide-black/5">
+                {stats.map((s) => (
+                    <div key={s.label} className="flex flex-col items-center justify-center py-5 px-2 text-center">
+                        <span className="text-[22px] sm:text-[28px] font-[800] text-[#0955AC]">{s.value}</span>
+                        <span className="text-[11px] sm:text-[12px] font-[600] text-[#00000080] mt-1">{s.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
         </div>
     );
 };

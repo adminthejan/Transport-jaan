@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { usePage } from "@inertiajs/react";
-import Header from "../../layouts/Header";
+import Header from "../client/ClientHeader";
 import VehicleImages from "../../components/LandVehicleDetails/VehicleImages";
 import VehicleSearch from "../../components/LandVehicleDetails/VehicleSearch";
 import VehicleInfo from "../../components/LandVehicleDetails/VehicleInfo";

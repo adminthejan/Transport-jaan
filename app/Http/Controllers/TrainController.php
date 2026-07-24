@@ -245,6 +245,7 @@ class TrainController extends Controller
                 'date' => Carbon::parse($outboundSchedule->date)->format('M j, Y'),
                 'duration' => $this->formatDuration($outboundSchedule->duration_minutes),
                 'price' => $outboundSchedule->price,
+                'route' => $this->routeCoordinates($outboundSchedule->departureStation, $outboundSchedule->arrivalStation),
             ] : null,
             'returnSchedule' => $returnSchedule ? [
                 'id' => $returnSchedule->id,
@@ -258,6 +259,7 @@ class TrainController extends Controller
                 'date' => Carbon::parse($returnSchedule->date)->format('M j, Y'),
                 'duration' => $this->formatDuration($returnSchedule->duration_minutes),
                 'price' => $returnSchedule->price,
+                'route' => $this->routeCoordinates($returnSchedule->departureStation, $returnSchedule->arrivalStation),
             ] : null,
             'passengers' => [
                 'adults' => (int)$adults,
@@ -266,7 +268,31 @@ class TrainController extends Controller
                 'total' => (int)$adults + (int)$children + (int)$infants,
             ],
             'totalPrice' => $totalPrice,
+            'tripType' => $returnSchedule ? 'roundtrip' : 'oneway',
         ]);
+    }
+
+    /**
+     * Origin/destination lat-lng pair for rendering a route on the trip map.
+     */
+    private function routeCoordinates($departureStation, $arrivalStation): ?array
+    {
+        if (!$departureStation->latitude || !$arrivalStation->latitude) {
+            return null;
+        }
+
+        return [
+            'origin' => [
+                'lat' => (float) $departureStation->latitude,
+                'lng' => (float) $departureStation->longitude,
+                'label' => $departureStation->name,
+            ],
+            'destination' => [
+                'lat' => (float) $arrivalStation->latitude,
+                'lng' => (float) $arrivalStation->longitude,
+                'label' => $arrivalStation->name,
+            ],
+        ];
     }
 
     public function store(Request $request)
@@ -278,6 +304,7 @@ class TrainController extends Controller
 
         $request->validate([
             'train_schedule_id' => 'required|exists:train_schedules,id',
+            'return_schedule_id' => 'nullable|exists:train_schedules,id|different:train_schedule_id',
             'passenger_name' => 'required|string|max:255',
             'passenger_email' => 'required|email|max:255',
             'passenger_phone' => 'required|string|max:20',
@@ -286,80 +313,61 @@ class TrainController extends Controller
             'infants' => 'nullable|integer|min:0',
         ]);
 
+        $isRoundTrip = (bool) $request->return_schedule_id;
+        $passengerData = $request->only(['passenger_name', 'passenger_email', 'passenger_phone']);
+        $adults = $request->adults;
+        $children = $request->children ?? 0;
+        $infants = $request->infants ?? 0;
+
         try {
-            // Use database transaction with row locking to prevent race conditions
-            $booking = DB::transaction(function () use ($request) {
-                // Lock the schedule row for update to prevent concurrent modifications
-                $schedule = TrainSchedule::where('id', $request->train_schedule_id)
-                    ->lockForUpdate()
-                    ->first();
+            // Both legs of a round trip are created in ONE transaction: either
+            // both bookings succeed, or neither does — never a stranded outbound
+            // leg with a failed return leg.
+            $result = DB::transaction(function () use ($request, $passengerData, $adults, $children, $infants, $isRoundTrip) {
+                $groupId = $isRoundTrip ? (string) \Illuminate\Support\Str::uuid() : null;
+                $tripType = $isRoundTrip ? 'round_trip' : 'one_way';
 
-                if (!$schedule) {
-                    throw ValidationException::withMessages([
-                        'schedule' => ['Schedule not found.']
-                    ]);
+                $outbound = $this->createTrainLegBooking(
+                    $request->train_schedule_id,
+                    $passengerData,
+                    $adults,
+                    $children,
+                    $infants,
+                    $tripType,
+                    $groupId,
+                    $isRoundTrip ? 'outbound' : null
+                );
+
+                $return = null;
+                if ($isRoundTrip) {
+                    $return = $this->createTrainLegBooking(
+                        $request->return_schedule_id,
+                        $passengerData,
+                        $adults,
+                        $children,
+                        $infants,
+                        $tripType,
+                        $groupId,
+                        'return'
+                    );
                 }
 
-                // Check if schedule is active
-                if ($schedule->status !== 'active') {
-                    throw ValidationException::withMessages([
-                        'schedule' => ['This schedule is not currently available for booking.']
-                    ]);
-                }
-
-                // Check if booking date is not in the past
-                if (Carbon::parse($schedule->date)->isPast()) {
-                    throw ValidationException::withMessages([
-                        'schedule' => ['Cannot book a schedule in the past.']
-                    ]);
-                }
-
-                $adults = $request->adults;
-                $children = $request->children ?? 0;
-                $infants = $request->infants ?? 0;
-                $totalPassengers = $adults + $children + $infants;
-
-                // Check seat availability (atomic check within transaction)
-                if ($schedule->available_seats < $totalPassengers) {
-                    throw ValidationException::withMessages([
-                        'seats' => ["Only {$schedule->available_seats} seat(s) available. You requested {$totalPassengers} passengers."]
-                    ]);
-                }
-
-                // Calculate total amount from database (never trust client-side calculations)
-                $totalAmount = ($schedule->price * $adults) + ($schedule->price * 0.5 * $children);
-
-                // Create the booking
-                $booking = TrainBooking::create([
-                    'user_id' => Auth::id(),
-                    'train_schedule_id' => $request->train_schedule_id,
-                    'passenger_name' => $request->passenger_name,
-                    'passenger_email' => $request->passenger_email,
-                    'passenger_phone' => $request->passenger_phone,
-                    'adults' => $adults,
-                    'children' => $children,
-                    'infants' => $infants,
-                    'total_passengers' => $totalPassengers,
-                    'total_amount' => $totalAmount,
-                    'status' => 'pending', // Start as pending until payment
-                    'payment_status' => 'pending',
-                    'expires_at' => now()->addMinutes(15) // Booking expires in 15 minutes
-                ]);
-
-                // Atomically decrement available seats
-                $schedule->decrement('available_seats', $totalPassengers);
-
-                Log::info('Train booking created successfully', [
-                    'booking_id' => $booking->id,
-                    'reference' => $booking->booking_reference,
-                    'seats_remaining' => $schedule->fresh()->available_seats
-                ]);
-
-                return $booking;
+                return [$outbound, $return];
             });
 
+            [$booking, $returnBooking] = $result;
+
+            Log::info('Train booking created successfully', [
+                'booking_id' => $booking->id,
+                'reference' => $booking->booking_reference,
+                'round_trip' => $isRoundTrip,
+                'return_booking_id' => $returnBooking?->id,
+            ]);
+
+            $message = $isRoundTrip ? 'Round-trip train booking confirmed successfully!' : 'Train booking confirmed successfully!';
+
             return redirect()->route('train.booking.success', $booking->booking_reference)
-                ->with('success', 'Train booking confirmed successfully!');
+                ->with('success', $message);
 
         } catch (ValidationException $e) {
             Log::warning('Train booking validation failed', ['errors' => $e->errors()]);
@@ -373,38 +381,121 @@ class TrainController extends Controller
         }
     }
 
+    /**
+     * Validate + create a single train booking leg. Must be called inside a
+     * DB transaction — the caller is responsible for wrapping this (and, for
+     * round trips, the sibling leg) in one atomic transaction.
+     */
+    private function createTrainLegBooking(
+        int $scheduleId,
+        array $passengerData,
+        int $adults,
+        int $children,
+        int $infants,
+        string $tripType,
+        ?string $groupId,
+        ?string $leg
+    ): TrainBooking {
+        // Lock the schedule row for update to prevent concurrent modifications
+        $schedule = TrainSchedule::where('id', $scheduleId)->lockForUpdate()->first();
+
+        if (!$schedule) {
+            throw ValidationException::withMessages([
+                'schedule' => ['Schedule not found.']
+            ]);
+        }
+
+        if ($schedule->status !== 'active') {
+            throw ValidationException::withMessages([
+                'schedule' => ['This schedule is not currently available for booking.']
+            ]);
+        }
+
+        if (Carbon::parse($schedule->date)->isPast()) {
+            throw ValidationException::withMessages([
+                'schedule' => ['Cannot book a schedule in the past.']
+            ]);
+        }
+
+        $totalPassengers = $adults + $children + $infants;
+
+        if ($schedule->available_seats < $totalPassengers) {
+            throw ValidationException::withMessages([
+                'seats' => ["Only {$schedule->available_seats} seat(s) available. You requested {$totalPassengers} passengers."]
+            ]);
+        }
+
+        // Calculate total amount from database (never trust client-side calculations)
+        $totalAmount = ($schedule->price * $adults) + ($schedule->price * 0.5 * $children);
+
+        $booking = TrainBooking::create(array_merge($passengerData, [
+            'user_id' => Auth::id(),
+            'train_schedule_id' => $scheduleId,
+            'adults' => $adults,
+            'children' => $children,
+            'infants' => $infants,
+            'total_passengers' => $totalPassengers,
+            'total_amount' => $totalAmount,
+            'trip_type' => $tripType,
+            'round_trip_group_id' => $groupId,
+            'leg' => $leg,
+            'status' => 'pending', // Start as pending until payment
+            'payment_status' => 'pending',
+            'expires_at' => now()->addMinutes(15), // Booking expires in 15 minutes
+        ]));
+
+        $schedule->decrement('available_seats', $totalPassengers);
+
+        return $booking;
+    }
+
     public function bookingSuccess($reference)
     {
         $booking = TrainBooking::with(['trainSchedule.train', 'trainSchedule.departureStation', 'trainSchedule.arrivalStation'])
             ->where('booking_reference', $reference)
             ->firstOrFail();
 
+        $returnBooking = $booking->round_trip_group_id
+            ? TrainBooking::with(['trainSchedule.train', 'trainSchedule.departureStation', 'trainSchedule.arrivalStation'])
+                ->where('round_trip_group_id', $booking->round_trip_group_id)
+                ->where('id', '!=', $booking->id)
+                ->first()
+            : null;
+
         return Inertia::render('Web/home/ticketBooking/TrainBookingSuccess', [
-            'booking' => [
-                'reference' => $booking->booking_reference,
-                'passenger_name' => $booking->passenger_name,
-                'passenger_email' => $booking->passenger_email,
-                'passenger_phone' => $booking->passenger_phone,
-                'total_amount' => $booking->total_amount,
-                'adults' => $booking->adults,
-                'children' => $booking->children,
-                'infants' => $booking->infants,
-                'status' => $booking->status,
-                'train' => [
-                    'name' => $booking->trainSchedule->train->name,
-                    'number' => $booking->trainSchedule->train->train_number,
-                    'class' => $booking->trainSchedule->train->class_type,
-                ],
-                'schedule' => [
-                    'departure_station' => $booking->trainSchedule->departureStation->name,
-                    'arrival_station' => $booking->trainSchedule->arrivalStation->name,
-                    'departure_time' => Carbon::parse($booking->trainSchedule->departure_time)->format('H:i'),
-                    'arrival_time' => Carbon::parse($booking->trainSchedule->arrival_time)->format('H:i'),
-                    'date' => Carbon::parse($booking->trainSchedule->date)->format('M j, Y'),
-                    'duration' => $this->formatDuration($booking->trainSchedule->duration_minutes),
-                ]
-            ]
+            'booking' => $this->formatTrainBookingForDisplay($booking),
+            'returnBooking' => $returnBooking ? $this->formatTrainBookingForDisplay($returnBooking) : null,
         ]);
+    }
+
+    private function formatTrainBookingForDisplay(TrainBooking $booking): array
+    {
+        return [
+            'reference' => $booking->booking_reference,
+            'passenger_name' => $booking->passenger_name,
+            'passenger_email' => $booking->passenger_email,
+            'passenger_phone' => $booking->passenger_phone,
+            'total_amount' => $booking->total_amount,
+            'adults' => $booking->adults,
+            'children' => $booking->children,
+            'infants' => $booking->infants,
+            'status' => $booking->status,
+            'trip_type' => $booking->trip_type,
+            'leg' => $booking->leg,
+            'train' => [
+                'name' => $booking->trainSchedule->train->name,
+                'number' => $booking->trainSchedule->train->train_number,
+                'class' => $booking->trainSchedule->train->class_type,
+            ],
+            'schedule' => [
+                'departure_station' => $booking->trainSchedule->departureStation->name,
+                'arrival_station' => $booking->trainSchedule->arrivalStation->name,
+                'departure_time' => Carbon::parse($booking->trainSchedule->departure_time)->format('H:i'),
+                'arrival_time' => Carbon::parse($booking->trainSchedule->arrival_time)->format('H:i'),
+                'date' => Carbon::parse($booking->trainSchedule->date)->format('M j, Y'),
+                'duration' => $this->formatDuration($booking->trainSchedule->duration_minutes),
+            ]
+        ];
     }
 
     private function extractStationName($stationString)

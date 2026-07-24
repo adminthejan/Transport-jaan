@@ -6,35 +6,33 @@ const FAQ = () => {
 
     const faqs = [
         {
-            question: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum ?",
-            answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis sodales libero, vitae tristique massa hendrerit in."
+            question: "How quickly will I get a confirmed booking?",
+            answer: "Most bookings are confirmed instantly online. Once your payment is processed, you'll receive your booking reference and e-ticket immediately — no waiting on hold or manual approval."
         },
         {
-            question: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum ?",
-           answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis sodales libero, vitae tristique massa hendrerit in."
+            question: "Can I change my dates after booking?",
+            answer: "Yes. You can cancel a confirmed booking up to the cutoff shown on your booking's cancellation policy and rebook new dates. Refund amounts depend on how close to departure you cancel."
         },
         {
-            question: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum ?",
-            answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis sodales libero, vitae tristique massa hendrerit in."
+            question: "What payment methods are accepted?",
+            answer: "We accept major credit and debit cards as well as local payment options at checkout. All payments are processed securely, and you'll get an instant confirmation once your payment clears."
         },
         {
-            question: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum ?",
-            answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis sodales libero, vitae tristique massa hendrerit in."
+            question: "Is my booking reference enough, or do I need a printed ticket?",
+            answer: "Your booking reference is all you need — just show it on your phone when boarding or picking up. You can also download or email yourself a PDF copy from your booking confirmation page at any time."
         },
         {
-            question: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum ?",
-            answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis sodales libero, vitae tristique massa hendrerit in."
+            question: "What if I need help during my trip?",
+            answer: "Our support team is available 24/7. You can reach us through the contact options on this page, or from your account dashboard, and we'll help with changes, delays, or any other questions."
         },
     ];
 
     return (
         <div className="h-auto flex flex-col justify-center items-center p-5 xl:px-20 xl:py-20">
             <h1 className="bebas-neue text-[40px] font-[400]">FAQ</h1>
-            <p className="text-[14px] font-[14px]/[33px] lg:w-[763px] text-center">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
-                semper eu risus ut ornare. In bibendum tempus sapien, tristique
-                consectetur purus pellentesque ac. Quisque facilisis laoreet
-                feugiat.{" "}
+            <p className="text-[14px] font-[14px]/[33px] lg:w-[763px] text-center text-[#00000099]">
+                Answers to the questions we hear most often. Can't find what you're looking for?
+                Our support team is just a message away.
             </p>
 
             <div className="pt-10 text-[16px]/[33px] poppins flex flex-col justify-center items-center gap-5">
@@ -45,9 +43,9 @@ const FAQ = () => {
                             onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
                         >
                             <h1>{faq.question}</h1>
-                            <img 
-                                src={downArrow} 
-                                className={`size-[10px] transition-transform duration-200 ${openIndex === idx ? 'rotate-180' : ''}`} 
+                            <img
+                                src={downArrow}
+                                className={`size-[10px] transition-transform duration-200 ${openIndex === idx ? 'rotate-180' : ''}`}
                             />
                         </div>
                         {openIndex === idx && (

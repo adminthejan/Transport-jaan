@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Head, Link, usePage, router } from "@inertiajs/react";
-import Header from "../layouts/Header";
+import Header from "../home/client/ClientHeader";
 import Footer from "../layouts/Footer";
 import {
     launchPayHereOnsiteCheckout,

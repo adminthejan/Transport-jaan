@@ -979,6 +979,93 @@ class VendorWarehouseBookingController extends Controller
     }
 
     /**
+     * Occupancy/tracking overview for the vendor's warehouse units: which
+     * units are currently occupied by an active booking, and which are free.
+     */
+    public function getTrackingOverview(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $today = Carbon::today();
+
+            $units = WarehouseUnit::where('user_id', $user->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'type', 'capacity', 'capacity_unit', 'total_area', 'is_active', 'is_available']);
+
+            $unitIds = $units->pluck('id');
+
+            // The one active booking per unit "in progress" today, if any.
+            $activeBookings = WarehouseBooking::with('user:id,name,email,phone')
+                ->whereIn('warehouse_unit_id', $unitIds)
+                ->whereIn('status', ['confirmed', 'active'])
+                ->whereDate('start_date', '<=', $today)
+                ->whereDate('end_date', '>=', $today)
+                ->get()
+                ->keyBy('warehouse_unit_id');
+
+            $unitsOverview = $units->map(function ($unit) use ($activeBookings) {
+                $booking = $activeBookings->get($unit->id);
+
+                return [
+                    'id' => $unit->id,
+                    'name' => $unit->name,
+                    'type' => $unit->type,
+                    'capacity' => $unit->capacity,
+                    'capacity_unit' => $unit->capacity_unit,
+                    'total_area' => $unit->total_area,
+                    'is_active' => (bool) $unit->is_active,
+                    'occupied' => (bool) $booking,
+                    'booking' => $booking ? [
+                        'reference' => $booking->booking_reference,
+                        'client' => $booking->user->name ?? $booking->contact_person ?? 'N/A',
+                        'client_email' => $booking->user->email ?? $booking->email,
+                        'client_phone' => $booking->user->phone ?? $booking->phone,
+                        'start_date' => optional($booking->start_date)->format('Y-m-d'),
+                        'end_date' => optional($booking->end_date)->format('Y-m-d'),
+                        'goods_type' => $booking->goods_type,
+                    ] : null,
+                ];
+            });
+
+            // Upcoming bookings (not yet started) across all of the vendor's units,
+            // used to show what's arriving next.
+            $upcoming = WarehouseBooking::with(['user:id,name', 'warehouseUnit:id,name'])
+                ->whereIn('warehouse_unit_id', $unitIds)
+                ->whereIn('status', ['confirmed', 'pending'])
+                ->whereDate('start_date', '>', $today)
+                ->orderBy('start_date')
+                ->limit(5)
+                ->get()
+                ->map(fn ($b) => [
+                    'reference' => $b->booking_reference,
+                    'unit' => $b->warehouseUnit->name ?? 'N/A',
+                    'client' => $b->user->name ?? $b->contact_person ?? 'N/A',
+                    'start_date' => optional($b->start_date)->format('Y-m-d'),
+                    'end_date' => optional($b->end_date)->format('Y-m-d'),
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'units' => $unitsOverview,
+                    'upcoming' => $upcoming,
+                    'summary' => [
+                        'total_units' => $units->count(),
+                        'occupied_units' => $unitsOverview->where('occupied', true)->count(),
+                        'available_units' => $unitsOverview->where('occupied', false)->where('is_active', true)->count(),
+                    ],
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching warehouse tracking overview: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching tracking overview',
+            ], 500);
+        }
+    }
+
+    /**
      * Find booking for authenticated vendor
      */
     private function findBookingForVendor($user, $bookingId)

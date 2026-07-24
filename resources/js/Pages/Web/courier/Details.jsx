@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { Star } from "lucide-react";
-import Header from "../layouts/Header";
+import Header from "../home/client/ClientHeader";
 import Footer from "../layouts/Footer";
 import {
     buildQuoteMatrix,

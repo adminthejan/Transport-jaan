@@ -4,7 +4,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import Header from "../../layouts/Header";
+import Header from "../../home/client/ClientHeader";
 import Footer from "../../layouts/Footer";
 
 const INITIAL_PRICING_STATE = {

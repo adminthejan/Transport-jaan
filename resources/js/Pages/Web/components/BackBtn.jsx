@@ -1,8 +1,21 @@
 import React from 'react';
+import { router } from '@inertiajs/react';
 import { ChevronLeft } from 'lucide-react';
 
-const BackButton = () => {
+/**
+ * `to`: when given, always navigates to this fixed destination instead of
+ * relying on `window.history.back()`. Browser history is unpredictable for
+ * entry-point pages like the journey planner — whatever page happened to be
+ * visited right before it (which may be a completely unrelated flow, e.g. a
+ * different booking system) becomes "back", which is confusing. Pass `to`
+ * for any page where there's a well-defined parent to return to.
+ */
+const BackButton = ({ to = null }) => {
   const handleBack = () => {
+    if (to) {
+      router.visit(to);
+      return;
+    }
     window.history.back();
   };
 

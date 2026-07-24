@@ -31,7 +31,8 @@ class VendorVerificationCheck
         if (Auth::user()->status !== 'verified') {
             $isVendorAllBookings    = $request->path() === 'vendorAllBookings' || $request->route()?->getName() === 'vendorAllBookings';
             $isVendorDashboard     = $request->path() === 'vendors/dashboard' || $request->route()?->getName() === 'vendors.dashboard';
-            $isWarehouseDashboard  = $request->path() === 'vendors/warehouse/dashboard' || $request->route()?->getName() === 'vendors.warehouse.dashboard';
+            $isWarehouseDashboard  = in_array($request->path(), ['vendors/warehouse/dashboard', 'warehouse/dashboard'], true)
+                || in_array($request->route()?->getName(), ['vendors.warehouse.dashboard', 'warehouse.dashboard'], true);
             $isVehicleClientTable           = $request->path() === 'vendors/clients' || $request->route()?->getName() === 'vendors.clients';
 
             // Allow unverified vendors to access vendor profile/registration routes

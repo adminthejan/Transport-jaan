@@ -25,6 +25,9 @@ class TrainBooking extends Model
         'seat_numbers',
         'total_amount',
         'booking_reference',
+        'trip_type',
+        'round_trip_group_id',
+        'leg',
         'status',
         'payment_status',
         'expires_at',
@@ -55,6 +58,20 @@ class TrainBooking extends Model
     public function train()
     {
         return $this->hasOneThrough(Train::class, TrainSchedule::class, 'id', 'id', 'train_schedule_id', 'train_id');
+    }
+
+    /**
+     * The other leg of the same round trip (outbound <-> return), if any.
+     */
+    public function roundTripPartner()
+    {
+        if (!$this->round_trip_group_id) {
+            return null;
+        }
+
+        return static::where('round_trip_group_id', $this->round_trip_group_id)
+            ->where('id', '!=', $this->id)
+            ->first();
     }
 
     protected static function boot()

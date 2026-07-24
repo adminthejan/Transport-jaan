@@ -2,14 +2,94 @@ import React, { useState, useEffect, useMemo } from "react";
 import { router, usePage, Link } from "@inertiajs/react";
 import { AnimatePresence } from "framer-motion";
 import ActionModalTemplate from "../../components/SuperAdmin/Common/ActionModalTemplate";
-import downArrow from "../../assets/rentAVehicle/header/downArrow.png";
 import proPic from "../../assets/header/profilePic.svg";
 import bell from "../../assets/header/bell.svg";
 import search from "../../assets/header/search.svg";
-import { ArrowLeft } from "lucide-react";
+import {
+    ArrowLeft,
+    X,
+    Search as SearchIcon,
+    ChevronDown,
+    Car,
+    Ticket,
+    Package,
+    Warehouse,
+    Truck,
+    ClipboardList,
+    Settings as SettingsIcon,
+    Home,
+    Info,
+    LayoutGrid,
+    Newspaper,
+    Mail,
+    LogOut,
+    LogIn,
+    UserPlus,
+} from "lucide-react";
 import CompanyLogo from "../../components/CompanyLogo";
 import DashboardSearchModal from "@/Components/search/DashboardSearchModal";
 import { buildClientDashboardSearchEntries } from "@/search/dashboardSearchCatalog";
+
+const SidebarLink = ({ href, icon: Icon, label, active, onClick }) => (
+    <Link
+        href={href}
+        onClick={onClick}
+        className={`flex items-center gap-3 h-11 px-3 rounded-[10px] text-[14px] font-[600] transition-colors ${
+            active
+                ? "bg-[#0955AC] text-white"
+                : "text-gray-700 hover:bg-[#EEF3FA] hover:text-[#0955AC]"
+        }`}
+    >
+        <Icon
+            className={`w-[18px] h-[18px] shrink-0 ${
+                active ? "text-white" : "text-[#0955AC]"
+            }`}
+        />
+        <span className="truncate">{label}</span>
+    </Link>
+);
+
+const SidebarAccordion = ({ icon: Icon, label, isOpen, onToggle, panelId, children }) => (
+    <div>
+        <button
+            type="button"
+            onClick={onToggle}
+            className={`w-full flex items-center gap-3 h-11 px-3 rounded-[10px] text-[14px] font-[600] transition-colors focus:outline-none ${
+                isOpen
+                    ? "bg-[#EEF3FA] text-[#0955AC]"
+                    : "text-gray-700 hover:bg-[#EEF3FA] hover:text-[#0955AC]"
+            }`}
+            aria-expanded={isOpen}
+            aria-controls={panelId}
+        >
+            <Icon className="w-[18px] h-[18px] shrink-0 text-[#0955AC]" />
+            <span className="flex-1 text-left truncate">{label}</span>
+            <ChevronDown
+                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                    isOpen ? "rotate-180 text-[#0955AC]" : ""
+                }`}
+            />
+        </button>
+        {isOpen && (
+            <div
+                id={panelId}
+                className="mt-1 ml-[38px] pl-3 border-l-2 border-[#E3EBF5] flex flex-col gap-0.5 py-1"
+            >
+                {children}
+            </div>
+        )}
+    </div>
+);
+
+const SidebarSubLink = ({ href, label, onClick }) => (
+    <Link
+        href={href}
+        onClick={onClick}
+        className="h-9 flex items-center px-2 rounded-[6px] text-[13px] font-[500] text-gray-600 hover:text-[#0955AC] hover:bg-[#F3F7FC] transition-colors"
+    >
+        {label}
+    </Link>
+);
 
 const ClientHeader = () => {
     const { auth } = usePage().props;
@@ -104,6 +184,17 @@ const ClientHeader = () => {
     };
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+    const currentPath =
+        typeof window !== "undefined" ? window.location.pathname : "";
+    const isActivePath = (path) => currentPath === path;
+
+    const initials = (auth?.user?.name || "?")
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("");
 
     // ---------- Smooth scroll ----------
     const handleScrollTo = (id) => {
@@ -280,334 +371,228 @@ const ClientHeader = () => {
                 </div>
             </div>
 
-            {/* Mobile overlay menu */}
+            {/* Client dashboard sidebar */}
             {isMenuOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 z-20 flex justify-end">
-                    <div className="w-[300px] max-w-full h-full rounded-r-[20px] bg-white shadow-lg py-10 px-8 flex flex-col relative animate-slide-in">
-                        <div className="flex justify-between items-center mb-8">
-                            {/* Back to Dashboard Button */}
-                            <Link
-                                href={route("clientAllBookings")}
-                                onClick={toggleMenu}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                title="Back to Dashboard"
-                            >
-                                <ArrowLeft className="w-6 h-6 text-gray-600" />
-                            </Link>
+                <div className="fixed inset-0 z-[60] flex justify-end">
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-[2px] client-sidebar-backdrop"
+                        onClick={toggleMenu}
+                    />
 
-                            <button
-                                onClick={toggleMenu}
-                                className="p-2 text-gray-600 hover:text-[#EF3826] focus:outline-none z-50"
-                            >
-                                <svg
-                                    className="w-7 h-7"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
+                    <aside className="relative w-[340px] max-w-[88vw] h-full bg-white shadow-2xl flex flex-col client-sidebar-panel">
+                        {/* Profile header */}
+                        <div className="bg-gradient-to-br from-[#0955AC] to-[#073E82] px-6 pt-6 pb-8 relative shrink-0">
+                            <div className="flex items-center justify-between mb-5">
+                                <Link
+                                    href={route("clientAllBookings")}
+                                    onClick={toggleMenu}
+                                    className="p-1.5 -ml-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                                    title="Back to Dashboard"
                                 >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
+                                    <ArrowLeft className="w-5 h-5" />
+                                </Link>
+                                <button
+                                    onClick={toggleMenu}
+                                    className="p-1.5 -mr-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
+                                    aria-label="Close menu"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <div className="w-14 h-14 rounded-full bg-white/15 border-2 border-white/30 flex items-center justify-center overflow-hidden shrink-0">
+                                    {auth?.user?.image ? (
+                                        <img
+                                            src={auth.user.image}
+                                            className="w-full h-full object-cover"
+                                            alt="Profile"
+                                        />
+                                    ) : (
+                                        <span className="text-white text-[17px] font-[700]">
+                                            {initials}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-white font-[700] text-[15px] truncate">
+                                        {auth?.user?.name || "Guest"}
+                                    </p>
+                                    <p className="text-white/70 text-[12px] truncate">
+                                        {auth?.user?.email || "Not signed in"}
+                                    </p>
+                                    {auth?.user && (
+                                        <span className="inline-block mt-1.5 text-[10px] font-[700] uppercase tracking-wide bg-white/15 text-white px-2 py-[2px] rounded-full">
+                                            Client Account
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Search pill, overlapping the header */}
+                        <div className="px-5 -mt-4 relative z-10 shrink-0">
+                            <button
+                                onClick={() => {
+                                    setIsSearchOpen(true);
+                                    setIsMenuOpen(false);
+                                }}
+                                className="w-full h-[46px] rounded-[12px] bg-white shadow-md border border-gray-100 px-4 flex items-center gap-3 text-[#5B6B83] hover:border-[#0955AC]/40 transition-colors"
+                            >
+                                <SearchIcon className="w-[17px] h-[17px] text-[#0955AC]" />
+                                <span className="text-[13px] font-[600] flex-1 text-left">
+                                    Search dashboard
+                                </span>
+                                <span className="text-[10px] font-[700] text-gray-400 bg-gray-100 px-1.5 py-[2px] rounded">
+                                    ⌘K
+                                </span>
                             </button>
                         </div>
 
-                        <button
-                            onClick={() => {
-                                setIsSearchOpen(true);
-                                setIsMenuOpen(false);
-                            }}
-                            className="mb-6 h-[44px] w-full rounded-[12px] bg-[#E8EBEF] hover:bg-[#DDE2E8] transition px-4 flex items-center gap-3 text-[#0955AC] font-[600]"
-                        >
-                            <img src={search} className="w-[18px] h-[18px]" alt="Search" />
-                            Search Dashboard
-                            <span className="ml-auto text-[11px] text-[#5B6B83]">Cmd+K</span>
-                        </button>
-
                         {/* Navigation */}
-                        <nav className="flex flex-col space-y-8 text-[#000000cc] text-[15px] font-[700]">
-                            {/* Vehicle Rental */}
-                            <div className="relative">
-                                <button
-                                    type="button"
-                                    onClick={() => toggleDropdown("vehicle")}
-                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
-                                    aria-expanded={openDropdown.vehicle}
-                                    aria-controls="vehicle-dropdown"
-                                >
-                                    Vehicle Rental
-                                    <img
-                                        src={downArrow}
-                                        alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.vehicle
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
-                                    />
-                                </button>
-                                {openDropdown.vehicle && (
-                                    <div
-                                        id="vehicle-dropdown"
-                                        className="ml-4 mt-1 flex flex-col space-y-1"
-                                    >
-                                        <Link
-                                            href="/multiModel/plan-journey?tab=rental&subTab=land"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Land
-                                        </Link>
-                                        <Link
-                                            href="/multiModel/plan-journey?tab=rental&subTab=air"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Air
-                                        </Link>
-                                        <Link
-                                            href="/multiModel/plan-journey?tab=rental&subTab=sea"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Sea
-                                        </Link>
-                                    </div>
-                                )}
-                            </div>
+                        <nav className="flex-1 overflow-y-auto scrollbar-hide px-5 pt-5 pb-3 flex flex-col gap-1">
+                            <SidebarAccordion
+                                icon={Car}
+                                label="Vehicle Rental"
+                                isOpen={openDropdown.vehicle}
+                                onToggle={() => toggleDropdown("vehicle")}
+                                panelId="vehicle-dropdown"
+                            >
+                                <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=land" label="Land" onClick={toggleMenu} />
+                                <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=air" label="Air" onClick={toggleMenu} />
+                                <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=sea" label="Sea" onClick={toggleMenu} />
+                            </SidebarAccordion>
 
-                            {/* Ticket Booking */}
-                            <div className="relative">
-                                <button
-                                    type="button"
-                                    onClick={() => toggleDropdown("ticket")}
-                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
-                                    aria-expanded={openDropdown.ticket}
-                                    aria-controls="ticket-dropdown"
-                                >
-                                    Ticket Booking
-                                    <img
-                                        src={downArrow}
-                                        alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.ticket
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
-                                    />
-                                </button>
-                                {openDropdown.ticket && (
-                                    <div
-                                        id="ticket-dropdown"
-                                        className="ml-4 mt-1 flex flex-col space-y-1"
-                                    >
-                                        <Link
-                                            href="/multiModel/plan-journey?tab=ticket&subTab=flight"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Flight
-                                        </Link>
-                                        <Link
-                                            href="/multiModel/plan-journey?tab=ticket&subTab=train"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Train
-                                        </Link>
-                                        <Link
-                                            href="/multiModel/plan-journey?tab=ticket&subTab=bus"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Bus
-                                        </Link>
-                                    </div>
-                                )}
-                            </div>
+                            <SidebarAccordion
+                                icon={Ticket}
+                                label="Ticket Booking"
+                                isOpen={openDropdown.ticket}
+                                onToggle={() => toggleDropdown("ticket")}
+                                panelId="ticket-dropdown"
+                            >
+                                <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=flight" label="Flight" onClick={toggleMenu} />
+                                <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=train" label="Train" onClick={toggleMenu} />
+                                <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=bus" label="Bus" onClick={toggleMenu} />
+                            </SidebarAccordion>
 
-                            {/* Courier Booking */}
-                            <div className="relative">
-                                <button
-                                    type="button"
-                                    onClick={() => toggleDropdown("courier")}
-                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
-                                    aria-expanded={openDropdown.courier}
-                                    aria-controls="courier-dropdown"
-                                >
-                                    Courier Booking
-                                    <img
-                                        src={downArrow}
-                                        alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.courier
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
-                                    />
-                                </button>
-                                {openDropdown.courier && (
-                                    <div
-                                        id="courier-dropdown"
-                                        className="ml-4 mt-1 flex flex-col space-y-1"
-                                    >
-                                        <Link
-                                            href="/couriers/create"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Domestic
-                                        </Link>
-                                        <Link
-                                            href="/courierBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            My Shipments
-                                        </Link>
-                                        
-                                    </div>
-                                )}
-                            </div>
+                            <SidebarAccordion
+                                icon={Package}
+                                label="Courier Booking"
+                                isOpen={openDropdown.courier}
+                                onToggle={() => toggleDropdown("courier")}
+                                panelId="courier-dropdown"
+                            >
+                                <SidebarSubLink href="/couriers/create" label="Domestic" onClick={toggleMenu} />
+                                <SidebarSubLink href="/courierBookingDashboard" label="My Shipments" onClick={toggleMenu} />
+                            </SidebarAccordion>
 
-                            <a
+                            <SidebarLink
                                 href="/warehouseList"
-                                className="hover:text-[#0955AC]"
-                            >
-                                Warehouse Booking
-                            </a>
-                            <a
+                                icon={Warehouse}
+                                label="Warehouse Booking"
+                                active={isActivePath("/warehouseList")}
+                                onClick={toggleMenu}
+                            />
+                            <SidebarLink
                                 href="/freightBookingDashboard"
-                                className="hover:text-[#0955AC]"
-                            >
-                                Freight Booking
-                            </a>
-                            <Link
+                                icon={Truck}
+                                label="Freight Booking"
+                                active={isActivePath("/freightBookingDashboard")}
+                                onClick={toggleMenu}
+                            />
+                            <SidebarLink
+                                href={route("clientAllBookings")}
+                                icon={ClipboardList}
+                                label="My Bookings"
+                                active={isActivePath("/clientAllBookings")}
+                                onClick={toggleMenu}
+                            />
+                            <SidebarLink
                                 href="/clientDashboardSettings"
-                                className="hover:text-[#0955AC]"
-                            >
-                                Settings
-                            </Link>
+                                icon={SettingsIcon}
+                                label="Settings"
+                                active={isActivePath("/clientDashboardSettings")}
+                                onClick={toggleMenu}
+                            />
 
                             {/* ---------- Scroll-to-section links (Home, About Us, …) ---------- */}
-                            <div className="border-t pt-4 space-y-3">
-                                <div
-                                    className="hover:text-[#0955AC] cursor-pointer"
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                <p className="px-3 mb-1 text-[11px] font-[700] text-gray-400 uppercase tracking-wide">
+                                    Explore
+                                </p>
+                                <button
+                                    type="button"
                                     onClick={() => handleScrollTo("home")}
+                                    className="w-full flex items-center gap-3 h-10 px-3 rounded-[10px] text-[13px] font-[600] text-gray-600 hover:bg-[#EEF3FA] hover:text-[#0955AC] transition-colors"
                                 >
+                                    <Home className="w-4 h-4 text-gray-400" />
                                     Home
-                                </div>
-                                <div
-                                    className="hover:text-[#0955AC] cursor-pointer"
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => handleScrollTo("about")}
+                                    className="w-full flex items-center gap-3 h-10 px-3 rounded-[10px] text-[13px] font-[600] text-gray-600 hover:bg-[#EEF3FA] hover:text-[#0955AC] transition-colors"
                                 >
+                                    <Info className="w-4 h-4 text-gray-400" />
                                     About Us
-                                </div>
-                                <div
-                                    className="hover:text-[#0955AC] cursor-pointer"
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => handleScrollTo("services")}
+                                    className="w-full flex items-center gap-3 h-10 px-3 rounded-[10px] text-[13px] font-[600] text-gray-600 hover:bg-[#EEF3FA] hover:text-[#0955AC] transition-colors"
                                 >
+                                    <LayoutGrid className="w-4 h-4 text-gray-400" />
                                     Our Services
-                                </div>
-                                <div
-                                    className="hover:text-[#0955AC] cursor-pointer"
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => handleScrollTo("blog")}
+                                    className="w-full flex items-center gap-3 h-10 px-3 rounded-[10px] text-[13px] font-[600] text-gray-600 hover:bg-[#EEF3FA] hover:text-[#0955AC] transition-colors"
                                 >
+                                    <Newspaper className="w-4 h-4 text-gray-400" />
                                     Blog
-                                </div>
-                                <div
-                                    className="hover:text-[#0955AC] cursor-pointer"
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => handleScrollTo("contact")}
+                                    className="w-full flex items-center gap-3 h-10 px-3 rounded-[10px] text-[13px] font-[600] text-gray-600 hover:bg-[#EEF3FA] hover:text-[#0955AC] transition-colors"
                                 >
+                                    <Mail className="w-4 h-4 text-gray-400" />
                                     Contact Us
-                                </div>
+                                </button>
                             </div>
                         </nav>
 
-                        {/* Auth / Dashboard section */}
-                        <div className="border-t pt-10 flex flex-col space-y-2 mt-auto">
+                        {/* Auth footer */}
+                        <div className="border-t border-gray-100 px-5 py-4 bg-gray-50/60 shrink-0">
                             {auth?.user ? (
-                                <>
-                                    {auth.user.role_type === "driver" && (
-                                        <Link
-                                            href="/driver/dashboard"
-                                            className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
-                                        >
-                                            Driver Dashboard
-                                        </Link>
-                                    )}
-                                    {auth.user.role_type === "user" && (
-                                        <Link
-                                            href="/user/view"
-                                            className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
-                                        >
-                                            User Dashboard
-                                        </Link>
-                                    )}
-                                    {["admin", "superadmin"].includes(
-                                        auth.user.role_type
-                                    ) && (
-                                        <Link
-                                            href="/admin"
-                                            className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
-                                        >
-                                            Admin Dashboard
-                                        </Link>
-                                    )}
-                                    {auth.user.role_type === "freight" && (
-                                        <Link
-                                            href="/freight/dashboard"
-                                            className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
-                                        >
-                                            Freight Dashboard
-                                        </Link>
-                                    )}
-
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <div className="h-7 w-7 border border-black rounded-full overflow-hidden flex justify-center items-center text-[14px]">
-                                            {auth.user.image ? (
-                                                <img
-                                                    src={auth.user.image}
-                                                    className="h-full w-full object-cover"
-                                                    alt="Profile"
-                                                />
-                                            ) : (
-                                                <span>
-                                                    {auth.user.name
-                                                        .charAt(0)
-                                                        .toUpperCase()}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <img
-                                            src={downArrow}
-                                            alt="dropdown"
-                                            className="w-[8px] h-[5px]"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleOpenLogoutModal}
-                                        className="bg-[#EF3826] w-full h-[40px] hover:bg-red-700 px-3 py-2 rounded text-white text-[12px] font-bold mt-2"
-                                    >
-                                        Logout
-                                    </button>
-                                </>
+                                <button
+                                    onClick={handleOpenLogoutModal}
+                                    className="w-full h-[44px] rounded-[10px] border-2 border-red-500 text-red-600 font-[700] text-[13px] flex items-center justify-center gap-2 hover:bg-red-500 hover:text-white transition-colors"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    Logout
+                                </button>
                             ) : (
-                                <>
+                                <div className="flex gap-2">
                                     <Link
                                         href="/signin"
-                                        className="h-[40px] border-2 border-[#0955AC] rounded-[10px] px-3 py-2 text-[#0955AC] text-[12px] font-bold hover:bg-[#0955AC] hover:text-white flex justify-center items-center"
+                                        className="flex-1 h-[44px] rounded-[10px] border-2 border-[#0955AC] text-[#0955AC] font-[700] text-[13px] flex items-center justify-center gap-2 hover:bg-[#0955AC] hover:text-white transition-colors"
                                     >
+                                        <LogIn className="w-4 h-4" />
                                         Login
                                     </Link>
                                     <Link
                                         href="/signup"
-                                        className="bg-[#0955AC] h-[40px] rounded-[10px] border-2 border-[#0955AC] px-3 py-2 text-white font-bold text-[12px] flex justify-center items-center"
+                                        className="flex-1 h-[44px] rounded-[10px] bg-[#0955AC] text-white font-[700] text-[13px] flex items-center justify-center gap-2 hover:bg-[#073E82] transition-colors"
                                     >
+                                        <UserPlus className="w-4 h-4" />
                                         Register
                                     </Link>
-                                </>
+                                </div>
                             )}
                         </div>
-                    </div>
-
-                    {/* Click outside to close */}
-                    <div className="flex-1" onClick={toggleMenu} />
+                    </aside>
                 </div>
             )}
 

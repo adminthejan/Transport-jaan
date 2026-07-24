@@ -77,17 +77,13 @@ const Review = () => {
                     <img src={q} />
                 </div>
 
-                <p className="poppins text-[14px]/[33px] font-[400] py-20">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                    Donec semper eu risus ut ornare. In bibendum tempus sapien,
-                    tristique consectetur purus pellentesque ac. Quisque
-                    facilisis laoreet feugiat. Sed dapibus volutpat ex, eget
-                    iaculis nunc tincidunt sit amet. Quisque congue sapien nec
-                    aliquet faucibus.
+                <p className="poppins text-[14px]/[28px] font-[400] py-8">
+                    Booking used to mean calling around and hoping for a reply. Now I search, compare fares,
+                    and get my ticket confirmed in under two minutes — every single time.
                 </p>
 
-                <h1 className="text-[14px] font-[700]">Founder</h1>
-                <h1 className="text-[14px] font-[500] text-[#90A3BF]">ABC Company</h1>
+                <h1 className="text-[14px] font-[700]">Frequent Traveler</h1>
+                <h1 className="text-[14px] font-[500] text-[#90A3BF]">Colombo</h1>
             </div>
 
             {/* Card 3 */}
@@ -100,7 +96,7 @@ const Review = () => {
                         <img src={ProFill} />
                         <div>
                             <h1 className="text-[14px] font-[700]">
-                                Kasun Gunawardhana
+                                Nadeesha Perera
                             </h1>
                             <img src={ratings} />
                         </div>
@@ -108,17 +104,13 @@ const Review = () => {
                     <img src={q} />
                 </div>
 
-                <p className="poppins text-[14px]/[33px] font-[400] py-20">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                    Donec semper eu risus ut ornare. In bibendum tempus sapien,
-                    tristique consectetur purus pellentesque ac. Quisque
-                    facilisis laoreet feugiat. Sed dapibus volutpat ex, eget
-                    iaculis nunc tincidunt sit amet. Quisque congue sapien nec
-                    aliquet faucibus.
+                <p className="poppins text-[14px]/[28px] font-[400] py-8">
+                    We ship freight and book crew travel through this platform weekly. Real-time tracking
+                    and instant quotes have cut our coordination time in half.
                 </p>
 
-                <h1 className="text-[14px] font-[700]">Founder</h1>
-                <h1 className="text-[14px] font-[500] text-[#90A3BF]">ABC Company</h1>
+                <h1 className="text-[14px] font-[700]">Logistics Manager</h1>
+                <h1 className="text-[14px] font-[500] text-[#90A3BF]">Lanka Freight Solutions</h1>
             </div>
         </div>
     );

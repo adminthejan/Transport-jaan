@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { usePage, router } from "@inertiajs/react";
-import Header from "../../layouts/Header";
+import Header from "../client/ClientHeader";
 import seaVehicle from "../../assets/seaVehicle/seaVehicle.jpg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
 import icon2 from "../../assets/vehicleCheckout/icon2.svg";

@@ -10,9 +10,13 @@ class VehiclePolicySeeder extends Seeder
 {
     public function run(): void
     {
-        $vehicles = Vehicle::limit(2)->get();
+        $vehicles = Vehicle::all();
 
         foreach ($vehicles as $vehicle) {
+            if (VehiclePolicy::where('vehicle_id', $vehicle->id)->exists()) {
+                continue;
+            }
+
             VehiclePolicy::create([
                 'vehicle_id' => $vehicle->id,
                 'file_path' => 'vehicles/policies/' . $vehicle->id . '_terms_conditions.pdf',

@@ -48,6 +48,40 @@ const Hero = ({ initialType = "flight" }) => {
     });
   };
 
+  const headline = {
+    flight: (
+      <>
+        Fly anywhere. <span className="text-[#0955AC]">One</span> simple
+        <span className="text-[#0955AC]"> search</span>.
+      </>
+    ),
+    train: (
+      <>
+        Book train tickets. <span className="text-[#0955AC]">Fast</span>,
+        <span className="text-[#0955AC]"> easy</span>, reliable.
+      </>
+    ),
+    bus: (
+      <>
+        Every route. <span className="text-[#0955AC]">Every</span> operator.
+        <span className="text-[#0955AC]"> One</span> ticket.
+      </>
+    ),
+  };
+
+  const subtext = {
+    flight: "Compare fares across airlines, lock in your seat, and get instant e-tickets — no hidden fees, no waiting on hold.",
+    train: "Search real-time train schedules across the island, pick your class, and confirm your journey in under a minute.",
+    bus: "Search hundreds of scheduled departures, book your seat on the map, and travel with confidence — round trips included.",
+  };
+
+  const stats = [
+    { value: "50K+", label: "Tickets Booked" },
+    { value: "4.8★", label: "Average Rating" },
+    { value: "24/7", label: "Live Support" },
+    { value: "0 LKR", label: "Hidden Fees" },
+  ];
+
   return (
     <div>
       {/* Content */}
@@ -58,18 +92,11 @@ const Hero = ({ initialType = "flight" }) => {
         <div className="flex flex-col items-center max-w-[600px] xl:order-1 order-2">
           <div>
             <div className="w-[125px] h-[5px] bg-[#000000] mb-6 rounded-sm"></div>
-            <h1 className="bebas-neue text-[68px]/[70px] font-[400] mb-4">
-              Million <span className="text-[#0955AC]">of</span> flights.
-              <span className="text-[#0955AC]"> one </span>
-              simple <span className="text-[#0955AC]">search</span>.
+            <h1 className="bebas-neue text-[44px]/[48px] sm:text-[56px]/[58px] xl:text-[64px]/[66px] font-[400] mb-4">
+              {headline[selectedType]}
             </h1>
-            <p className="poppins py-5 text-[12px]/[20px] md:text-[14px]/[33px] font-[400] text-[#000000] text-justify mb-10">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
-              semper eu risus ut ornare. In bibendum tempus sapien, tristique
-              consectetur purus pellentesque ac. Quisque facilisis laoreet
-              feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit
-              amet. Quisque congue sapien nec aliquet faucibus. Morbi lectus
-              eros,
+            <p className="poppins py-5 text-[13px]/[22px] md:text-[15px]/[26px] font-[400] text-[#00000099] mb-6">
+              {subtext[selectedType]}
             </p>
           </div>
 
@@ -106,6 +133,18 @@ const Hero = ({ initialType = "flight" }) => {
                   {imageData[type].label}
                 </span>
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Trust / stats bar */}
+      <div className="relative z-10 w-full px-4 md:px-16 pb-14">
+        <div className="poppins bg-white rounded-[16px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-black/5 grid grid-cols-2 sm:grid-cols-4 divide-x divide-black/5">
+          {stats.map((s) => (
+            <div key={s.label} className="flex flex-col items-center justify-center py-5 px-2 text-center">
+              <span className="text-[22px] sm:text-[28px] font-[800] text-[#0955AC]">{s.value}</span>
+              <span className="text-[11px] sm:text-[12px] font-[600] text-[#00000080] mt-1">{s.label}</span>
             </div>
           ))}
         </div>

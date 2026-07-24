@@ -19,23 +19,45 @@ class VendorSettingsController extends Controller
      */
     public function show(): Response
     {
+        return Inertia::render('Web/home/vendors/SettingsPage', [
+            'user' => $this->profileProps(),
+        ]);
+    }
+
+    /**
+     * Display the warehouse-vertical settings page (same data/update
+     * endpoint as show(), just a different page shell/branding).
+     */
+    public function showWarehouse(): Response
+    {
+        return Inertia::render('Web/home/vendors/warehouse/SettingsPage', [
+            'user' => $this->profileProps(),
+        ]);
+    }
+
+    /**
+     * Shared profile props used by every vendor-vertical settings page.
+     */
+    private function profileProps(): array
+    {
         $user = Auth::user();
 
-        return Inertia::render('Web/home/vendors/SettingsPage', [
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'address' => $user->address,
-                'country' => $user->country,
-                'date_of_birth' => $user->date_of_birth,
-                'image' => $user->image_url,
-                'role' => $user->role,
-                'vendor_type' => $user->vendor_type,
-                'status' => $user->status,
-            ]
-        ]);
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'address' => $user->address,
+            'country' => $user->country,
+            'date_of_birth' => $user->date_of_birth,
+            'image' => $user->image_url,
+            'role' => $user->role,
+            'vendor_type' => $user->vendor_type,
+            'status' => $user->status,
+            'notify_email' => $user->notify_email ?? true,
+            'notify_sms' => $user->notify_sms ?? false,
+            'notify_push' => $user->notify_push ?? true,
+        ];
     }
 
     /**
@@ -55,7 +77,16 @@ class VendorSettingsController extends Controller
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:3072'], // 3MB max
             'current_password' => ['nullable', 'required_with:new_password', 'current_password'],
             'new_password' => ['nullable', 'confirmed', Password::defaults(), new PasswordStrength()],
+            'notify_email' => ['nullable', 'boolean'],
+            'notify_sms' => ['nullable', 'boolean'],
+            'notify_push' => ['nullable', 'boolean'],
         ]);
+
+        // Boolean toggles arrive from the form even when unchanged; default any
+        // missing key to false rather than leaving it unset.
+        $validated['notify_email'] = $request->boolean('notify_email');
+        $validated['notify_sms'] = $request->boolean('notify_sms');
+        $validated['notify_push'] = $request->boolean('notify_push');
 
         // Handle image upload
         if ($request->hasFile('image')) {

@@ -572,23 +572,28 @@ const PaymentContent = () => {
                         <div className="hidden xl:block">
                             {currentTransactions.map((txn, idx) => (
                                 <div
-                                    className="min-w-[250px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    key={txn.id ?? idx}
+                                    className="grid grid-cols-9 items-center min-w-[250px] w-full min-h-[70px] bg-[#FFFFFF] rounded-[8px] gap-2 px-5 py-2 mb-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
-                                    <div className="flex flex-row gap-5 justify-center items-center">
-                                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                            <img src={income} />
-                                        </div>
-                                        <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                                Income
-                                            </h1>
-                                            <h1 className="text-[26px] font-[700]">LKR {stats.income.amount}</h1>
-                                        </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <input
+                                            type="checkbox"
+                                            className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                                            checked={selectedRows.has(startIdx + idx)}
+                                            onChange={() => handleRowSelection(idx)}
+                                        />
+                                        <span className="font-[600]">{txn.id}</span>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div>{txn.client}</div>
+                                    <div>{txn.warehouse}</div>
+                                    <div className="ml-5">{txn.ratePerDay}</div>
+                                    <div className="ml-10">{txn.days}</div>
+                                    <div className="font-[600]">{txn.amount}</div>
+                                    <div>{txn.dueDate}</div>
+                                    <div>
                                         <div
                                             className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
                                             style={{
@@ -601,12 +606,13 @@ const PaymentContent = () => {
                                         </div>
                                     </div>
                                     <div className="flex flex-row justify-center items-center gap-2">
-                                        <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
-                                            Edit
-                                        </div>
-                                        <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
-                                            Delete
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => router.visit("/warehouse/bookings")}
+                                            className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer"
+                                        >
+                                            View
+                                        </button>
                                     </div>
                                 </div>
                             ))}

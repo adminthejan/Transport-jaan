@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from '@inertiajs/react';
-import Header from "./HeaderTwo";
+import Header from "../client/ClientHeader";
 import { Check } from 'lucide-react';
 
 const Summary = ({ journey }) => {
