@@ -1,5 +1,6 @@
 import React from "react";
 import { router } from "@inertiajs/react";
+import { Ruler } from "lucide-react";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png"
 import locationBlue from "../../assets/vehicleList/locationBlue.png"
 
@@ -93,11 +94,20 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
 
             {/* Required Space */}
             <div className="w-full sm:flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="requiredSpace">
-                  Required Space ({requiredSpaceUnit === "cbm" ? "CBM" : "sq ft"})
-                </label>
-                <div className="inline-flex rounded-full bg-[#F1F5F9] p-0.5 text-[10px]">
+              <label htmlFor="requiredSpace" className="block mb-1">
+                Required Space
+              </label>
+              <div className="relative flex items-center">
+                <Ruler className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                <input
+                  type="number"
+                  id="requiredSpace"
+                  placeholder={requiredSpaceUnit === "cbm" ? "e.g., 500" : "e.g., 10000"}
+                  value={formData.requiredSpace}
+                  onChange={handleInputChange}
+                  className="shadow-sm appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] py-[16px] pl-12 pr-[92px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                />
+                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex rounded-[6px] bg-[#F1F5F9] p-1 text-[11px]">
                   {[
                     { value: "sqft", label: "Sq Ft" },
                     { value: "cbm", label: "CBM" },
@@ -106,8 +116,8 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                       type="button"
                       key={u.value}
                       onClick={() => setRequiredSpaceUnit(u.value)}
-                      className={`px-2 py-1 rounded-full font-[700] transition-colors ${
-                        requiredSpaceUnit === u.value ? "bg-[#0955AC] text-white" : "text-[#286BB6]"
+                      className={`px-2.5 py-1.5 rounded-[4px] font-[700] transition-colors ${
+                        requiredSpaceUnit === u.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#64748B] hover:text-[#0955AC]"
                       }`}
                     >
                       {u.label}
@@ -115,14 +125,6 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                   ))}
                 </div>
               </div>
-              <input
-                type="number"
-                id="requiredSpace"
-                placeholder={requiredSpaceUnit === "cbm" ? "e.g., 500" : "e.g., 10000"}
-                value={formData.requiredSpace}
-                onChange={handleInputChange}
-                className="shadow-sm w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
-              />
             </div>
 
             {/* When: Flexible or Choose Dates */}

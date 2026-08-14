@@ -26,7 +26,8 @@
       "Bash(php -l app/Support/Courier/ClientCourierShipmentTransformer.php)",
       "Bash(grep -n '$adults\\\\|$children\\\\|$infants' app/Http/Controllers/TrainController.php)",
       "Bash(git rev-list *)",
-      "Bash(git ls-remote *)"
+      "Bash(git ls-remote *)",
+      "Bash(node -e \"const i = require\\('/home/thejan/Documents/Transport-jaan/node_modules/lucide-react'\\); console.log\\(['Ruler','Box','Boxes','Maximize2','Package'].map\\(n => n+': '+\\(!!i[n]\\)\\).join\\('\\\\n'\\)\\)\")"
     ]
   }
 }
