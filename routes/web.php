@@ -89,6 +89,9 @@ Route::get('/landingPage/privacy-policy', [WebController::class, 'privacyPolicy'
 Route::get('/landingPage/return-policy', [WebController::class, 'returnPolicy'])->name('landingPage.returnPolicy');
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
+Route::get('/track-shipment', [ClientCourierController::class, 'trackPublic'])
+    ->middleware('throttle:30,1')
+    ->name('couriers.track.public');
 Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/create', function () {
         return redirect()->route('couriers.flow.create', ['flow' => 'domestic']);

@@ -24,9 +24,17 @@ class TrainController extends Controller
         $departureDate = $request->input('departureDate');
         $returnDate = $request->input('returnDate');
         $tripType = $request->input('tripType', 'oneway');
-        $adults = $request->input('adults', 1);
-        $children = $request->input('children', 0);
-        $infants = $request->input('infants', 0);
+        // Same guard as preview() below — query params are user-controllable
+        // and a bad frontend link has sent the literal string "undefined" here.
+        $toCount = function ($value, int $default): int {
+            return is_numeric($value) ? max(0, (int) $value) : $default;
+        };
+        $adults = max(1, $toCount($request->input('adults'), 1));
+        $children = $toCount($request->input('children'), 0);
+        $infants = $toCount($request->input('infants'), 0);
+        $seniors = $toCount($request->input('seniors'), 0);
+        $student = $request->boolean('student');
+        $wheelchair = $request->boolean('wheelchair');
 
         // Parse station names and get station IDs
         $fromStationRecord = null;
@@ -147,6 +155,9 @@ class TrainController extends Controller
                 'adults' => (int)$adults,
                 'children' => (int)$children,
                 'infants' => (int)$infants,
+                'seniors' => (int)$seniors,
+                'student' => $student,
+                'wheelchair' => $wheelchair,
             ],
             'outboundSchedules' => $outboundSchedules,
             'returnSchedules' => $returnSchedules,
@@ -205,9 +216,16 @@ class TrainController extends Controller
     {
         $scheduleId = $request->input('schedule_id');
         $returnScheduleId = $request->input('return_schedule_id');
-        $adults = $request->input('adults', 1);
-        $children = $request->input('children', 0);
-        $infants = $request->input('infants', 0);
+        // Query params are user-controllable and have shown up here as the
+        // literal string "undefined" (a frontend link built from an unset JS
+        // value) — is_numeric guards against that and anything else garbage
+        // instead of trusting whatever arrives.
+        $toCount = function ($value, int $default): int {
+            return is_numeric($value) ? max(0, (int) $value) : $default;
+        };
+        $adults = max(1, $toCount($request->input('adults'), 1));
+        $children = $toCount($request->input('children'), 0);
+        $infants = $toCount($request->input('infants'), 0);
 
         $outboundSchedule = null;
         $returnSchedule = null;

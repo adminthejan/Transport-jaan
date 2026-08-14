@@ -7,6 +7,7 @@ import icon1 from "../../assets/vehicleCheckout/icon1.svg";
 import icon2 from "../../assets/vehicleCheckout/icon2.svg";
 import icon3 from "../../assets/vehicleCheckout/icon3.svg";
 import icon4 from "../../assets/vehicleCheckout/icon4.svg";
+import VehicleLocationMap from "./VehicleLocationMap";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
@@ -27,6 +28,7 @@ const VehicleCheckoutContent = () => {
     return o;
   }, []);
   const q = Object.keys(serverQuery).length ? serverQuery : urlQuery;
+  const needsDriver = q.needs_driver === true || q.needs_driver === "true" || q.needs_driver === "1";
 
   /* ---------------- Personal info ---------------- */
   const [firstName, setFirstName] = useState(user?.name || "");
@@ -108,6 +110,7 @@ const VehicleCheckoutContent = () => {
         if (q.exclude_booking_id) {
           params.append("exclude_booking_id", String(q.exclude_booking_id));
         }
+        params.append("needs_driver", needsDriver ? "1" : "0");
         addons.forEach((a, i) => {
           params.append(`addons[${i}][name]`, a.name);
           params.append(`addons[${i}][qty]`, String(a.qty || 1));
@@ -126,7 +129,7 @@ const VehicleCheckoutContent = () => {
       }
     }, 200);
     return () => clearTimeout(t);
-  }, [vehicle?.id, q.pickup_date, pickupTime, q.dropoff_date, dropoffTime, q.exclude_booking_id, addons]);
+  }, [vehicle?.id, q.pickup_date, pickupTime, q.dropoff_date, dropoffTime, q.exclude_booking_id, addons, needsDriver]);
 
   useEffect(() => {
     setFirstName(user?.name || "");
@@ -202,6 +205,7 @@ const VehicleCheckoutContent = () => {
         dropoff_date: q.dropoff_date,
         dropoff_time: dropoffTime,
         addons,
+        needs_driver: needsDriver,
         first_name: firstName,
         last_name: lastName,
         email,
@@ -506,6 +510,16 @@ const VehicleCheckoutContent = () => {
                 </div>
               </div>
 
+              {(q.pickup_location || "").trim() && (
+                <div className="mt-6">
+                  <VehicleLocationMap
+                    pickupLocation={q.pickup_location}
+                    dropoffLocation={q.dropoff_location}
+                    className="h-[220px]"
+                  />
+                </div>
+              )}
+
               <div className="mt-6">
                 <h2 className="text-[14px] font-[700] text-[#0955AC]">Selected Extras</h2>
                 <div className="mt-2 space-y-2">
@@ -562,6 +576,26 @@ const VehicleCheckoutContent = () => {
                   {money(rentalLineTotal)}
                 </div>
               </div>
+
+              {/* Driver */}
+              {needsDriver && Number(quote?.driver_fee_total) > 0 && (
+                <div className="flex flex-col md:flex-row justify-between px-3 sm:px-5 py-4 font-[500] gap-2 border-t border-[#CDD0D4]">
+                  <div className="break-words max-w-[200px] md:max-w-none">
+                    <p className="text-[#000000CC]">Driver / Chauffeur</p>
+                    <div className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-[#00000061] text-[11px] sm:text-[12px]">
+                      <span className="whitespace-nowrap">
+                        {currency}
+                        {money(quote?.driver_fee_per_day)}/day
+                      </span>
+                      <span className="text-[#0955AC] whitespace-nowrap">(×{Math.floor(rentalDays)} {Math.floor(rentalDays) === 1 ? 'day' : 'days'})</span>
+                    </div>
+                  </div>
+                  <div className="text-[#000000CC] whitespace-nowrap">
+                    {currency}
+                    {money(quote?.driver_fee_total)}
+                  </div>
+                </div>
+              )}
 
               {/* Add-ons */}
               {addonsLines.length > 0 && (

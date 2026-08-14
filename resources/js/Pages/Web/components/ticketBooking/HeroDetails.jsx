@@ -2,8 +2,22 @@ import React, { useState, useMemo } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
 import { Clock, Users, TrainFront } from "lucide-react";
 import TrainCard from "./TrainCard";
+import LocaleSelector from "./LocaleSelector";
+import { LocaleProvider, useLocale } from "../../context/LocaleContext";
+
+/** Parses durations like "8h 0m" or "45m" into total minutes for sorting. */
+function parseDurationMinutes(duration) {
+    if (typeof duration === "number") return duration;
+    if (!duration) return Number.MAX_SAFE_INTEGER;
+    const hoursMatch = duration.match(/(\d+)\s*h/);
+    const minutesMatch = duration.match(/(\d+)\s*m/);
+    const hours = hoursMatch ? parseInt(hoursMatch[1], 10) : 0;
+    const minutes = minutesMatch ? parseInt(minutesMatch[1], 10) : 0;
+    return hours * 60 + minutes;
+}
 
 function TripResultCard({ trip, mode, selected, onSelect, href }) {
+    const { formatPrice } = useLocale();
     const content = (
         <div className="grid grid-cols-12 items-center gap-6 sm:gap-8">
             {/* Left meta */}
@@ -64,7 +78,7 @@ function TripResultCard({ trip, mode, selected, onSelect, href }) {
             <div className="col-span-12 sm:col-span-3">
                 <div className="flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end gap-3">
                     <div className="text-left sm:text-right">
-                        <div className="text-[19px] sm:text-[24px] font-[800] text-[#0955AC]">LKR {trip.price.toLocaleString()}</div>
+                        <div className="text-[19px] sm:text-[24px] font-[800] text-[#0955AC]">{formatPrice(trip.price)}</div>
                         <div className="flex items-center gap-1 text-[11px] sm:text-[13px] text-[#64748B] font-[600] sm:justify-end">
                             <Users className="w-3.5 h-3.5" /> {trip.available_seats}/{trip.total_capacity} seats
                         </div>
@@ -106,7 +120,7 @@ function TripResultCard({ trip, mode, selected, onSelect, href }) {
     );
 }
 
-export default function HeroDetails({
+function HeroDetailsInner({
     outboundSchedules: propOutbound,
     returnSchedules: propReturn,
     searchParams: propSearchParams,
@@ -116,6 +130,7 @@ export default function HeroDetails({
     isShowingAllTrains: propShowAll,
     inline = false,
 }) {
+    const { t } = useLocale();
     // Use props if provided (inline mode), otherwise fall back to usePage (standalone page mode)
     let pageProps = {};
     try {
@@ -151,6 +166,8 @@ export default function HeroDetails({
                     return a.depart.localeCompare(b.depart);
                 case 'arrival':
                     return a.arrive.localeCompare(b.arrive);
+                case 'fastest':
+                    return parseDurationMinutes(a.duration) - parseDurationMinutes(b.duration);
                 case 'seats':
                     return b.available_seats - a.available_seats;
                 case 'name':
@@ -164,7 +181,11 @@ export default function HeroDetails({
     const sortedOutboundSchedules = sortSchedules(outboundSchedules, sortBy);
     const sortedReturnSchedules = sortSchedules(returnSchedules, sortBy);
 
-    const passengerQuery = `adults=${searchParams.adults}&children=${searchParams.children}&infants=${searchParams.infants}`;
+    // Falls back explicitly — this page is also embedded inside the
+    // multimodal journey planner, which doesn't always pass passenger counts
+    // in searchParams, and an unset value here previously serialized as the
+    // literal string "undefined" in the URL (crashed the preview page).
+    const passengerQuery = `adults=${searchParams.adults ?? 1}&children=${searchParams.children ?? 0}&infants=${searchParams.infants ?? 0}`;
 
     const bothLegsSelected = isRoundTrip && selectedOutboundId && selectedReturnId;
 
@@ -207,7 +228,11 @@ export default function HeroDetails({
                                 <div>
                                     <span className="font-[600] text-[#64748B]">Passengers:</span>
                                     <p className="text-[#0955AC] font-[700]">
-                                        {searchParams.adults} Adults, {searchParams.children} Children, {searchParams.infants} Infants
+                                        {Math.max(0, (searchParams.adults || 0) - (searchParams.seniors || 0))} Adults
+                                        {searchParams.children > 0 ? `, ${searchParams.children} Youth` : ""}
+                                        {searchParams.seniors > 0 ? `, ${searchParams.seniors} Seniors` : ""}
+                                        {searchParams.student ? ", Student" : ""}
+                                        {searchParams.wheelchair ? ", Wheelchair" : ""}
                                     </p>
                                 </div>
                             </div>
@@ -254,14 +279,15 @@ export default function HeroDetails({
             {/* Toolbar */}
             <div className="sticky top-0 z-10 -mx-6 mb-6 bg-white/90 backdrop-blur px-4 sm:px-6 py-4 rounded-2xl shadow-[0_2px_10px_rgba(15,23,42,0.05)] border border-[#EEF2F6]">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <span className="text-[13px] sm:text-[14px] font-[700] text-[#0F172A] w-full sm:w-auto mb-1 sm:mb-0">Sort by</span>
+                    <span className="text-[13px] sm:text-[14px] font-[700] text-[#0F172A] w-full sm:w-auto mb-1 sm:mb-0">{t('sort_by', 'Sort by')}</span>
                     <div className="flex flex-wrap gap-2">
                         {[
-                            { key: 'fare', label: 'Fare' },
-                            { key: 'departure', label: 'Departure' },
-                            { key: 'arrival', label: 'Arrival' },
-                            { key: 'seats', label: 'Seats' },
-                            { key: 'name', label: 'Name' },
+                            { key: 'fare', label: t('cheapest', 'Cheapest') },
+                            { key: 'fastest', label: t('fastest', 'Fastest') },
+                            { key: 'departure', label: t('earliest', 'Earliest') },
+                            { key: 'arrival', label: t('arrival', 'Arrival') },
+                            { key: 'seats', label: t('seats', 'Seats') },
+                            { key: 'name', label: t('name', 'Name') },
                         ].map((filter) => (
                             <button
                                 key={filter.key}
@@ -275,6 +301,7 @@ export default function HeroDetails({
                             </button>
                         ))}
                     </div>
+                    <LocaleSelector />
                     {hasActiveFilters && (
                         <div className="ml-auto flex items-center gap-2 sm:gap-3 text-[12px] sm:text-[14px] font-[600] text-[#334155]">
                             <span>{fromStationName} → {toStationName}</span>
@@ -358,5 +385,13 @@ export default function HeroDetails({
                 </div>
             )}
         </section>
+    );
+}
+
+export default function HeroDetails(props) {
+    return (
+        <LocaleProvider>
+            <HeroDetailsInner {...props} />
+        </LocaleProvider>
     );
 }

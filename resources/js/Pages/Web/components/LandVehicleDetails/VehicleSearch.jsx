@@ -4,13 +4,17 @@ import { route } from "ziggy-js";
 import clock from "../../assets/landVehicleDetails/clock.svg";
 import QuoteModal from "./QuoteModal";
 import useScrollLock from "./useScrollLock";
+import VehicleLocationMap from "./VehicleLocationMap";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import LocaleSelector from "../ticketBooking/LocaleSelector";
+import { LocaleProvider, useLocale } from "../../context/LocaleContext";
 
-const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
+const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
+  const { formatPrice } = useLocale();
   const { props } = usePage();
   const vehicle = vehicleProp || props.vehicle || null;
   const vehicleId = vehicleIdProp || vehicle?.id;
@@ -28,6 +32,8 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const [dropoffDate, setDropoffDate] = useState("");
   const [dropoffTime, setDropoffTime] = useState("0:00");
   const [dateError, setDateError] = useState("");
+  const [needsDriver, setNeedsDriver] = useState(false);
+  const DRIVER_FEE_RATE = 0.20;
 
   // Initialize form values from URL query params (if present)
   useEffect(() => {
@@ -137,6 +143,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
           dropoff_date: dropoffDate,
           dropoff_time: dropoffTime || "10:00",
           addons: selectedAddons(),
+          needs_driver: needsDriver,
         },
       });
       setQuote(data);
@@ -166,6 +173,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
           dropoff_date: dropoffDate,
           dropoff_time: dropoffTime || "10:00",
           addons: selectedAddons(),
+          needs_driver: needsDriver,
         },
       });
 
@@ -180,6 +188,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
           dropoff_date: dropoffDate,
           dropoff_time: dropoffTime || "10:00",
           addons: selectedAddons(),
+          needs_driver: needsDriver,
         },
         preserveScroll: true,
       });
@@ -369,9 +378,12 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
 
       {/* ==== Sidebar card (unchanged) ==== */}
       <div className="poppins w-full xl:w-[440px] h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 xl:px-20 px-6 sm:px-10">
-        <div className="text-[25px] font-[700]">
+        <div className="flex justify-end">
+          <LocaleSelector />
+        </div>
+        <div className="text-[25px] font-[700] -mt-6">
           <h1>
-            ${vehicle?.rental_price_per_day ?? 620}{" "}
+            {formatPrice(vehicle?.rental_price_per_day ?? 620, "USD")}{" "}
             <span className="text-[10px] text-[#00000080]">/day</span>
           </h1>
           <h1 className="text-[10px] font-[600] text-[#00000080] py-4">
@@ -406,8 +418,6 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
                   onChange={(e) => setPickupDate(e.target.value)}
                   placeholder="2025-07-23"
                   className="w-full border-[1px] h-[35px]  border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
-                  onFocus={(e) => (e.target.type = "date")}
-                  onBlur={(e) => (e.target.type = "text")}
                 />
               </div>
               <div className="relative">
@@ -447,8 +457,6 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
                   onChange={(e) => setDropoffDate(e.target.value)}
                   placeholder="2025-07-30"
                   className="border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3  w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
-                  onFocus={(e) => (e.target.type = "date")}
-                  onBlur={(e) => (e.target.type = "text")}
                 />
               </div>
               <div className="relative">
@@ -466,9 +474,45 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
           </div>
         </form>
 
+        {pickupLocation.trim() && (
+          <div className="mb-6">
+            <VehicleLocationMap
+              pickupLocation={pickupLocation}
+              dropoffLocation={dropoffLocation}
+              className="h-[220px]"
+            />
+          </div>
+        )}
+
         <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
           <h1 className="font-[600] mb-5 text-[#000000D9]">Pricing Breakdown</h1>
           <div className="w-full h-[1px] bg-[#CDD0D4]" />
+
+          <h1 className="font-[600] mt-5 text-[#000000D9]">Driver</h1>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {[
+              { value: false, label: "Self-Drive" },
+              { value: true, label: "With Driver" },
+            ].map((opt) => (
+              <button
+                type="button"
+                key={String(opt.value)}
+                onClick={() => setNeedsDriver(opt.value)}
+                className={`rounded-[5px] border-[1.5px] px-4 py-2.5 text-[12px] font-[700] transition-colors ${
+                  needsDriver === opt.value
+                    ? "bg-[#0955AC] border-[#0955AC] text-white"
+                    : "border-[#0000001F] text-[#00000099] hover:border-[#0955AC]/40"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {needsDriver && (
+            <p className="mt-3 text-[12px] font-[700] text-[#0955AC] bg-[#0955AC1A] border border-[#0955AC]/30 rounded-[6px] px-3 py-2">
+              A driver adds {(DRIVER_FEE_RATE * 100).toFixed(0)}% of the daily rate for chauffeur service.
+            </p>
+          )}
 
           <h1 className="font-[600] mt-5 text-[#000000D9]">Add Extras</h1>
 
@@ -514,5 +558,11 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
     </div>
   );
 };
+
+const VehicleSearch = (props) => (
+  <LocaleProvider>
+    <VehicleSearchInner {...props} />
+  </LocaleProvider>
+);
 
 export default VehicleSearch;

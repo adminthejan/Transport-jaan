@@ -14,6 +14,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            // Reference data used by the courier country pickers — must run
+            // before anyone tries to create an international shipment.
+            LocationCountrySeeder::class ,
+
             // User seeders (must run first)
             SuperAdminSeeder::class ,
             DemoUsersSeeder::class ,

@@ -166,22 +166,9 @@ const BookingSummary = ({ booking }) => {
                 0
             ) || 0;
 
-            const resolveTaxRate = (rate) => {
-                if (rate === null || rate === undefined) {
-                    return 0.08;
-                }
-                const normalized = typeof rate === 'string' ? rate.replace(/[^0-9.]/g, '') : rate;
-                const numeric = Number(normalized);
-                if (!Number.isFinite(numeric)) {
-                    return 0;
-                }
-                return numeric > 1 ? numeric / 100 : numeric;
-            };
-
-            const taxRate = resolveTaxRate(
-                currentBooking?.tax_rate ??
-                currentWarehouse?.tax_rate
-            );
+            // Tax is set per-vendor on their listing (warehouse_units.tax_rate);
+            // no platform-wide default is assumed if a vendor hasn't set one.
+            const taxRate = Number(currentBooking?.tax_rate ?? currentWarehouse?.tax_rate) || 0;
 
             const totalArea = parseFloat(
                 currentWarehouse?.total_area ??

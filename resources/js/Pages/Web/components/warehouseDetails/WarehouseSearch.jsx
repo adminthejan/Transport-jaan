@@ -3,6 +3,7 @@ import { router, usePage } from "@inertiajs/react";
 import clock from "../../assets/landVehicleDetails/clock.svg";
 import QuoteModal from "../LandVehicleDetails/QuoteModal";
 import useScrollLock from "../LandVehicleDetails/useScrollLock";
+import { Warehouse as WarehouseIcon, PackageCheck, Check } from "lucide-react";
 
 const WarehouseSearch = () => {
   const { props } = usePage();
@@ -16,6 +17,7 @@ const WarehouseSearch = () => {
     moveinDate: '',
     leaseDuration: '',
     storageType: warehouse?.type || '',
+    fulfillmentService: false,
     accessHours: '24/7',
     specialRequirements: '',
     company_name: '',
@@ -28,12 +30,21 @@ const WarehouseSearch = () => {
     monthly_rate: 0,
     security_deposit: 0,
     setup_fee: 0,
+    add_ons_cost: 0,
     tax_rate: 0,
     subtotal: 0,
     tax_amount: 0,
     total_amount: 0,
     final_amount: 0
   });
+
+  // Storage & Fulfillment is an optional add-on service (pick, pack, and ship
+  // handling on the client's behalf) priced as a share of the base monthly rate.
+  // Vendors can set their own rate per listing; falls back to the platform default.
+  const offersFulfillment = Boolean(warehouse?.offers_fulfillment);
+  const FULFILLMENT_SERVICE_RATE = warehouse?.fulfillment_fee_rate
+    ? Number(warehouse.fulfillment_fee_rate) / 100
+    : 0.15;
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -95,6 +106,14 @@ const WarehouseSearch = () => {
     }
   };
 
+  const selectServiceType = (fulfillmentService) => {
+    setFormData(prev => {
+      const next = { ...prev, fulfillmentService };
+      calculatePricing(next);
+      return next;
+    });
+  };
+
   // Calculate pricing based on warehouse data and user inputs
   const calculatePricing = (currentFormData = formData) => {
     if (!warehouse || !currentFormData.requiredSpace || !currentFormData.leaseDuration) {
@@ -102,6 +121,7 @@ const WarehouseSearch = () => {
         monthly_rate: 0,
         security_deposit: 0,
         setup_fee: 0,
+        add_ons_cost: 0,
         tax_rate: 0,
         subtotal: 0,
         tax_amount: 0,
@@ -118,20 +138,23 @@ const WarehouseSearch = () => {
       const baseMonthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || warehouse.base_price || 0);
       const securityDeposit = parseFloat(warehouse.security_deposit || baseMonthlyRate * 0.5 || 0);
       const setupFee = parseFloat(warehouse.setup_fee || baseMonthlyRate * 0.2 || 0);
-      const taxRate = parseFloat(warehouse.tax_rate || 0.08); // 8% default tax
-      
+      const addOnsCost = (offersFulfillment && currentFormData.fulfillmentService) ? baseMonthlyRate * FULFILLMENT_SERVICE_RATE : 0;
+      // Tax is set per-vendor on their listing; no platform-wide default is
+      // assumed if a vendor hasn't set one.
+      const taxRate = Number(warehouse.tax_rate) || 0;
+
       // Calculate based on required space and duration
       const requiredSpace = parseFloat(currentFormData.requiredSpace || 0);
       const totalArea = parseFloat(warehouse.total_area || 1);
       const durationMonths = parseDurationToMonths(currentFormData.leaseDuration);
-      
+
       // Calculate space utilization factor (if requiring partial space)
       const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
       const adjustedMonthlyRate = baseMonthlyRate * spaceUtilization;
-      
+
       // Calculate pricing breakdown
       const monthlyRate = adjustedMonthlyRate;
-      const subtotal = monthlyRate * durationMonths;
+      const subtotal = (monthlyRate + addOnsCost) * durationMonths;
       const taxAmount = subtotal * taxRate;
       const totalBeforeFees = subtotal + taxAmount;
       const finalAmount = totalBeforeFees + securityDeposit + setupFee;
@@ -140,6 +163,7 @@ const WarehouseSearch = () => {
         monthly_rate: monthlyRate,
         security_deposit: securityDeposit,
         setup_fee: setupFee,
+        add_ons_cost: addOnsCost,
         tax_rate: taxRate,
         subtotal: subtotal,
         tax_amount: taxAmount,
@@ -154,6 +178,7 @@ const WarehouseSearch = () => {
         monthly_rate: 0,
         security_deposit: 0,
         setup_fee: 0,
+        add_ons_cost: 0,
         tax_rate: 0,
         subtotal: 0,
         tax_amount: 0,
@@ -320,6 +345,7 @@ const WarehouseSearch = () => {
         
         // Storage Requirements
         storage_type: formData.storageType || warehouse?.type,
+        fulfillment_service: formData.fulfillmentService,
         access_hours: formData.accessHours,
         special_requirements: formData.specialRequirements,
         
@@ -334,6 +360,7 @@ const WarehouseSearch = () => {
           monthly_rate: pricingCalculation.monthly_rate,
           security_deposit: pricingCalculation.security_deposit,
           setup_fee: pricingCalculation.setup_fee,
+          add_ons_cost: pricingCalculation.add_ons_cost,
           tax_rate: pricingCalculation.tax_rate,
           subtotal: pricingCalculation.subtotal,
           tax_amount: pricingCalculation.tax_amount,
@@ -761,6 +788,67 @@ const WarehouseSearch = () => {
               </div>
             </div>
 
+            {/* Service Type: Storage only, or Storage + Fulfillment */}
+            <div className="lg:col-span-2">
+              <label className="block mb-3">What kind of warehousing do you need?</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  {
+                    value: false,
+                    title: "Storage",
+                    icon: WarehouseIcon,
+                    description: "Just space to store your goods, on your own terms.",
+                  },
+                  {
+                    value: true,
+                    title: "Storage & Fulfillment",
+                    icon: PackageCheck,
+                    description: "We also pick, pack, and ship your goods on your behalf.",
+                  },
+                ].map((option) => {
+                  const isDisabled = option.value === true && !offersFulfillment;
+                  const isSelected = !isDisabled && formData.fulfillmentService === option.value;
+                  const Icon = option.icon;
+                  return (
+                    <div
+                      key={option.title}
+                      className={`relative rounded-[10px] border-2 px-5 py-6 text-center transition-colors ${
+                        isDisabled
+                          ? "border-[#00000014] bg-[#F7F7F7] opacity-60"
+                          : isSelected
+                          ? "border-[#0955AC] bg-[#0955AC0D]"
+                          : "border-[#00000026] bg-white"
+                      }`}
+                    >
+                      {isSelected && (
+                        <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#0955AC] text-white flex items-center justify-center">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                      <Icon className="w-10 h-10 mx-auto text-[#0955AC]" strokeWidth={1.5} />
+                      <h3 className="mt-3 text-[14px] font-[700] text-[#000000D9]">{option.title}</h3>
+                      <p className="mt-1 text-[11px] text-[#00000099] leading-relaxed">
+                        {isDisabled ? "Not offered by this warehouse." : option.description}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => selectServiceType(option.value)}
+                        className={`mt-4 w-full py-2 rounded-[6px] text-[12px] font-[700] transition-colors ${
+                          isDisabled
+                            ? "border border-[#00000026] text-[#00000061] cursor-not-allowed"
+                            : isSelected
+                            ? "bg-[#0955AC] text-white"
+                            : "border border-[#0955AC] text-[#0955AC] hover:bg-[#0955AC0D]"
+                        }`}
+                      >
+                        {isDisabled ? "Unavailable" : isSelected ? "Selected" : "Select"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
           </div>
         </form>
@@ -812,17 +900,33 @@ const WarehouseSearch = () => {
             <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.setup_fee)}</div>
           </div>
 
-          {/* Tax */}
-          <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
-            <div>
-              <h1 className="text-[#000000CC]">Tax</h1>
-              <div className="flex flex-row gap-3 text-[#00000061]">
-                <h1>VAT and other taxes</h1>
-                <h1 className="text-[#0955AC]">({((pricingCalculation.tax_rate || 0) * 100).toFixed(1)}%)</h1>
+          {/* Storage & Fulfillment Add-on */}
+          {pricingCalculation.add_ons_cost > 0 && (
+            <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
+              <div>
+                <h1 className="text-[#000000CC]">Storage &amp; Fulfillment</h1>
+                <div className="flex flex-row gap-3 text-[#00000061]">
+                  <h1>Pick, pack &amp; ship handling</h1>
+                  <h1 className="text-[#0955AC]">(Monthly)</h1>
+                </div>
               </div>
+              <div className="text-[#000000CC]">+{formatCurrency(pricingCalculation.add_ons_cost * (pricingCalculation.duration_months || 1))}</div>
             </div>
-            <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.tax_amount)}</div>
-          </div>
+          )}
+
+          {/* Tax */}
+          {pricingCalculation.tax_amount > 0 && (
+            <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
+              <div>
+                <h1 className="text-[#000000CC]">Tax</h1>
+                <div className="flex flex-row gap-3 text-[#00000061]">
+                  <h1>VAT and other taxes</h1>
+                  <h1 className="text-[#0955AC]">({((pricingCalculation.tax_rate || 0) * 100).toFixed(1)}%)</h1>
+                </div>
+              </div>
+              <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.tax_amount)}</div>
+            </div>
+          )}
 
           <div className="w-full h-[1px] bg-[#CDD0D4] my-5" />
 

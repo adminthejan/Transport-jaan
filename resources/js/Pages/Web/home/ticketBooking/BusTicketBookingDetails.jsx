@@ -3,7 +3,7 @@ import Header from '../client/ClientHeader';
 import HeroDetailsTwo from '../../components/ticketBooking/HeroDetailsTwo';
 import Footer from '../../layouts/Footer';
 
-const BusTicketBookingDetails = ({ stations, schedules, returnSchedules, searchParams }) => {
+const BusTicketBookingDetails = ({ stations, schedules, returnSchedules, route, nearbyDates, searchParams }) => {
   return (
     <div>
      <Header />
@@ -11,6 +11,8 @@ const BusTicketBookingDetails = ({ stations, schedules, returnSchedules, searchP
        stations={stations}
        schedules={schedules}
        returnSchedules={returnSchedules}
+       route={route}
+       nearbyDates={nearbyDates}
        searchParams={searchParams}
      />
      <Footer />

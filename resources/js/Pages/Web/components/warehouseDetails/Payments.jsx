@@ -4,6 +4,13 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 
+// Storage & Fulfillment is an optional add-on service (pick, pack, and ship
+// handling on the client's behalf) priced as a share of the base monthly rate.
+// Vendors can set their own rate per listing; falls back to the platform default.
+const DEFAULT_FULFILLMENT_SERVICE_RATE = 0.15;
+const fulfillmentRateFor = (warehouse) =>
+    warehouse?.fulfillment_fee_rate ? Number(warehouse.fulfillment_fee_rate) / 100 : DEFAULT_FULFILLMENT_SERVICE_RATE;
+
 const WarehousePayments = () => {
     const [selectedPayment, setSelectedPayment] = useState("Credit Card");
     const [slipNumber, setSlipNumber] = useState("");
@@ -146,12 +153,16 @@ const WarehousePayments = () => {
             const baseMonthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || warehouse.base_price || 0) || 0;
             const securityDeposit = parseFloat(warehouse.security_deposit || baseMonthlyRate * 0.5 || 0) || 0;
             const setupFee = parseFloat(warehouse.setup_fee || baseMonthlyRate * 0.2 || 0) || 0;
-            const taxRate = parseFloat(warehouse.tax_rate || 0.08) || 0;
+            // Tax is set per-vendor on their listing; no platform-wide default is
+            // assumed if a vendor hasn't set one.
+            const taxRate = Number(warehouse.tax_rate) || 0;
             const totalArea = parseFloat(warehouse.total_area || 1) || 1;
 
             const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
             const monthlyRate = baseMonthlyRate * spaceUtilization;
-            const addOnsCost = 0;
+            const addOnsCost = (warehouse?.offers_fulfillment && bookingDataToUse?.fulfillment_service)
+                ? baseMonthlyRate * fulfillmentRateFor(warehouse)
+                : 0;
             const monthlyTotal = monthlyRate + addOnsCost;
             const subtotal = monthlyTotal * durationMonths;
             const taxAmount = subtotal * taxRate;
@@ -380,6 +391,7 @@ const WarehousePayments = () => {
             phone: updatedBookingData.phone || updatedBookingData.contactPhone || updatedBookingData.phoneNumber || '',
             company_address: updatedBookingData.company_address || updatedBookingData.companyAddress || '',
             storage_type: updatedBookingData.storage_type || updatedBookingData.storageType || 'General Storage',
+            fulfillment_service: Boolean(updatedBookingData.fulfillment_service || updatedBookingData.fulfillmentService),
             required_space: Number(updatedBookingData.required_space || updatedBookingData.requiredSpace || updatedBookingData.spaceNeeded || 0),
             goods_type: updatedBookingData.goods_type || updatedBookingData.goodsType || 'General',
             goods_description: updatedBookingData.goods_description || updatedBookingData.goodsDescription || 'General goods',
@@ -394,6 +406,7 @@ const WarehousePayments = () => {
             monthly_rate: monthlyRate,
             security_deposit: securityDeposit,
             setup_fee: setupFee,
+            add_ons_cost: addOnsCost,
             total_amount: totalAmount,
             tax_amount: taxAmount,
             final_amount: finalAmount,

@@ -244,30 +244,6 @@ const ClientHeader = () => {
     return (
         <header className="relative z-50 w-full h-auto py-[5px]">
             <div className="poppins font-[500] px-3 sm:px-4 md:px-6 lg:px-10 py-2 sm:py-4 flex items-center justify-between relative">
-                {/* Hamburger */}
-                {!isMenuOpen && (
-                    <div className="size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
-                        <button
-                            onClick={toggleMenu}
-                            className="text-[#000000] hover:text-[#0955AC] focus:outline-none z-30"
-                        >
-                            <svg
-                                className="w-7 h-7 sm:w-8 sm:h-8"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 6h16M4 12h16M4 18h16"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                )}
-
                 {/* Logo */}
                 <div
                     onClick={() => router.visit("/")}
@@ -280,7 +256,7 @@ const ClientHeader = () => {
                 {/* Desktop icons */}
                 <button
                     onClick={() => setIsSearchOpen(true)}
-                    className="absolute right-[120px] top-1/2 -translate-y-1/2 size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex justify-center items-center md:flex hidden"
+                    className="absolute right-[195px] top-1/2 -translate-y-1/2 size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex justify-center items-center md:flex hidden"
                     title="Search dashboard (Cmd+K)"
                     aria-label="Search client dashboard"
                 >
@@ -290,7 +266,34 @@ const ClientHeader = () => {
                         alt="Search"
                     />
                 </button>
-                <div className="absolute right-3 sm:right-4 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 md:flex hidden flex-row gap-4 justify-end items-center">
+                {/* Hamburger — grouped with the other header shortcuts on the
+                    right instead of sitting alone on the opposite side, and
+                    on the same side the sidebar itself slides in from. */}
+                <div className="absolute right-3 sm:right-4 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 flex flex-row gap-4 justify-end items-center">
+                    {!isMenuOpen && (
+                        <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
+                            <button
+                                onClick={toggleMenu}
+                                className="text-[#000000] hover:text-[#0955AC] focus:outline-none z-30 flex items-center justify-center"
+                                aria-label="Open menu"
+                            >
+                                <svg
+                                    className="w-4 h-4 md:w-7 md:h-7"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 6h16M4 12h16M4 18h16"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    )}
+                    <div className="hidden md:flex flex-row gap-4 justify-end items-center">
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
                             src={bell}
@@ -367,6 +370,7 @@ const ClientHeader = () => {
                                 </div>
                             </>
                         )}
+                    </div>
                     </div>
                 </div>
             </div>
@@ -484,6 +488,7 @@ const ClientHeader = () => {
                             >
                                 <SidebarSubLink href="/couriers/create" label="Domestic" onClick={toggleMenu} />
                                 <SidebarSubLink href="/courierBookingDashboard" label="My Shipments" onClick={toggleMenu} />
+                                <SidebarSubLink href="/track-shipment" label="Track Shipment" onClick={toggleMenu} />
                             </SidebarAccordion>
 
                             <SidebarLink

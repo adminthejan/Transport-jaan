@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "@inertiajs/react";
 import { Search } from "lucide-react";
+import { useLocale } from "../../context/LocaleContext";
+import PassengerSelector from "./PassengerSelector";
 
 // Train stations data for Sri Lanka
 const trainStations = [
@@ -138,6 +140,7 @@ const StationDropdown = ({ label, id, value, onChange, placeholder, error }) => 
 };
 
 const TrainCard = () => {
+    const { t } = useLocale();
     const [tripType, setTripType] = useState("oneway");
     const [formData, setFormData] = useState({
         fromStation: '',
@@ -146,15 +149,15 @@ const TrainCard = () => {
         returnDate: ''
     });
 
-    const [adults, setAdults] = useState(1);
-    const [children, setChildren] = useState(0);
-    const [infants, setInfants] = useState(0);
+    const [passengers, setPassengers] = useState({
+        adults: 1,
+        youth: 0,
+        seniors: 0,
+        student: false,
+        wheelchair: false,
+    });
 
     const [errors, setErrors] = useState({});
-
-    const handleCount = (setter, delta) => {
-        setter((prev) => Math.max(0, prev + delta));
-    };
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({
@@ -207,8 +210,14 @@ const TrainCard = () => {
             return;
         }
 
-        // If validation passes, navigate to train booking details
-        const url = `/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${adults}&children=${children}&infants=${infants}`;
+        // If validation passes, navigate to train booking details.
+        // Seniors are billed at the same (full) fare as adults, so they're
+        // folded into the `adults` count here — the fare calc downstream
+        // never needed to change. `youth` reuses the existing "children"
+        // discounted-fare tier. Student/wheelchair are captured for future
+        // use but don't affect pricing yet.
+        const billedAdults = passengers.adults + passengers.seniors;
+        const url = `/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${billedAdults}&children=${passengers.youth}&infants=0&seniors=${passengers.seniors}&student=${passengers.student ? 1 : 0}&wheelchair=${passengers.wheelchair ? 1 : 0}`;
         window.location.href = url;
     };
 
@@ -220,30 +229,30 @@ const TrainCard = () => {
     return (
         <div className="bg-white rounded-[20px] shadow-[0_10px_30px_rgba(9,85,172,0.10)] border border-black/5 overflow-hidden">
             <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-6 py-5 text-center">
-                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">Find Your Trains</span>
+                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">{t("find_your_trains", "Find Your Trains")}</span>
             </div>
 
             <form onSubmit={onSubmitTrain} className="figtree flex flex-col justify-center items-center bg-white p-6 sm:p-10 w-full h-auto text-[#286BB6] text-[13px] font-[400] space-y-6">
                 {/* Trip Type segmented control */}
                 <div className="inline-flex bg-[#F1F5F9] rounded-full p-1 w-full sm:w-auto">
-                    {["One way", "Round Trip"].map(
-                        (type, index) => {
-                            const value = type.toLowerCase().replace(" ", "");
-                            const isActive = tripType === value;
-                            return (
-                                <button
-                                    type="button"
-                                    key={index}
-                                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-full text-[13px] font-[700] transition-all ${
-                                        isActive ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
-                                    }`}
-                                    onClick={() => setTripType(value)}
-                                >
-                                    {type}
-                                </button>
-                            );
-                        }
-                    )}
+                    {[
+                        { value: "oneway", label: t("one_way", "One way") },
+                        { value: "roundtrip", label: t("round_trip", "Round Trip") },
+                    ].map((opt) => {
+                        const isActive = tripType === opt.value;
+                        return (
+                            <button
+                                type="button"
+                                key={opt.value}
+                                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-full text-[13px] font-[700] transition-all ${
+                                    isActive ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
+                                }`}
+                                onClick={() => setTripType(opt.value)}
+                            >
+                                {opt.label}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* From & Date */}
@@ -338,70 +347,9 @@ const TrainCard = () => {
                     </div>
                 )}
 
-                {/* Counters */}
-                <div className="grid grid-cols-3 gap-4 w-full">
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-center border-[1px] border-[#0000001A] rounded-[8px]">
-                            <button
-                                type="button"
-                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-l-[8px]"
-                                onClick={() => handleCount(setAdults, -1)}
-                            >
-                                -
-                            </button>
-                            <span className="px-4 py-2 text-[#286BB6] font-medium">{adults}</span>
-                            <button
-                                type="button"
-                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-r-[8px]"
-                                onClick={() => handleCount(setAdults, 1)}
-                            >
-                                +
-                            </button>
-                        </div>
-                        <p className="text-[11px] mt-1 text-[#286BB6]">Adults (≥10 years)</p>
-                    </div>
-
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-center border-[1px] border-[#0000001A] rounded-[8px]">
-                            <button
-                                type="button"
-                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-l-[8px]"
-                                onClick={() => handleCount(setChildren, -1)}
-                            >
-                                -
-                            </button>
-                            <span className="px-4 py-2 text-[#286BB6] font-medium">{children}</span>
-                            <button
-                                type="button"
-                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-r-[8px]"
-                                onClick={() => handleCount(setChildren, 1)}
-                            >
-                                +
-                            </button>
-                        </div>
-                        <p className="text-[11px] mt-1 text-[#286BB6]">Children (6-10 years)</p>
-                    </div>
-
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-center border-[1px] border-[#0000001A] rounded-[8px]">
-                            <button
-                                type="button"
-                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-l-[8px]"
-                                onClick={() => handleCount(setInfants, -1)}
-                            >
-                                -
-                            </button>
-                            <span className="px-4 py-2 text-[#286BB6] font-medium">{infants}</span>
-                            <button
-                                type="button"
-                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-r-[8px]"
-                                onClick={() => handleCount(setInfants, 1)}
-                            >
-                                +
-                            </button>
-                        </div>
-                        <p className="text-[11px] mt-1 text-[#286BB6]">Infant (&lt;6 years)</p>
-                    </div>
+                {/* Passengers */}
+                <div className="w-full">
+                    <PassengerSelector value={passengers} onChange={setPassengers} />
                 </div>
 
                 {/* Search Button */}
@@ -411,7 +359,7 @@ const TrainCard = () => {
                     className="bg-[#0955AC] text-white font-bold h-[52px] w-full rounded-[12px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#073E82] transition-colors flex justify-center items-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)]"
                 >
                     <Search className="w-[18px] h-[18px]" />
-                    Search Trains
+                    {t("search_trains", "Search Trains")}
                 </button>
             </form>
         </div>

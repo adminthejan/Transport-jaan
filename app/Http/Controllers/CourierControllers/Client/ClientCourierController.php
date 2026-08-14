@@ -417,6 +417,44 @@ class ClientCourierController extends Controller
         ];
     }
 
+    /**
+     * Public "Track Shipment" page — no login required. Anyone with a valid
+     * reference number can look up status/tracking history, matching how
+     * ordinary carrier tracking pages work. Deliberately returns a stripped
+     * payload (see ClientCourierShipmentTransformer::forPublicTracking) —
+     * no contact details, addresses, payment, or internal notes.
+     */
+    public function trackPublic(Request $request)
+    {
+        $reference = trim((string) $request->query('reference', ''));
+        $result = null;
+        $notFound = false;
+
+        if ($reference !== '') {
+            $shipment = CourierShipment::with([
+                'senderAddress',
+                'recipientAddress',
+                'trackingEvents' => function ($query) {
+                    $query->orderBy('recorded_at', 'desc');
+                },
+            ])
+                ->where('reference', $reference)
+                ->first();
+
+            if ($shipment) {
+                $result = app(ClientCourierShipmentTransformer::class)->forPublicTracking($shipment);
+            } else {
+                $notFound = true;
+            }
+        }
+
+        return Inertia::render('Web/courier/TrackShipment', [
+            'reference' => $reference !== '' ? $reference : null,
+            'result' => $result,
+            'notFound' => $notFound,
+        ]);
+    }
+
     public function show(Request $request, $id)
     {
         $user = Auth::user();

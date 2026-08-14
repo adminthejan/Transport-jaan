@@ -34,6 +34,8 @@ class BusBookingController extends Controller
 
         $schedules = collect();
         $returnSchedules = collect();
+        $route = null;
+        $nearbyDates = [];
 
         if ($from && $to && $date) {
             // Find departure and arrival stations
@@ -42,6 +44,8 @@ class BusBookingController extends Controller
 
             if ($departureStation && $arrivalStation) {
                 $schedules = $this->findBusSchedules($departureStation->id, $arrivalStation->id, $date);
+                $route = $this->routeCoordinates($departureStation, $arrivalStation);
+                $nearbyDates = $this->nearbyDatePrices($departureStation->id, $arrivalStation->id, $date);
 
                 if ($tripType === 'roundtrip' && $returnDate) {
                     $returnSchedules = $this->findBusSchedules($arrivalStation->id, $departureStation->id, $returnDate);
@@ -53,6 +57,8 @@ class BusBookingController extends Controller
             'stations' => $stations,
             'schedules' => $schedules,
             'returnSchedules' => $returnSchedules,
+            'route' => $route,
+            'nearbyDates' => $nearbyDates,
             'searchParams' => [
                 'from' => $from,
                 'to' => $to,
@@ -61,6 +67,38 @@ class BusBookingController extends Controller
                 'tripType' => $tripType,
             ]
         ]);
+    }
+
+    /**
+     * Cheapest fare per day around the searched date, so the results page can
+     * offer a "browse nearby dates" strip instead of locking the client into
+     * only the exact date they searched.
+     */
+    private function nearbyDatePrices(int $departureStationId, int $arrivalStationId, string $date): array
+    {
+        $centre = Carbon::parse($date);
+        $today = Carbon::today();
+
+        // One day back (if not in the past) through five days ahead — mirrors
+        // the reference layout of the searched date near the left of the strip.
+        $start = $centre->copy()->subDay()->max($today);
+        $dates = collect(range(0, 6))
+            ->map(fn ($i) => $start->copy()->addDays($i)->toDateString())
+            ->unique()
+            ->values();
+
+        $priceByDate = BusSchedule::where('departure_station_id', $departureStationId)
+            ->where('arrival_station_id', $arrivalStationId)
+            ->whereIn('date', $dates)
+            ->where('status', 'active')
+            ->select('date', DB::raw('MIN(price) as min_price'))
+            ->groupBy('date')
+            ->pluck('min_price', 'date');
+
+        return $dates->map(fn ($d) => [
+            'date' => $d,
+            'price' => isset($priceByDate[$d]) ? (float) $priceByDate[$d] : null,
+        ])->all();
     }
 
     private function findBusSchedules(int $departureStationId, int $arrivalStationId, string $date)
@@ -134,9 +172,11 @@ class BusBookingController extends Controller
         return Inertia::render('Web/home/ticketBooking/BusTicketBookingPreview', [
             'trip' => $outbound['tripData'],
             'bookedSeats' => $outbound['bookedSeats'],
+            'bookedSeatGenders' => $outbound['bookedSeatGenders'],
             'seatLayout' => $outbound['seatLayout'],
             'returnTrip' => $return['tripData'],
             'returnBookedSeats' => $return['bookedSeats'],
+            'returnBookedSeatGenders' => $return['bookedSeatGenders'],
             'returnSeatLayout' => $return['seatLayout'],
             'searchParams' => $searchParams,
         ]);
@@ -149,22 +189,29 @@ class BusBookingController extends Controller
     private function buildTripPreview(?string $scheduleId): array
     {
         if (!$scheduleId) {
-            return ['tripData' => null, 'bookedSeats' => [], 'seatLayout' => null];
+            return ['tripData' => null, 'bookedSeats' => [], 'bookedSeatGenders' => [], 'seatLayout' => null];
         }
 
         $schedule = BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])->find($scheduleId);
 
         if (!$schedule) {
-            return ['tripData' => null, 'bookedSeats' => [], 'seatLayout' => null];
+            return ['tripData' => null, 'bookedSeats' => [], 'bookedSeatGenders' => [], 'seatLayout' => null];
         }
 
-        // Get all booked seats for this schedule
-        $bookedSeats = BusBooking::where('bus_schedule_id', $schedule->id)
+        // Get all booked seats for this schedule, plus which gender booked each
+        // one (so the seat map can be colour-coded, not just greyed out).
+        $existingBookings = BusBooking::where('bus_schedule_id', $schedule->id)
             ->whereIn('status', ['confirmed', 'pending'])
-            ->get()
-            ->pluck('seat_numbers')
-            ->flatten()
-            ->toArray();
+            ->get(['seat_numbers', 'seat_genders']);
+
+        $bookedSeats = $existingBookings->pluck('seat_numbers')->flatten()->toArray();
+
+        $bookedSeatGenders = [];
+        foreach ($existingBookings as $booking) {
+            foreach (($booking->seat_genders ?? []) as $seatNum => $gender) {
+                $bookedSeatGenders[$seatNum] = $gender;
+            }
+        }
 
         // Get seat layout configuration from bus
         $busCapacity = $schedule->bus->capacity ?? 52;
@@ -194,9 +241,32 @@ class BusBookingController extends Controller
             'departureStation' => $schedule->departureStation->name,
             'arrivalStation' => $schedule->arrivalStation->name,
             'route' => $this->routeCoordinates($schedule->departureStation, $schedule->arrivalStation),
+            'boardingPoints' => $this->nearbyStopNames($schedule->departureStation),
+            'dropoffPoints' => $this->nearbyStopNames($schedule->arrivalStation),
         ];
 
-        return ['tripData' => $tripData, 'bookedSeats' => $bookedSeats, 'seatLayout' => $seatLayout];
+        return [
+            'tripData' => $tripData,
+            'bookedSeats' => $bookedSeats,
+            'bookedSeatGenders' => $bookedSeatGenders,
+            'seatLayout' => $seatLayout,
+        ];
+    }
+
+    /**
+     * Boarding/drop-off point choices for a leg of the trip: other bus stations
+     * in the same city as the schedule's station, standing in for sub-stops
+     * along that end of the route. Always includes the station itself first.
+     */
+    private function nearbyStopNames($station): array
+    {
+        $others = BusStation::where('city', $station->city)
+            ->where('id', '!=', $station->id)
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
+
+        return array_values(array_unique(array_merge([$station->name], $others)));
     }
 
     /**
@@ -253,6 +323,7 @@ class BusBookingController extends Controller
                 'passenger_email' => 'nullable|email|max:255',
                 'passenger_phone' => 'required|string|max:20',
                 'seat_numbers' => 'required',
+                'seat_genders' => 'nullable',
                 'passenger_count' => 'required|integer|min:1',
                 'boarding_point' => 'required|string|max:255',
                 'destination_point' => 'required|string|max:255',
@@ -261,6 +332,7 @@ class BusBookingController extends Controller
             if ($isRoundTrip) {
                 $rules['return_schedule_id'] = 'required|exists:bus_schedules,id|different:schedule_id';
                 $rules['return_seat_numbers'] = 'required';
+                $rules['return_seat_genders'] = 'nullable';
             }
 
             $request->validate($rules);
@@ -276,6 +348,8 @@ class BusBookingController extends Controller
 
         $seatNumbers = $this->parseSeatNumbers($request->seat_numbers);
         $returnSeatNumbers = $isRoundTrip ? $this->parseSeatNumbers($request->return_seat_numbers) : [];
+        $seatGenders = $this->parseSeatGenders($request->seat_genders, $seatNumbers);
+        $returnSeatGenders = $isRoundTrip ? $this->parseSeatGenders($request->return_seat_genders, $returnSeatNumbers) : [];
 
         $passengerData = $request->only(['passenger_name', 'passenger_email', 'passenger_phone', 'boarding_point', 'destination_point']);
 
@@ -283,7 +357,7 @@ class BusBookingController extends Controller
             // Both legs of a round trip are created in ONE transaction: either
             // both bookings succeed, or neither does — never a stranded
             // outbound leg with a failed return leg.
-            $result = DB::transaction(function () use ($request, $passengerData, $seatNumbers, $returnSeatNumbers, $isRoundTrip) {
+            $result = DB::transaction(function () use ($request, $passengerData, $seatNumbers, $returnSeatNumbers, $seatGenders, $returnSeatGenders, $isRoundTrip) {
                 $groupId = $isRoundTrip ? (string) \Illuminate\Support\Str::uuid() : null;
                 $tripType = $isRoundTrip ? 'round_trip' : 'one_way';
 
@@ -291,6 +365,7 @@ class BusBookingController extends Controller
                     $request->schedule_id,
                     $passengerData,
                     $seatNumbers,
+                    $seatGenders,
                     $request->passenger_count,
                     $tripType,
                     $groupId,
@@ -303,6 +378,7 @@ class BusBookingController extends Controller
                         $request->return_schedule_id,
                         $passengerData,
                         $returnSeatNumbers,
+                        $returnSeatGenders,
                         $request->passenger_count,
                         $tripType,
                         $groupId,
@@ -380,6 +456,31 @@ class BusBookingController extends Controller
     }
 
     /**
+     * Normalizes the seat -> gender map submitted with a booking. Any seat
+     * missing a valid male/female value is dropped rather than trusted as-is.
+     */
+    private function parseSeatGenders($raw, array $seatNumbers): array
+    {
+        $genders = $raw;
+        if (is_string($genders)) {
+            $genders = json_decode($genders, true) ?? [];
+        }
+        if (!is_array($genders)) {
+            $genders = [];
+        }
+
+        $normalized = [];
+        foreach ($seatNumbers as $seatNum) {
+            $value = strtolower((string) ($genders[$seatNum] ?? ''));
+            if (in_array($value, ['male', 'female'], true)) {
+                $normalized[$seatNum] = $value;
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
      * Validate + create a single bus booking leg (with full seat-collision
      * protection). Must be called inside a DB transaction — the caller is
      * responsible for wrapping this (and, for round trips, the sibling leg)
@@ -389,6 +490,7 @@ class BusBookingController extends Controller
         int $scheduleId,
         array $passengerData,
         array $seatNumbers,
+        array $seatGenders,
         int $passengerCount,
         string $tripType,
         ?string $groupId,
@@ -458,6 +560,7 @@ class BusBookingController extends Controller
             'user_id' => Auth::id(),
             'bus_schedule_id' => $schedule->id,
             'seat_numbers' => $seatNumbers,
+            'seat_genders' => $seatGenders,
             'passenger_count' => $passengerCount,
             'total_price' => $totalPrice,
             'booking_reference' => BusBooking::generateBookingReference(),

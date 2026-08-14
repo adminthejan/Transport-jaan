@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import { router, usePage, useForm } from "@inertiajs/react";
 import Header from "../client/ClientHeader";
 import TripRouteMap from "../../components/ticketBooking/TripRouteMap";
+import LocaleSelector from "../../components/ticketBooking/LocaleSelector";
+import { LocaleProvider, useLocale } from "../../context/LocaleContext";
 
-const TrainTicketBookingPreview = () => {
+const TrainTicketBookingPreviewInner = () => {
+    const { t, formatPrice } = useLocale();
     const { props } = usePage();
     const {
         outboundSchedule,
@@ -57,8 +60,11 @@ const TrainTicketBookingPreview = () => {
                 </div>
 
                 {/* Title */}
-                <h1 className="text-center text-4xl md:text-5xl font-extrabold tracking-wide text-[#0955AC]">
-                    PASSENGER INFORMATION
+                <div className="flex justify-center mb-2">
+                    <LocaleSelector />
+                </div>
+                <h1 className="text-center text-4xl md:text-5xl font-extrabold tracking-wide text-[#0955AC] uppercase">
+                    {t("passenger_information", "Passenger Information")}
                 </h1>
 
                 {/* Top two-column: Trip details (left) & Fare summary (right) */}
@@ -159,22 +165,22 @@ const TrainTicketBookingPreview = () => {
                         {/* Fare Summary */}
                         <div className="rounded-[10px] border border-gray-200 overflow-hidden bg-gray-50/50">
                             <div className="bg-gray-800 text-white px-4 py-3 font-semibold">
-                                Fare Summary
+                                {t("fare_summary", "Fare Summary")}
                             </div>
                             <div className="px-4 py-3 space-y-3">
                                 <div className="flex justify-between">
-                                    <span>Adults ({passengers.adults})</span>
-                                    <span>LKR {(outboundSchedule?.price * passengers.adults).toLocaleString()}</span>
+                                    <span>{t("adults", "Adults")} ({passengers.adults})</span>
+                                    <span>{formatPrice(outboundSchedule?.price * passengers.adults)}</span>
                                 </div>
                                 {passengers.children > 0 && (
                                     <div className="flex justify-between">
-                                        <span>Children ({passengers.children})</span>
-                                        <span>LKR {(outboundSchedule?.price * 0.5 * passengers.children).toLocaleString()}</span>
+                                        <span>{t("children", "Children")} ({passengers.children})</span>
+                                        <span>{formatPrice(outboundSchedule?.price * 0.5 * passengers.children)}</span>
                                     </div>
                                 )}
                                 {passengers.infants > 0 && (
                                     <div className="flex justify-between">
-                                        <span>Infants ({passengers.infants})</span>
+                                        <span>{t("infants", "Infants")} ({passengers.infants})</span>
                                         <span>Free</span>
                                     </div>
                                 )}
@@ -183,21 +189,21 @@ const TrainTicketBookingPreview = () => {
                                         <hr className="border-gray-300" />
                                         <div className="text-sm font-medium text-gray-700 mb-2">Return Journey:</div>
                                         <div className="flex justify-between">
-                                            <span>Adults ({passengers.adults})</span>
-                                            <span>LKR {(returnSchedule.price * passengers.adults).toLocaleString()}</span>
+                                            <span>{t("adults", "Adults")} ({passengers.adults})</span>
+                                            <span>{formatPrice(returnSchedule.price * passengers.adults)}</span>
                                         </div>
                                         {passengers.children > 0 && (
                                             <div className="flex justify-between">
-                                                <span>Children ({passengers.children})</span>
-                                                <span>LKR {(returnSchedule.price * 0.5 * passengers.children).toLocaleString()}</span>
+                                                <span>{t("children", "Children")} ({passengers.children})</span>
+                                                <span>{formatPrice(returnSchedule.price * 0.5 * passengers.children)}</span>
                                             </div>
                                         )}
                                     </>
                                 )}
                                 <hr className="border-gray-300" />
                                 <div className="flex justify-between text-xl font-bold text-[#0955AC]">
-                                    <span>Total</span>
-                                    <span>LKR {totalPrice.toLocaleString()}</span>
+                                    <span>{t("total", "Total")}</span>
+                                    <span>{formatPrice(totalPrice)}</span>
                                 </div>
                             </div>
                         </div>
@@ -205,12 +211,12 @@ const TrainTicketBookingPreview = () => {
                         {/* Passenger Details Form */}
                         <div className="rounded-[10px] border border-gray-200 overflow-hidden">
                             <div className="bg-[#0955AC] text-white px-4 py-3 font-semibold">
-                                Passenger Details
+                                {t("passenger_details", "Passenger Details")}
                             </div>
                             <form onSubmit={handleSubmit} className="px-4 py-6 space-y-4">
                                 <div>
                                     <label htmlFor="passenger_name" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Full Name *
+                                        {t("full_name", "Full Name")} *
                                     </label>
                                     <input
                                         type="text"
@@ -225,7 +231,7 @@ const TrainTicketBookingPreview = () => {
 
                                 <div>
                                     <label htmlFor="passenger_email" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Email Address *
+                                        {t("email_address", "Email Address")} *
                                     </label>
                                     <input
                                         type="email"
@@ -240,7 +246,7 @@ const TrainTicketBookingPreview = () => {
 
                                 <div>
                                     <label htmlFor="passenger_phone" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Phone Number *
+                                        {t("phone_number", "Phone Number")} *
                                     </label>
                                     <input
                                         type="tel"
@@ -258,12 +264,12 @@ const TrainTicketBookingPreview = () => {
                                         type="submit"
                                         disabled={processing}
                                         className={`w-full py-3 px-4 rounded-md font-semibold text-white transition-colors ${
-                                            processing 
-                                                ? 'bg-gray-400 cursor-not-allowed' 
+                                            processing
+                                                ? 'bg-gray-400 cursor-not-allowed'
                                                 : 'bg-[#0955AC] hover:bg-[#074489] focus:outline-none focus:ring-2 focus:ring-[#0955AC]'
                                         }`}
                                     >
-                                        {processing ? 'Processing...' : 'Confirm Booking'}
+                                        {processing ? 'Processing...' : t("confirm_booking", "Confirm Booking")}
                                     </button>
                                 </div>
                             </form>
@@ -299,5 +305,11 @@ const TrainTicketBookingPreview = () => {
         </div>
     );
 };
+
+const TrainTicketBookingPreview = () => (
+    <LocaleProvider>
+        <TrainTicketBookingPreviewInner />
+    </LocaleProvider>
+);
 
 export default TrainTicketBookingPreview;

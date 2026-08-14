@@ -56,13 +56,21 @@ const TripRouteMap = ({ route, className = "" }) => {
             bounds.extend(destination);
 
             const map = new window.google.maps.Map(mapRef.current, {
+                center: { lat: 7.8731, lng: 80.7718 },
+                zoom: 7,
                 mapTypeControl: false,
                 streetViewControl: false,
                 fullscreenControl: false,
                 zoomControl: true,
             });
-            map.fitBounds(bounds, 60);
             mapInstanceRef.current = map;
+
+            // fitBounds must run after the map has computed its pixel size;
+            // calling it synchronously right after construction can leave the
+            // map showing its initial center/zoom instead of the route.
+            window.google.maps.event.addListenerOnce(map, "idle", () => {
+                map.fitBounds(bounds, 60);
+            });
 
             const makeMarker = (position, label, color) =>
                 new window.google.maps.Marker({

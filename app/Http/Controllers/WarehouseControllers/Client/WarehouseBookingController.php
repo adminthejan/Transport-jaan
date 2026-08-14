@@ -547,6 +547,7 @@ class WarehouseBookingController extends Controller
                 'phone' => 'required|string|max:20',
                 'company_address' => 'nullable|string|max:500',
                 'storage_type' => 'required|string|max:100',
+                'fulfillment_service' => 'nullable|boolean',
                 'required_space' => 'required|numeric|min:0.01',
                 'goods_type' => 'nullable|string|max:100',
                 'goods_description' => 'required|string|max:1000',
@@ -562,6 +563,7 @@ class WarehouseBookingController extends Controller
                 'monthly_rate' => 'required|numeric|min:0',
                 'security_deposit' => 'nullable|numeric|min:0',
                 'setup_fee' => 'nullable|numeric|min:0',
+                'add_ons_cost' => 'nullable|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
                 'tax_amount' => 'nullable|numeric|min:0',
                 'final_amount' => 'required|numeric|min:0',
@@ -632,6 +634,7 @@ class WarehouseBookingController extends Controller
                 
                 // Storage Requirements
                 'storage_type' => $validated['storage_type'],
+                'fulfillment_service' => $validated['fulfillment_service'] ?? false,
                 'required_space' => $validated['required_space'],
                 'goods_type' => $validated['goods_type'] ?? 'General',
                 'goods_description' => $validated['goods_description'],
@@ -652,6 +655,7 @@ class WarehouseBookingController extends Controller
                 'monthly_rate' => $validated['monthly_rate'],
                 'security_deposit' => $validated['security_deposit'] ?? 0,
                 'setup_fee' => $validated['setup_fee'] ?? 0,
+                'add_ons_cost' => $validated['add_ons_cost'] ?? 0,
                 'total_amount' => $validated['total_amount'],
                 'tax_amount' => $validated['tax_amount'] ?? 0,
                 'final_amount' => $validated['final_amount'],
@@ -893,6 +897,9 @@ class WarehouseBookingController extends Controller
                 'security_deposit' => $warehouse->security_deposit,
                 'setup_fee' => $warehouse->setup_fee,
                 'tax_rate' => $warehouse->tax_rate,
+                'offers_fulfillment' => (bool) $warehouse->offers_fulfillment,
+                'fulfillment_fee_rate' => $warehouse->fulfillment_fee_rate,
+                'services' => $warehouse->services ?? [],
                 'pricing_model' => $warehouse->pricing_model,
                 'currency' => $warehouse->currency,
                 'amenities' => $warehouse->amenities?->map(function ($amenity) {

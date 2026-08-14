@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { Clock } from "lucide-react";
+import VehicleLocationMap from "../LandVehicleDetails/VehicleLocationMap";
 import seaVehicle from "../../assets/seaVehicle/seaVehicle.jpg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
 import icon2 from "../../assets/vehicleCheckout/icon2.svg";
@@ -28,6 +29,7 @@ const SeaVehicleCheckoutContent = () => {
     return o;
   }, []);
   const q = Object.keys(serverQuery).length ? serverQuery : urlQuery;
+  const needsDriver = q.needs_driver === true || q.needs_driver === "true" || q.needs_driver === "1";
 
   /* ---------------- Personal info ---------------- */
   const [firstName, setFirstName] = useState(user?.name || '');
@@ -110,6 +112,7 @@ const SeaVehicleCheckoutContent = () => {
         if (q.exclude_booking_id) {
           params.append("exclude_booking_id", String(q.exclude_booking_id));
         }
+        params.append("needs_driver", needsDriver ? "1" : "0");
         addons.forEach((a, i) => {
           params.append(`addons[${i}][name]`, a.name);
           params.append(`addons[${i}][qty]`, String(a.qty || 1));
@@ -129,7 +132,7 @@ const SeaVehicleCheckoutContent = () => {
       }
     }, 200);
     return () => clearTimeout(t);
-  }, [vehicle?.id, q.pickup_date, pickupTime, q.dropoff_date, dropoffTime, q.exclude_booking_id, addons]);
+  }, [vehicle?.id, q.pickup_date, pickupTime, q.dropoff_date, dropoffTime, q.exclude_booking_id, addons, needsDriver]);
 
       useEffect(() => {
   setFirstName(user?.name || '');
@@ -210,6 +213,7 @@ const SeaVehicleCheckoutContent = () => {
         dropoff_date: q.dropoff_date,
         dropoff_time: dropoffTime,
         addons,
+        needs_driver: needsDriver,
         first_name: firstName,
         last_name: lastName,
         email,
@@ -535,6 +539,16 @@ const SeaVehicleCheckoutContent = () => {
                 </div>
               </div>
 
+              {(q.pickup_location || "").trim() && (
+                <div className="mt-6">
+                  <VehicleLocationMap
+                    pickupLocation={q.pickup_location}
+                    dropoffLocation={q.dropoff_location}
+                    className="h-[220px]"
+                  />
+                </div>
+              )}
+
               {/* Selected Extras (editable) */}
               <div className="mt-6">
                 <h2 className="text-[14px] font-[700] text-[#0955AC]">Selected Extras</h2>
@@ -590,6 +604,26 @@ const SeaVehicleCheckoutContent = () => {
                     {money(rentalLineTotal)}
                   </div>
                 </div>
+
+                {/* Driver */}
+                {needsDriver && Number(quote?.driver_fee_total) > 0 && (
+                  <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500] border-t border-[#CDD0D4]">
+                    <div>
+                      <h1 className="text-[#000000CC]">Skipper</h1>
+                      <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
+                        <h1>
+                          {currency}
+                          {money(quote?.driver_fee_per_day)}/day
+                        </h1>
+                        <h1 className="text-[#0955AC]">(×{displayRentalDays} days)</h1>
+                      </div>
+                    </div>
+                    <div className="text-[#000000CC]">
+                      {currency}
+                      {money(quote?.driver_fee_total)}
+                    </div>
+                  </div>
+                )}
 
                 {/* Add-ons */}
                 {addonsLines.length > 0 && (

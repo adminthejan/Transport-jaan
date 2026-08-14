@@ -9,7 +9,23 @@
       "Bash(php -l app/Models/TrainBooking.php)",
       "Bash(php -l app/Models/BusBooking.php)",
       "Bash(php -l app/Http/Controllers/BusBookingController.php)",
-      "Bash(php -l database/migrations/2026_07_24_000002_make_passenger_email_nullable_on_bus_bookings.php)"
+      "Bash(php -l database/migrations/2026_07_24_000002_make_passenger_email_nullable_on_bus_bookings.php)",
+      "Bash(php -l app/Models/AirVehicleBookings.php)",
+      "Bash(php -l app/Models/SeaVehicleBookings.php)",
+      "Bash(php -l app/Http/Controllers/WarehouseControllers/Vendor/WarehouseUnitController.php)",
+      "Bash(php -l app/Models/Warehouse/WarehouseUnit.php)",
+      "Bash(grep -n 'protected $casts' -A 3 app/Models/Warehouse/WarehouseUnit.php)",
+      "Bash(grep -n ''\\\\''type'\\\\'' => $validated\\\\['\\\\''type'\\\\''\\\\]\\\\|'\\\\''offers_fulfillment'\\\\'' => \\($validated' app/Http/Controllers/WarehouseControllers/Vendor/WarehouseUnitController.php)",
+      "Bash(grep -n ''\\\\''services'\\\\'' => $unit->services' app/Http/Controllers/WarehouseControllers/Vendor/WarehouseUnitController.php)",
+      "Bash(grep -n '$services = ' app/Http/Controllers/WarehouseControllers/Vendor/WarehouseUnitController.php)",
+      "Bash(php -l app/Http/Controllers/WebController.php)",
+      "Bash(node -e \"const i = require\\('/home/thejan/Documents/Transport-jaan/node_modules/lucide-react'\\); console.log\\(['Users','Minus','Plus','GraduationCap','Accessibility'].map\\(n => n+': '+\\(!!i[n]\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(php -l /home/thejan/Documents/Transport-jaan/app/Http/Controllers/BusBookingController.php)",
+      "Bash(php -l database/seeders/LocationCountrySeeder.php)",
+      "Bash(php -l app/Http/Controllers/CourierControllers/Client/ClientCourierController.php)",
+      "Bash(php -l app/Support/Courier/ClientCourierShipmentTransformer.php)",
+      "Bash(grep -n '$adults\\\\|$children\\\\|$infants' app/Http/Controllers/TrainController.php)",
+      "Bash(git rev-list *)"
     ]
   }
 }

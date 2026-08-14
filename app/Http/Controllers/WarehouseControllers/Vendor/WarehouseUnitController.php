@@ -13,6 +13,18 @@ use Illuminate\Validation\Rule;
 
 class WarehouseUnitController extends Controller
 {
+    // Warehouse Type describes the facility itself; Services describes what a
+    // client can book on top of storage. Kept as two separate filters/fields.
+    private const WAREHOUSE_TYPES = [
+        'general_warehouse', 'bonded_warehouse', 'cold_storage',
+        'distribution_center', 'fulfillment_center', 'smart_warehouse',
+    ];
+
+    private const WAREHOUSE_SERVICES = [
+        'storage', 'fulfillment', 'distribution',
+        'value_added_services', 'customs_services', 'transportation',
+    ];
+
     public function index(Request $request)
     {
         $query = WarehouseUnit::where('user_id', Auth::id())
@@ -73,6 +85,7 @@ class WarehouseUnitController extends Controller
                 'capacity' => $unit->capacity,
                 'capacity_unit' => $unit->capacity_unit,
                 'type' => $unit->type,
+                'services' => $unit->services ?? [],
                 'amenities' => $unit->amenities->map(function($amenity) {
                     return [
                         'id' => $amenity->id,
@@ -90,6 +103,8 @@ class WarehouseUnitController extends Controller
                 'security_deposit' => $unit->security_deposit,
                 'setup_fee' => $unit->setup_fee,
                 'tax_rate' => $unit->tax_rate,
+                'offers_fulfillment' => (bool) $unit->offers_fulfillment,
+                'fulfillment_fee_rate' => $unit->fulfillment_fee_rate,
                 'total_amount' => $unit->total_amount,
                 'tax_amount' => $unit->tax_amount,
                 'final_amount' => $unit->final_amount,
@@ -209,7 +224,9 @@ class WarehouseUnitController extends Controller
                 'total_area' => ['nullable', 'numeric', 'min:0'],
                 'capacity' => ['nullable', 'numeric', 'min:0'],
                 'capacity_unit' => ['nullable', 'string', 'in:sq_ft,sq_m,cubic_ft,cubic_m'],
-                'type' => ['required', 'string', Rule::in(['cold_storage', 'dry', 'bonded', 'open_yard', 'climate_controlled', 'hazmat'])],
+                'type' => ['required', 'string', Rule::in(self::WAREHOUSE_TYPES)],
+                // Sent as a JSON-encoded string over multipart form data, same as amenities.
+                'services' => ['nullable'],
                 'pricing_model' => ['required', 'string', Rule::in(['hourly', 'daily', 'monthly', 'yearly'])],
                 'base_price' => ['nullable', 'numeric', 'min:0'],
                 'price' => ['nullable', 'numeric', 'min:0'],
@@ -217,6 +234,7 @@ class WarehouseUnitController extends Controller
                 'security_deposit' => ['nullable', 'numeric', 'min:0'],
                 'setup_fee' => ['nullable', 'numeric', 'min:0'],
                 'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'fulfillment_fee_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
                 'total_amount' => ['nullable', 'numeric', 'min:0'],
                 'tax_amount' => ['nullable', 'numeric', 'min:0'],
                 'final_amount' => ['nullable', 'numeric', 'min:0'],
@@ -269,6 +287,18 @@ class WarehouseUnitController extends Controller
             }
         }
 
+        // Parse services the same way (JSON string over multipart form data,
+        // plain array otherwise). "Fulfillment" here is the single source of
+        // truth for whether this listing offers the fulfillment add-on.
+        $services = [];
+        if (isset($validated['services'])) {
+            $services = is_string($validated['services'])
+                ? (json_decode($validated['services'], true) ?? [])
+                : $validated['services'];
+        }
+        $services = array_values(array_intersect(is_array($services) ? $services : [], self::WAREHOUSE_SERVICES));
+        $offersFulfillment = in_array('fulfillment', $services, true);
+
         // Create the main warehouse unit
         $unit = WarehouseUnit::create([
             'user_id' => Auth::id(),
@@ -281,12 +311,15 @@ class WarehouseUnitController extends Controller
             'capacity' => $nullIfEmpty($validated['capacity'] ?? null),
             'capacity_unit' => $validated['capacity_unit'] ?? 'sq_ft',
             'type' => $validated['type'],
+            'services' => $services,
             'pricing_model' => $validated['pricing_model'],
             'base_price' => $validated['price'] ?? $validated['base_price'] ?? $validated['monthly_rate'],
             'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
             'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
             'setup_fee' => $nullIfEmpty($validated['setup_fee'] ?? null),
             'tax_rate' => $normalizeTaxRate($validated['tax_rate'] ?? null),
+            'offers_fulfillment' => $offersFulfillment,
+            'fulfillment_fee_rate' => $nullIfEmpty($validated['fulfillment_fee_rate'] ?? null),
             'total_amount' => $nullIfEmpty($validated['total_amount'] ?? null),
             'tax_amount' => $nullIfEmpty($validated['tax_amount'] ?? null),
             'final_amount' => $nullIfEmpty($validated['final_amount'] ?? null),
@@ -493,6 +526,7 @@ class WarehouseUnitController extends Controller
                 'capacity' => $unit->capacity ?? '',
                 'capacity_unit' => $unit->capacity_unit ?? 'sq_ft',
                 'type' => $unit->type ?? '',
+                'services' => $unit->services ?? [],
                 'amenities' => $amenitiesArray,
                 'pricing_model' => $unit->pricing_model ?? '',
                 'price' => $price, // Legacy price field
@@ -501,6 +535,8 @@ class WarehouseUnitController extends Controller
                 'security_deposit' => $unit->security_deposit ?? '',
                 'setup_fee' => $unit->setup_fee ?? '',
                 'tax_rate' => $unit->tax_rate ?? '',
+                'offers_fulfillment' => (bool) $unit->offers_fulfillment,
+                'fulfillment_fee_rate' => $unit->fulfillment_fee_rate ?? '',
                 'total_amount' => $unit->total_amount ?? '',
                 'tax_amount' => $unit->tax_amount ?? '',
                 'final_amount' => $unit->final_amount ?? '',
@@ -577,7 +613,9 @@ class WarehouseUnitController extends Controller
                 'longitude' => ['nullable', 'numeric', 'between:-180,180'],
                 'total_area' => ['nullable', 'numeric', 'min:0'],
                 'capacity' => ['nullable', 'numeric', 'min:0'],
-                'type' => ['required', 'string', 'max:255'],
+                'type' => ['required', 'string', Rule::in(self::WAREHOUSE_TYPES)],
+                // Sent as a JSON-encoded string over multipart form data, same as amenities.
+                'services' => ['nullable'],
                 'pricing_model' => ['required', 'string', Rule::in([
                     'per_sqft_monthly', 'per_sqft_daily', 'per_pallet_monthly',
                     'per_pallet_daily', 'flat_rate_monthly', 'flat_rate_daily',
@@ -590,6 +628,7 @@ class WarehouseUnitController extends Controller
                 'security_deposit' => ['nullable', 'numeric', 'min:0'],
                 'setup_fee' => ['nullable', 'numeric', 'min:0'],
                 'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'fulfillment_fee_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
                 'total_amount' => ['nullable', 'numeric', 'min:0'],
                 'tax_amount' => ['nullable', 'numeric', 'min:0'],
                 'final_amount' => ['nullable', 'numeric', 'min:0'],
@@ -612,6 +651,14 @@ class WarehouseUnitController extends Controller
                     $amenities = $decoded;
                 }
             }
+
+            // Parse services (JSON string over multipart form data, same as
+            // amenities). "Fulfillment" here is the single source of truth
+            // for whether this listing offers the fulfillment add-on.
+            $rawServices = $validated['services'] ?? [];
+            $services = is_string($rawServices) ? (json_decode($rawServices, true) ?? []) : $rawServices;
+            $services = array_values(array_intersect(is_array($services) ? $services : [], self::WAREHOUSE_SERVICES));
+            $offersFulfillment = in_array('fulfillment', $services, true);
 
             // Handle image removals
             if (!empty($validated['remove_images'])) {
@@ -787,6 +834,7 @@ class WarehouseUnitController extends Controller
                 'total_area' => $nullIfEmpty($validated['total_area'] ?? null),
                 'capacity' => $nullIfEmpty($validated['capacity'] ?? null),
                 'type' => $validated['type'],
+                'services' => $services,
                 'pricing_model' => $validated['pricing_model'],
                 'base_price' => $nullIfEmpty($validated['price'] ?? $validated['base_price'] ?? null),
                 // Detailed pricing fields
@@ -794,6 +842,8 @@ class WarehouseUnitController extends Controller
                 'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
                 'setup_fee' => $nullIfEmpty($validated['setup_fee'] ?? null),
                 'tax_rate' => $normalizeTaxRate($validated['tax_rate'] ?? null),
+                'offers_fulfillment' => $offersFulfillment,
+                'fulfillment_fee_rate' => $nullIfEmpty($validated['fulfillment_fee_rate'] ?? null),
                 'total_amount' => $nullIfEmpty($validated['total_amount'] ?? null),
                 'tax_amount' => $nullIfEmpty($validated['tax_amount'] ?? null),
                 'final_amount' => $nullIfEmpty($validated['final_amount'] ?? null),

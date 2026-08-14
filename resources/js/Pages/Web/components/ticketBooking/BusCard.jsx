@@ -1,14 +1,27 @@
 import React, { useState } from "react";
 import { router } from "@inertiajs/react";
 import { MapPin, ArrowLeftRight, CalendarDays, Search } from "lucide-react";
+import { useLocale } from "../../context/LocaleContext";
+import PassengerSelector from "./PassengerSelector";
 
 const BusCard = () => {
+    const { t } = useLocale();
     const [tripType, setTripType] = useState("oneway");
     const [busFrom, setBusFrom] = useState("");
     const [busTo, setBusTo] = useState("");
     const [busDate, setBusDate] = useState("");
     const [returnDate, setReturnDate] = useState("");
     const [errors, setErrors] = useState({});
+    // Bus seats are picked individually at checkout, so this is a search-time
+    // preference (shown on results, used as a soft filter) rather than a hard
+    // headcount — actual passenger count is still however many seats you pick.
+    const [passengers, setPassengers] = useState({
+        adults: 1,
+        youth: 0,
+        seniors: 0,
+        student: false,
+        wheelchair: false,
+    });
 
     const stationOptions = [
         "Colombo Central Bus Stand",
@@ -55,6 +68,12 @@ const BusCard = () => {
             date: busDate,
             tripType,
             returnDate: tripType === 'roundtrip' ? returnDate : undefined,
+            passengers: passengers.adults + passengers.youth + passengers.seniors,
+            adults: passengers.adults,
+            youth: passengers.youth,
+            seniors: passengers.seniors,
+            student: passengers.student ? 1 : 0,
+            wheelchair: passengers.wheelchair ? 1 : 0,
         });
     };
 
@@ -66,25 +85,25 @@ const BusCard = () => {
     return (
         <div className="bg-white rounded-[20px] shadow-[0_10px_30px_rgba(9,85,172,0.10)] border border-black/5 overflow-hidden">
             <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-6 py-5 text-center">
-                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">Find Your Buses</span>
+                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">{t("find_your_buses", "Find Your Buses")}</span>
             </div>
 
             <form onSubmit={onSubmitBus} className="p-6 sm:p-8">
                 {/* Trip Type segmented control */}
                 <div className="inline-flex bg-[#F1F5F9] rounded-full p-1 mb-6">
                     {[
-                        { value: "oneway", label: "One way" },
-                        { value: "roundtrip", label: "Round Trip" },
-                    ].map((t) => (
+                        { value: "oneway", label: t("one_way", "One way") },
+                        { value: "roundtrip", label: t("round_trip", "Round Trip") },
+                    ].map((opt) => (
                         <button
                             type="button"
-                            key={t.value}
-                            onClick={() => setTripType(t.value)}
+                            key={opt.value}
+                            onClick={() => setTripType(opt.value)}
                             className={`px-6 py-2 rounded-full text-[13px] font-[700] transition-all ${
-                                tripType === t.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
+                                tripType === opt.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
                             }`}
                         >
-                            {t.label}
+                            {opt.label}
                         </button>
                     ))}
                 </div>
@@ -92,7 +111,7 @@ const BusCard = () => {
                 {/* From / To with swap button */}
                 <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">FROM</label>
+                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("from", "FROM").toUpperCase()}</label>
                         <div className="relative">
                             <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC]" />
                             <select value={busFrom} onChange={(e) => setBusFrom(e.target.value)} className={fieldClass(errors.busFrom)}>
@@ -103,7 +122,7 @@ const BusCard = () => {
                     </div>
 
                     <div>
-                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">TO</label>
+                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("to", "TO").toUpperCase()}</label>
                         <div className="relative">
                             <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826]" />
                             <select value={busTo} onChange={(e) => setBusTo(e.target.value)} className={fieldClass(errors.busTo)}>
@@ -127,7 +146,7 @@ const BusCard = () => {
                 {/* Dates */}
                 <div className={`grid gap-4 mb-6 ${tripType === 'roundtrip' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                     <div>
-                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">JOURNEY DATE</label>
+                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("journey_date", "JOURNEY DATE").toUpperCase()}</label>
                         <div className="relative">
                             <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
                             <input
@@ -142,7 +161,7 @@ const BusCard = () => {
 
                     {tripType === 'roundtrip' && (
                         <div>
-                            <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">RETURN DATE</label>
+                            <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("return_date", "RETURN DATE").toUpperCase()}</label>
                             <div className="relative">
                                 <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826] pointer-events-none" />
                                 <input
@@ -157,12 +176,16 @@ const BusCard = () => {
                     )}
                 </div>
 
+                <div className="mb-6">
+                    <PassengerSelector value={passengers} onChange={setPassengers} />
+                </div>
+
                 <button
                     type="submit"
                     className="w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] text-[15px] rounded-[12px] transition-colors flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)]"
                 >
                     <Search className="w-[18px] h-[18px]" />
-                    Search Buses
+                    {t("search_buses", "Search Buses")}
                 </button>
             </form>
         </div>

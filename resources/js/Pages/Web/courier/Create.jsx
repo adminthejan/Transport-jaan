@@ -258,6 +258,9 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const [activePackageIndex, setActivePackageIndex] = useState(0);
     const [revealedPackageDetails, setRevealedPackageDetails] = useState({});
 
+    // Who's shipping — affects whether the company name field is shown/required.
+    const [shipperType, setShipperType] = useState("private");
+
     const [isPlacing, setIsPlacing] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const [quoteOnlyMessage, setQuoteOnlyMessage] = useState("");
@@ -490,6 +493,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
         markUpstreamChange();
         setData("packages", nextPackages);
+    };
+
+    const updateSenderCompany = (companyName) => {
+        setData("sender", {
+            ...data.sender,
+            company: companyName,
+        });
     };
 
     const updateAddressCountry = (party, countryCode) => {
@@ -2984,6 +2994,48 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                     International
                                 </button>
                             </div>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-3 text-center">
+                            <div>
+                                <h2 className="text-lg font-semibold text-[#0B1739]">I am shipping as a...</h2>
+                            </div>
+                            <div className="inline-flex w-[300px] max-w-md justify-between rounded-xl border border-[#D6DEEB] bg-white p-1 shadow-sm">
+                                <button
+                                    type="button"
+                                    onClick={() => setShipperType('private')}
+                                    className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${shipperType === 'private'
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
+                                        : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                        }`}
+                                >
+                                    Private Person
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShipperType('business')}
+                                    className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${shipperType === 'business'
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
+                                        : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                        }`}
+                                >
+                                    Business
+                                </button>
+                            </div>
+                            {shipperType === 'business' && (
+                                <div className="w-full max-w-md text-left">
+                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Company name*</label>
+                                    <input
+                                        value={data.sender.company || ""}
+                                        onChange={(event) => updateSenderCompany(event.target.value)}
+                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                        placeholder="Your company name"
+                                    />
+                                    {errors["sender.company"] && (
+                                        <p className="mt-1 text-xs text-red-600">{errors["sender.company"]}</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <section className="space-y-6">

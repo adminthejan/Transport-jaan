@@ -29,6 +29,8 @@ const initialState = {
   security_deposit: '',
   setup_fee: '',
   tax_rate: '',
+  services: [],
+  fulfillment_fee_rate: '',
   total_amount: '',
   tax_amount: '',
   final_amount: '',
@@ -46,12 +48,25 @@ const initialState = {
 };
 
 const warehouseTypes = [
+  { value: 'general_warehouse', label: 'General Warehouse' },
+  { value: 'bonded_warehouse', label: 'Bonded Warehouse' },
   { value: 'cold_storage', label: 'Cold Storage' },
-  { value: 'dry', label: 'Dry Storage' },
-  { value: 'climate_controlled', label: 'Climate Controlled' },
-  { value: 'hazmat', label: 'Hazmat Storage' },
-  { value: 'bonded', label: 'Bonded Storage' },
-  { value: 'open_yard', label: 'Open Yard' }
+  { value: 'distribution_center', label: 'Distribution Center' },
+  { value: 'fulfillment_center', label: 'Fulfillment Center' },
+  { value: 'smart_warehouse', label: 'Smart Warehouse' },
+];
+
+// What a client can book on top of storage. "Fulfillment" here is the single
+// source of truth for whether this listing offers the fulfillment add-on
+// (see fulfillment_fee_rate below) — the backend derives offers_fulfillment
+// from this list rather than a separate toggle.
+const warehouseServices = [
+  { value: 'storage', label: 'Storage' },
+  { value: 'fulfillment', label: 'Fulfillment' },
+  { value: 'distribution', label: 'Distribution' },
+  { value: 'value_added_services', label: 'Value Added Services' },
+  { value: 'customs_services', label: 'Customs Services' },
+  { value: 'transportation', label: 'Transportation' },
 ];
 
 const pricingModels = [
@@ -255,6 +270,15 @@ const AddUnit = () => {
     }));
   };
 
+  const handleServiceChange = (service) => {
+    setForm((prev) => ({
+      ...prev,
+      services: prev.services.includes(service)
+        ? prev.services.filter(s => s !== service)
+        : [...prev.services, service]
+    }));
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -303,6 +327,10 @@ const AddUnit = () => {
 
     if (form.tax_rate && (isNaN(form.tax_rate) || parseFloat(form.tax_rate) < 0 || parseFloat(form.tax_rate) > 100)) {
       newErrors.tax_rate = 'Tax rate must be between 0 and 100 percent';
+    }
+
+    if (form.fulfillment_fee_rate && (isNaN(form.fulfillment_fee_rate) || parseFloat(form.fulfillment_fee_rate) < 0 || parseFloat(form.fulfillment_fee_rate) > 100)) {
+      newErrors.fulfillment_fee_rate = 'Fulfillment fee must be between 0 and 100 percent';
     }
 
     if (form.latitude && (isNaN(form.latitude) || parseFloat(form.latitude) < -90 || parseFloat(form.latitude) > 90)) {
@@ -381,6 +409,8 @@ const AddUnit = () => {
       data.append('security_deposit', form.security_deposit || '');
       data.append('setup_fee', form.setup_fee || '');
       data.append('tax_rate', form.tax_rate || '');
+      data.append('services', JSON.stringify(form.services || []));
+      data.append('fulfillment_fee_rate', form.fulfillment_fee_rate || '');
       data.append('total_amount', form.total_amount || '');
       data.append('tax_amount', form.tax_amount || '');
       data.append('final_amount', form.final_amount || '');
@@ -798,6 +828,46 @@ const AddUnit = () => {
                     placeholder="0.00"
                   />
                   {errors.tax_rate && <div className="text-red-600 text-sm mt-1">{errors.tax_rate}</div>}
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="block text-[14px] font-medium text-gray-700">Services offered on this listing</label>
+                  <p className="text-[12px] text-gray-500 mb-2">
+                    What clients can book on top of storage. Shown to clients as a separate "Services" filter from Warehouse Type.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {warehouseServices.map((service) => (
+                      <label key={service.value} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={form.services.includes(service.value)}
+                          onChange={() => handleServiceChange(service.value)}
+                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-[13px] text-gray-700">{service.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {form.services.includes('fulfillment') && (
+                    <div className="mt-2">
+                      <label htmlFor="fulfillment_fee_rate" className="block text-[14px] font-medium text-gray-700">
+                        Fulfillment Fee (% of monthly rate)
+                      </label>
+                      <input
+                        id="fulfillment_fee_rate"
+                        type="number"
+                        name="fulfillment_fee_rate"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-1"
+                        value={form.fulfillment_fee_rate}
+                        onChange={handleChange}
+                        placeholder="Leave blank to use the platform default (15%)"
+                      />
+                      {errors.fulfillment_fee_rate && <div className="text-red-600 text-sm mt-1">{errors.fulfillment_fee_rate}</div>}
+                    </div>
+                  )}
                 </div>
 
                 {/* Calculated fields - read only with gray background */}

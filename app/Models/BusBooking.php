@@ -19,6 +19,7 @@ class BusBooking extends Model
         'passenger_email',
         'passenger_phone',
         'seat_numbers',
+        'seat_genders',
         'passenger_count',
         'total_price',
         'booking_reference',
@@ -37,6 +38,7 @@ class BusBooking extends Model
 
     protected $casts = [
         'seat_numbers' => 'array',
+        'seat_genders' => 'array',
         'booking_date' => 'datetime',
         'expires_at' => 'datetime',
         'cancelled_at' => 'datetime',

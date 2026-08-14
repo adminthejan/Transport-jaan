@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "@inertiajs/react";
 
 const FlightForm = () => {
@@ -14,6 +14,26 @@ const FlightForm = () => {
         departure_airport: '',
         arriving_airport: '',
     });
+
+    // Pre-fill from the quick "Scheduled Flight" search on the Air rental
+    // page, so picking a route/date there doesn't have to be re-typed here.
+    useEffect(() => {
+        try {
+            const sp = new URLSearchParams(window.location.search || "");
+            const patch = {};
+            ['trip_type', 'departure_date', 'return_date', 'departure_airport', 'arriving_airport'].forEach((key) => {
+                const value = sp.get(key);
+                if (value) patch[key] = value;
+            });
+            if (Object.keys(patch).length > 0) {
+                setData((prev) => ({ ...prev, ...patch }));
+            }
+        } catch (e) {
+            // ignore
+        }
+        // run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleSubmit = (e) => {
         e.preventDefault();

@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { Link, router } from "@inertiajs/react";
 import { Snowflake, Wifi, Usb, Tv, ArmchairIcon, ShowerHead, Clock, Users, MapPin, Radio, ArrowUpDown } from "lucide-react";
 import BusCard from "./BusCard";
+import LocaleSelector from "./LocaleSelector";
+import TripRouteMap from "./TripRouteMap";
+import { LocaleProvider, useLocale } from "../../context/LocaleContext";
 
 const amenityIcons = {
     "A/C": Snowflake,
@@ -13,7 +16,19 @@ const amenityIcons = {
 };
 const amenities = Object.keys(amenityIcons);
 
+/** Parses durations like "8h 0m" or "5h" into total minutes for sorting. */
+function parseDurationMinutes(duration) {
+    if (typeof duration === "number") return duration;
+    if (!duration) return Number.MAX_SAFE_INTEGER;
+    const hoursMatch = duration.match(/(\d+)\s*h/);
+    const minutesMatch = duration.match(/(\d+)\s*m/);
+    const hours = hoursMatch ? parseInt(hoursMatch[1], 10) : 0;
+    const minutes = minutesMatch ? parseInt(minutesMatch[1], 10) : 0;
+    return hours * 60 + minutes;
+}
+
 function BusTripCard({ trip, mode, selected, onSelect, href }) {
+    const { formatPrice } = useLocale();
     const inner = (
         <>
             <div className="grid grid-cols-12 items-start sm:items-center gap-4 sm:gap-8">
@@ -91,7 +106,7 @@ function BusTripCard({ trip, mode, selected, onSelect, href }) {
                 <div className="col-span-12 sm:col-span-3">
                     <div className="flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end gap-3 sm:gap-3">
                         <div className="text-left sm:text-right">
-                            <div className="text-[19px] sm:text-[24px] font-[800] text-[#0955AC]">LKR {trip.price.toLocaleString()}</div>
+                            <div className="text-[19px] sm:text-[24px] font-[800] text-[#0955AC]">{formatPrice(trip.price)}</div>
                             <div className="flex items-center gap-1 text-[11px] sm:text-[13px] text-[#64748B] font-[600] sm:justify-end">
                                 <Users className="w-3.5 h-3.5" /> {trip.seatsAvailable}/{trip.totalSeats} seats
                             </div>
@@ -163,10 +178,14 @@ function BusTripCard({ trip, mode, selected, onSelect, href }) {
     );
 }
 
-const HeroDetailsTwo = ({ stations = [], schedules = [], returnSchedules = [], searchParams = {} }) => {
+const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = [], route = null, nearbyDates = [], searchParams = {} }) => {
+    const { t } = useLocale();
     const [sortBy, setSortBy] = useState('');
     const [selectedOutboundId, setSelectedOutboundId] = useState(null);
     const [selectedReturnId, setSelectedReturnId] = useState(null);
+    // Which leg's results are showing — round trips use tabs instead of a
+    // long stacked page, matching how most booking sites do it.
+    const [activeLeg, setActiveLeg] = useState('outbound');
 
     const isRoundTrip = searchParams.tripType === 'roundtrip';
 
@@ -209,12 +228,13 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], returnSchedules = [], s
     let returnTrips = returnSchedules || [];
 
     const applySort = (list) => {
-        if (sortBy === 'Fare') return [...list].sort((a, b) => a.price - b.price);
-        if (sortBy === 'Departure') {
+        if (sortBy === 'cheapest') return [...list].sort((a, b) => a.price - b.price);
+        if (sortBy === 'earliest') {
             return [...list].sort((a, b) => new Date('1970/01/01 ' + a.depart) - new Date('1970/01/01 ' + b.depart));
         }
-        if (sortBy === 'Seats') return [...list].sort((a, b) => b.seatsAvailable - a.seatsAvailable);
-        if (sortBy === 'Operator') return [...list].sort((a, b) => a.operator.localeCompare(b.operator));
+        if (sortBy === 'fastest') return [...list].sort((a, b) => parseDurationMinutes(a.duration) - parseDurationMinutes(b.duration));
+        if (sortBy === 'seats') return [...list].sort((a, b) => b.seatsAvailable - a.seatsAvailable);
+        if (sortBy === 'operator') return [...list].sort((a, b) => a.operator.localeCompare(b.operator));
         return list;
     };
 
@@ -226,6 +246,13 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], returnSchedules = [], s
     };
 
     const bothLegsSelected = isRoundTrip && selectedOutboundId && selectedReturnId;
+
+    // Picking an outbound bus automatically moves you to the Return tab —
+    // free to switch back manually, this is just a nudge along the flow.
+    const selectOutbound = (id) => {
+        setSelectedOutboundId(id);
+        setActiveLeg('return');
+    };
 
     const continueToBooking = () => {
         if (!selectedOutboundId) return;
@@ -241,15 +268,91 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], returnSchedules = [], s
         router.visit(`/busTicketBookingPreview?${params.toString()}`);
     };
 
+    // Re-runs the search for a different date without going back through the
+    // search form — lets people browse nearby dates for a cheaper/earlier trip.
+    const changeDate = (newDate) => {
+        if (newDate === searchParams.date) return;
+        router.get('/busTicketBookingDetails', { ...searchParams, date: newDate }, { preserveScroll: true });
+    };
+
     return (
-        <section className="mx-auto w-full max-w-6xl px-6 py-8 pb-28">
+        <section className="mx-auto w-full max-w-7xl px-6 py-8 pb-28">
             <div className="mb-8 sm:mb-14">
                 <BusCard />
             </div>
 
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="lg:col-span-2 min-w-0">
+
+            {/* Nearby dates — browse a few extra days without re-searching.
+                Prices reflect the outbound leg's route. */}
+            {nearbyDates.length > 0 && (!isRoundTrip || activeLeg === 'outbound') && (
+                <div className="mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                    {nearbyDates.map((d) => {
+                        const dateObj = new Date(d.date + 'T00:00:00');
+                        const isSelected = d.date === searchParams.date;
+                        return (
+                            <button
+                                key={d.date}
+                                type="button"
+                                onClick={() => changeDate(d.date)}
+                                disabled={d.price == null}
+                                className={`flex-shrink-0 min-w-[84px] rounded-[12px] border px-3 py-2 text-center transition-colors ${
+                                    isSelected
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white'
+                                        : d.price == null
+                                        ? 'border-[#E2E8F0] text-[#CBD5E1] cursor-not-allowed'
+                                        : 'border-[#E2E8F0] text-[#334155] hover:border-[#0955AC]/50'
+                                }`}
+                            >
+                                <div className={`text-[11px] font-[700] ${isSelected ? 'text-white' : 'text-[#64748B]'}`}>
+                                    {dateObj.toLocaleDateString('en-GB', { weekday: 'short' })}
+                                </div>
+                                <div className="text-[15px] font-[800]">
+                                    {dateObj.getDate()}
+                                </div>
+                                <div className={`text-[10px] font-[700] mt-0.5 ${isSelected ? 'text-white/90' : 'text-[#0955AC]'}`}>
+                                    {d.price != null ? `LKR ${Math.round(d.price).toLocaleString()}` : '—'}
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
             {isRoundTrip && (
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#0955AC]/10 px-4 py-2 text-[13px] font-[700] text-[#0955AC]">
+                <div className="mb-6 flex items-center gap-2 rounded-full bg-[#0955AC]/10 px-4 py-2 text-[13px] font-[700] text-[#0955AC] w-fit">
                     <ArrowUpDown className="w-4 h-4" /> Round trip — select your departure, then your return bus
+                </div>
+            )}
+
+            {/* Outbound / Return tabs (round trip only) */}
+            {isRoundTrip && (
+                <div className="mb-6 flex items-center gap-8 border-b border-[#E2E8F0]">
+                    {[
+                        { key: 'outbound', label: 'Outbound', selectedId: selectedOutboundId, sub: `${searchParams.from} → ${searchParams.to}` },
+                        { key: 'return', label: 'Return', selectedId: selectedReturnId, sub: `${searchParams.to} → ${searchParams.from}` },
+                    ].map((leg) => (
+                        <button
+                            key={leg.key}
+                            type="button"
+                            onClick={() => setActiveLeg(leg.key)}
+                            className={`relative pb-3 text-[15px] sm:text-[17px] font-[800] transition-colors ${
+                                activeLeg === leg.key ? 'text-[#0955AC]' : 'text-[#94A3B8] hover:text-[#475569]'
+                            }`}
+                        >
+                            <span className="flex items-center gap-2">
+                                {leg.label}
+                                {leg.selectedId && (
+                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-500 text-white text-[10px]">✓</span>
+                                )}
+                            </span>
+                            <span className="block text-[11px] font-[500] text-[#94A3B8] normal-case">{leg.sub}</span>
+                            {activeLeg === leg.key && (
+                                <span className="absolute left-0 right-0 -bottom-[1px] h-[3px] bg-[#0955AC] rounded-full" />
+                            )}
+                        </button>
+                    ))}
                 </div>
             )}
 
@@ -257,23 +360,30 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], returnSchedules = [], s
             <div className="sticky top-0 z-10 -mx-6 mb-6 bg-white/90 backdrop-blur px-4 sm:px-6 py-4 rounded-2xl shadow-[0_2px_10px_rgba(15,23,42,0.05)] border border-[#EEF2F6]">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <span className="text-[13px] sm:text-[14px] font-[700] text-[#0F172A] w-full sm:w-auto mb-1 sm:mb-0">
-                        Sort by
+                        {t('sort_by', 'Sort by')}
                     </span>
                     <div className="flex flex-wrap gap-2">
-                        {["Fare", "Departure", "Seats", "Operator"].map((f) => (
+                        {[
+                            { key: 'cheapest', label: t('cheapest', 'Cheapest') },
+                            { key: 'fastest', label: t('fastest', 'Fastest') },
+                            { key: 'earliest', label: t('earliest', 'Earliest') },
+                            { key: 'seats', label: t('seats', 'Seats') },
+                            { key: 'operator', label: t('operator', 'Operator') },
+                        ].map((f) => (
                             <button
-                                key={f}
-                                onClick={() => handleSort(f)}
+                                key={f.key}
+                                onClick={() => handleSort(f.key)}
                                 className={`rounded-full border px-4 py-1.5 text-[12px] sm:text-[13px] font-[700] transition-colors ${
-                                    sortBy === f
+                                    sortBy === f.key
                                         ? 'border-[#0955AC] text-white bg-[#0955AC]'
                                         : 'border-[#E2E8F0] text-[#475569] hover:border-[#0955AC]/40'
                                 }`}
                             >
-                                {f}
+                                {f.label}
                             </button>
                         ))}
                     </div>
+                    <LocaleSelector />
                     <div className="ml-auto flex items-center gap-2 sm:gap-3 text-[12px] sm:text-[14px] font-[600] text-[#334155] w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0">
                         <span className="truncate">
                             {searchParams.from && searchParams.to ? `${searchParams.from} → ${searchParams.to}` : "Colombo → Negombo"}
@@ -288,56 +398,57 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], returnSchedules = [], s
                 </div>
             </div>
 
-            {isRoundTrip && (
-                <h3 className="text-[18px] sm:text-[22px] font-[800] text-[#0F172A] mb-4">
-                    Step 1 · Departure — {searchParams.from} → {searchParams.to}
-                </h3>
-            )}
-
-            {/* Results list */}
-            <div className="space-y-5">
-                {trips && trips.length > 0 ? trips.map((trip) => (
-                    <BusTripCard
-                        key={trip.id}
-                        trip={trip}
-                        mode={isRoundTrip ? "select" : "link"}
-                        selected={selectedOutboundId === trip.id}
-                        onSelect={setSelectedOutboundId}
-                        href={`/busTicketBookingPreview?id=${trip.id}&from=${searchParams.from || 'Colombo'}&to=${searchParams.to || 'Negombo'}&date=${searchParams.date || '2025-09-24'}`}
-                    />
-                )) : (
-                    <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
-                        <div className="text-[#334155] text-[15px] sm:text-[17px] font-[700]">
-                            No bus schedules found for the selected route and date.
-                        </div>
-                        <p className="text-[#94A3B8] mt-2 text-[13px] sm:text-[14px]">Please try different stations or dates.</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Return journey schedules for round trip */}
-            {isRoundTrip && (
-                <div className="mt-12">
-                    <h3 className="text-[18px] sm:text-[22px] font-[800] text-[#0F172A] mb-6">
-                        Step 2 · Return — {searchParams.to} → {searchParams.from}
-                    </h3>
-                    <div className="space-y-5">
-                        {returnTrips.length > 0 ? returnTrips.map((trip) => (
-                            <BusTripCard
-                                key={trip.id}
-                                trip={trip}
-                                mode="select"
-                                selected={selectedReturnId === trip.id}
-                                onSelect={setSelectedReturnId}
-                            />
-                        )) : (
-                            <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
-                                <div className="text-[#334155] text-[15px] sm:text-[17px] font-[700]">No return buses found for this date.</div>
+            {/* Results list — round trips show only the active tab's leg */}
+            {(!isRoundTrip || activeLeg === 'outbound') && (
+                <div className="space-y-5">
+                    {trips && trips.length > 0 ? trips.map((trip) => (
+                        <BusTripCard
+                            key={trip.id}
+                            trip={trip}
+                            mode={isRoundTrip ? "select" : "link"}
+                            selected={selectedOutboundId === trip.id}
+                            onSelect={isRoundTrip ? selectOutbound : setSelectedOutboundId}
+                            href={`/busTicketBookingPreview?id=${trip.id}&from=${searchParams.from || 'Colombo'}&to=${searchParams.to || 'Negombo'}&date=${searchParams.date || '2025-09-24'}`}
+                        />
+                    )) : (
+                        <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
+                            <div className="text-[#334155] text-[15px] sm:text-[17px] font-[700]">
+                                No bus schedules found for the selected route and date.
                             </div>
-                        )}
-                    </div>
+                            <p className="text-[#94A3B8] mt-2 text-[13px] sm:text-[14px]">Please try different stations or dates.</p>
+                        </div>
+                    )}
                 </div>
             )}
+
+            {isRoundTrip && activeLeg === 'return' && (
+                <div className="space-y-5">
+                    {returnTrips.length > 0 ? returnTrips.map((trip) => (
+                        <BusTripCard
+                            key={trip.id}
+                            trip={trip}
+                            mode="select"
+                            selected={selectedReturnId === trip.id}
+                            onSelect={setSelectedReturnId}
+                        />
+                    )) : (
+                        <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
+                            <div className="text-[#334155] text-[15px] sm:text-[17px] font-[700]">No return buses found for this date.</div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            </div>
+
+            {/* Side map: shows the searched route so you can see the distance at a glance */}
+            {route && (
+                <div className="hidden lg:block lg:col-span-1 sticky top-24">
+                    <TripRouteMap route={route} className="h-[420px]" />
+                </div>
+            )}
+
+            </div>
 
             {/* Sticky continue bar for round trips */}
             {isRoundTrip && (selectedOutboundId || selectedReturnId) && (
@@ -368,5 +479,11 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], returnSchedules = [], s
         </section>
     );
 };
+
+const HeroDetailsTwo = (props) => (
+    <LocaleProvider>
+        <HeroDetailsTwoInner {...props} />
+    </LocaleProvider>
+);
 
 export default HeroDetailsTwo;

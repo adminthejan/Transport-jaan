@@ -744,9 +744,20 @@ class WebController extends Controller
             $query->where('address', 'LIKE', '%' . $searchParams['warehouseLocation'] . '%');
         }
 
-        // Warehouse type filter
-        if (isset($searchParams['warehouseType']) && !empty($searchParams['warehouseType'])) {
-            $query->where('type', $searchParams['warehouseType']);
+        // Warehouse type filter (multi-select: the facility itself)
+        if (!empty($searchParams['warehouseType'])) {
+            $types = is_array($searchParams['warehouseType']) ? $searchParams['warehouseType'] : [$searchParams['warehouseType']];
+            $query->whereIn('type', $types);
+        }
+
+        // Services filter (multi-select: what can be booked on top of storage)
+        if (!empty($searchParams['services'])) {
+            $services = is_array($searchParams['services']) ? $searchParams['services'] : [$searchParams['services']];
+            $query->where(function ($q) use ($services) {
+                foreach ($services as $service) {
+                    $q->orWhereJsonContains('services', $service);
+                }
+            });
         }
 
         // Required space filter (from search form)

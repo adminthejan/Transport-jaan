@@ -6,6 +6,13 @@ import axios from 'axios';
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
+// Storage & Fulfillment is an optional add-on service (pick, pack, and ship
+// handling on the client's behalf) priced as a share of the base monthly rate.
+// Vendors can set their own rate per listing; falls back to the platform default.
+const DEFAULT_FULFILLMENT_SERVICE_RATE = 0.15;
+const fulfillmentRateFor = (warehouse) =>
+    warehouse?.fulfillment_fee_rate ? Number(warehouse.fulfillment_fee_rate) / 100 : DEFAULT_FULFILLMENT_SERVICE_RATE;
+
 const WarehouseCheckoutContent = () => {
     const [countryCode, setCountryCode] = useState("lk");
     const [bookingData, setBookingData] = useState(null);
@@ -322,12 +329,16 @@ const WarehouseCheckoutContent = () => {
             const baseMonthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || warehouse.base_price || 0) || 0;
             const securityDeposit = parseFloat(warehouse.security_deposit || baseMonthlyRate * 0.5 || 0) || 0;
             const setupFee = parseFloat(warehouse.setup_fee || baseMonthlyRate * 0.2 || 0) || 0;
-            const taxRate = parseFloat(warehouse.tax_rate || 0.08) || 0;
+            // Tax is set per-vendor on their listing; no platform-wide default is
+            // assumed if a vendor hasn't set one.
+            const taxRate = Number(warehouse.tax_rate) || 0;
             const totalArea = parseFloat(warehouse.total_area || 1) || 1;
 
             const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
             const monthlyRate = baseMonthlyRate * spaceUtilization;
-            const addOnsCost = 0;
+            const addOnsCost = (warehouse?.offers_fulfillment && bookingDataToUse?.fulfillment_service)
+                ? baseMonthlyRate * fulfillmentRateFor(warehouse)
+                : 0;
             const monthlyTotal = monthlyRate + addOnsCost;
             const subtotal = monthlyTotal * durationMonths;
             const taxAmount = subtotal * taxRate;

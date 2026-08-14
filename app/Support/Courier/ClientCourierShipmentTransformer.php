@@ -123,6 +123,39 @@ class ClientCourierShipmentTransformer
         ];
     }
 
+    /**
+     * For the public "Track Shipment" page — anyone with a reference number
+     * can look this up, no login required, so this deliberately excludes
+     * contact details, addresses beyond city/country, payment info, and
+     * internal notes. Only what a carrier's public tracking page normally
+     * shows.
+     */
+    public function forPublicTracking(CourierShipment $shipment): array
+    {
+        $trackingEvents = $this->toCollection($shipment->trackingEvents ?? []);
+
+        return [
+            'code' => $shipment->reference,
+            'status' => $shipment->status,
+            'serviceLevel' => $shipment->service_level,
+            'pickupDate' => $shipment->pickup_date?->format('Y-m-d'),
+            'from' => $shipment->senderAddress ? [
+                'city' => $shipment->senderAddress->city,
+                'country' => $shipment->senderAddress->country,
+            ] : null,
+            'to' => $shipment->recipientAddress ? [
+                'city' => $shipment->recipientAddress->city,
+                'country' => $shipment->recipientAddress->country,
+            ] : null,
+            'trackingEvents' => $trackingEvents
+                ->sortByDesc(fn ($event) => $event->recorded_at ?? null)
+                ->map(fn ($event) => $this->mapTrackingEvent($event))
+                ->values()
+                ->all(),
+            'createdAt' => $shipment->created_at?->format('Y-m-d H:i:s'),
+        ];
+    }
+
     public function forUnifiedBooking(CourierShipment $shipment): array
     {
         $packages = $this->toCollection($shipment->packages ?? []);

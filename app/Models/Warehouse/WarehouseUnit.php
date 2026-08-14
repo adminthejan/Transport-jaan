@@ -23,7 +23,8 @@ class WarehouseUnit extends Model
         'capacity',
         'capacity_unit',
         'type',
-        
+        'services',
+
         // Pricing Information
         'pricing_model',
         'base_price',
@@ -31,6 +32,8 @@ class WarehouseUnit extends Model
         'security_deposit',
         'setup_fee',
         'tax_rate',
+        'offers_fulfillment',
+        'fulfillment_fee_rate',
         'total_amount',
         'tax_amount',
         'final_amount',
@@ -58,6 +61,7 @@ class WarehouseUnit extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_available' => 'boolean',
+        'services' => 'array',
         'latitude' => 'float',
         'longitude' => 'float',
         'total_area' => 'decimal:2',
@@ -67,6 +71,8 @@ class WarehouseUnit extends Model
         'security_deposit' => 'decimal:2',
         'setup_fee' => 'decimal:2',
         'tax_rate' => 'decimal:4',
+        'offers_fulfillment' => 'boolean',
+        'fulfillment_fee_rate' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',

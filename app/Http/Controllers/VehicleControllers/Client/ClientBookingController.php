@@ -34,7 +34,7 @@ class ClientBookingController extends Controller
     /** QUOTE: GET /bookings/quote (JSON) */
     public function quote(Request $request)
     {
-        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForQuote($request);
+        [$vehicle, $pickup , $dropoff, $addonsReq, $needsDriver] = $this->validateInputsForQuote($request);
 
         // NEW: allow the caller to exclude a booking (e.g., the one they just created)
         $excludeId = $request->integer('exclude_booking_id');
@@ -63,7 +63,7 @@ class ClientBookingController extends Controller
             ], 422);
         }
 
-        $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
+        $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver);
         return response()->json($calc);
     }
 
@@ -102,7 +102,8 @@ class ClientBookingController extends Controller
             $booking->vehicle,
             Carbon::parse($booking->schedule->pickup_at),
             Carbon::parse($booking->schedule->dropoff_at),
-            $data['addons'] ?? []
+            $data['addons'] ?? [],
+            (bool) $booking->needs_driver
         );
 
         DB::transaction(function () use ($booking, $calc) {
@@ -183,6 +184,7 @@ class ClientBookingController extends Controller
                 'dropoff_date',
                 'dropoff_time',
                 'addons',
+                'needs_driver',
                 'first_name',
                 'last_name',
                 'email',
@@ -214,7 +216,7 @@ class ClientBookingController extends Controller
         $userId = Auth::id();
         abort_unless($userId, 403, 'Please login to continue.');
 
-        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForStoreDraft($request);
+        [$vehicle, $pickup , $dropoff, $addonsReq, $needsDriver] = $this->validateInputsForStoreDraft($request);
 
         $request->session()->put('booking_trip', array_merge(
             $request->only([
@@ -226,7 +228,7 @@ class ClientBookingController extends Controller
                 'dropoff_date',
                 'dropoff_time',
             ]),
-            ['addons' => $addonsReq]
+            ['addons' => $addonsReq, 'needs_driver' => $needsDriver]
         ));
         $request->session()->put('booking_personal', $request->only([
             'first_name',
@@ -241,7 +243,7 @@ class ClientBookingController extends Controller
             'address'
         ]));
 
-        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $userId, $request) {
+        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver, $userId, $request) {
             $existing = Booking::where('client_id', $userId)
                 ->where('vehicle_id', $vehicle->id)
                 ->where('status', 'pending')
@@ -263,11 +265,13 @@ class ClientBookingController extends Controller
                 throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
-            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
+            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver);
 
             if ($existing) {
                 $existing->update([
                     'price_per_day'   => $calc['price_per_day'],
+                    'needs_driver'    => $calc['needs_driver'],
+                    'driver_fee_per_day' => $calc['driver_fee_per_day'],
                     'rental_days'     => $calc['rental_days'],
                     'addons_total'    => $calc['addons_total'],
                     'subtotal'        => $calc['subtotal'],
@@ -316,6 +320,8 @@ class ClientBookingController extends Controller
                 'vehicle_id'      => $vehicle->id,
                 'status'          => 'pending',
                 'price_per_day'   => $calc['price_per_day'],
+                'needs_driver'    => $calc['needs_driver'],
+                'driver_fee_per_day' => $calc['driver_fee_per_day'],
                 'rental_days'     => $calc['rental_days'],
                 'addons_total'    => $calc['addons_total'],
                 'subtotal'        => $calc['subtotal'],
@@ -482,6 +488,7 @@ class ClientBookingController extends Controller
             'addons'        => ['array'],
             'addons.*.name' => ['required_with:addons', 'string'],
             'addons.*.qty'  => ['nullable', 'integer', 'min:1'],
+            'needs_driver'  => ['nullable', 'boolean'],
         ]);
 
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
@@ -494,7 +501,8 @@ class ClientBookingController extends Controller
             abort(422, 'Drop-off must be after pick-up.');
 
         $addonsReq = $request->input('addons', []);
-        return [$vehicle, $pickup , $dropoff, $addonsReq];
+        $needsDriver = $request->boolean('needs_driver');
+        return [$vehicle, $pickup , $dropoff, $addonsReq, $needsDriver];
     }
 
     private function validateInputsForStoreDraft(Request $request): array
@@ -510,6 +518,7 @@ class ClientBookingController extends Controller
             'addons'           => ['array'],
             'addons.*.name'    => ['required_with:addons', 'string'],
             'addons.*.qty'     => ['nullable', 'integer', 'min:1'],
+            'needs_driver'     => ['nullable', 'boolean'],
         ]);
 
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
@@ -522,14 +531,21 @@ class ClientBookingController extends Controller
             abort(422, 'Drop-off must be after pick-up.');
 
         $addonsReq = $request->input('addons', []);
-        return [$vehicle, $pickup , $dropoff, $addonsReq];
+        $needsDriver = $request->boolean('needs_driver');
+        return [$vehicle, $pickup , $dropoff, $addonsReq, $needsDriver];
     }
 
-    private function calculateTotals(Vehicle $vehicle, Carbon $pickup , Carbon $dropoff, array $addonsReq): array
+    // A chauffeur ("with driver") adds a flat share of the vehicle's own daily
+    // rate — self-drive rentals (the default) are unaffected.
+    private const DRIVER_FEE_RATE = 0.20;
+
+    private function calculateTotals(Vehicle $vehicle, Carbon $pickup , Carbon $dropoff, array $addonsReq, bool $needsDriver = false): array
     {
             // $seconds     = max(0, $dropoff->diffInSeconds($pickup ));
         $days = max(1, $pickup->diffInDays($dropoff));
         $pricePerDay = (float) ($vehicle->rental_price_per_day ?? 0);
+        $driverFeePerDay = $needsDriver ? round($pricePerDay * self::DRIVER_FEE_RATE, 2) : 0.0;
+        $driverFeeTotal = $driverFeePerDay * $days;
 
         $addonsLines = [];
         $addonsTotal = 0.0;
@@ -566,7 +582,7 @@ class ClientBookingController extends Controller
             }
         }
 
-        $subtotal = $pricePerDay * $days + $addonsTotal;
+        $subtotal = $pricePerDay * $days + $driverFeeTotal + $addonsTotal;
         $deposit  = (float) ($vehicle->deposit_amount ?? 0);
         $advance  = (float) ($vehicle->advance_payment_amount ?? 0);
         $total    = $subtotal;
@@ -574,6 +590,9 @@ class ClientBookingController extends Controller
         return [
             'rental_days'     => $days,
             'price_per_day'   => $pricePerDay,
+            'needs_driver'      => $needsDriver,
+            'driver_fee_per_day' => $driverFeePerDay,
+            'driver_fee_total'   => $driverFeeTotal,
             'addons_total'    => $addonsTotal,
             'subtotal'        => $subtotal,
             'deposit_amount'  => $deposit,
@@ -592,7 +611,7 @@ class ClientBookingController extends Controller
 
     public function airVehicleQuote(Request $request)
     {
-        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForQuote($request);
+        [$vehicle, $pickup , $dropoff, $addonsReq, $needsDriver] = $this->validateInputsForQuote($request);
 
         // NEW: allow the caller to exclude a booking (e.g., the one they just created)
         $excludeId = $request->integer('exclude_booking_id');
@@ -621,7 +640,7 @@ class ClientBookingController extends Controller
             ], 422);
         }
 
-        $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
+        $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver);
         return response()->json($calc);
     }
 
@@ -645,7 +664,8 @@ class ClientBookingController extends Controller
             $airVehicleBooking->vehicle,
             Carbon::parse($airVehicleBooking->schedule->pickup_at),
             Carbon::parse($airVehicleBooking->schedule->dropoff_at),
-            $data['addons'] ?? []
+            $data['addons'] ?? [],
+            (bool) $airVehicleBooking->needs_driver
         );
 
         DB::transaction(function () use ($airVehicleBooking, $calc) {
@@ -727,6 +747,7 @@ class ClientBookingController extends Controller
                 'dropoff_date',
                 'dropoff_time',
                 'addons',
+                'needs_driver',
                 'first_name',
                 'last_name',
                 'email',
@@ -739,7 +760,7 @@ class ClientBookingController extends Controller
                 'address',
                 'exclude_booking_id', // NEW: forward this into the page props
             ]),
-            
+
         );
 
          $user = $request->user();
@@ -758,7 +779,7 @@ class ClientBookingController extends Controller
         $userId = Auth::id();
         abort_unless($userId, 403, 'Please login to continue.');
 
-        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForStoreDraft($request);
+        [$vehicle, $pickup , $dropoff, $addonsReq, $needsDriver] = $this->validateInputsForStoreDraft($request);
 
         $request->session()->put('booking_trip', array_merge(
             $request->only([
@@ -770,7 +791,7 @@ class ClientBookingController extends Controller
                 'dropoff_date',
                 'dropoff_time',
             ]),
-            ['addons' => $addonsReq]
+            ['addons' => $addonsReq, 'needs_driver' => $needsDriver]
         ));
         $request->session()->put('booking_personal', $request->only([
             'first_name',
@@ -785,7 +806,7 @@ class ClientBookingController extends Controller
             'address'
         ]));
 
-        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $userId, $request) {
+        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver, $userId, $request) {
             $existing = AirVehicleBookings::where('client_id', $userId)
                 ->where('vehicle_id', $vehicle->id)
                 ->where('status', 'pending')
@@ -807,11 +828,13 @@ class ClientBookingController extends Controller
                 throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
-            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
+            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver);
 
             if ($existing) {
                 $existing->update([
                     'price_per_day'   => $calc['price_per_day'],
+                    'needs_driver'    => $calc['needs_driver'],
+                    'driver_fee_per_day' => $calc['driver_fee_per_day'],
                     'rental_days'     => $calc['rental_days'],
                     'addons_total'    => $calc['addons_total'],
                     'subtotal'        => $calc['subtotal'],
@@ -861,6 +884,8 @@ class ClientBookingController extends Controller
                 'vehicle_id'      => $vehicle->id,
                 'status'          => 'pending',
                 'price_per_day'   => $calc['price_per_day'],
+                'needs_driver'    => $calc['needs_driver'],
+                'driver_fee_per_day' => $calc['driver_fee_per_day'],
                 'rental_days'     => $calc['rental_days'],
                 'addons_total'    => $calc['addons_total'],
                 'subtotal'        => $calc['subtotal'],
@@ -1061,6 +1086,7 @@ class ClientBookingController extends Controller
                 'dropoff_date',
                 'dropoff_time',
                 'addons',
+                'needs_driver',
                 'first_name',
                 'last_name',
                 'email',
@@ -1073,7 +1099,7 @@ class ClientBookingController extends Controller
                 'address',
                 'exclude_booking_id', // NEW: forward this into the page props
             ]),
-            
+
         );
 
          $user = $request->user();
@@ -1089,7 +1115,7 @@ class ClientBookingController extends Controller
 
     public function seaVehicleQuote(Request $request)
     {
-        [$vehicle, $pickup, $dropoff, $addonsReq] = $this->validateInputsForQuote($request);
+        [$vehicle, $pickup, $dropoff, $addonsReq, $needsDriver] = $this->validateInputsForQuote($request);
 
         $excludeId = $request->integer('exclude_booking_id');
         $userId    = Auth::id();
@@ -1115,7 +1141,7 @@ class ClientBookingController extends Controller
             ], 422);
         }
 
-        $calc = $this->calculateTotals($vehicle, $pickup, $dropoff, $addonsReq);
+        $calc = $this->calculateTotals($vehicle, $pickup, $dropoff, $addonsReq, $needsDriver);
         return response()->json($calc);
     }
 
@@ -1124,7 +1150,7 @@ class ClientBookingController extends Controller
         $userId = Auth::id();
         abort_unless($userId, 403, 'Please login to continue.');
 
-        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForStoreDraft($request);
+        [$vehicle, $pickup , $dropoff, $addonsReq, $needsDriver] = $this->validateInputsForStoreDraft($request);
 
         $request->session()->put('booking_trip', array_merge(
             $request->only([
@@ -1136,7 +1162,7 @@ class ClientBookingController extends Controller
                 'dropoff_date',
                 'dropoff_time',
             ]),
-            ['addons' => $addonsReq]
+            ['addons' => $addonsReq, 'needs_driver' => $needsDriver]
         ));
         $request->session()->put('booking_personal', $request->only([
             'first_name',
@@ -1151,7 +1177,7 @@ class ClientBookingController extends Controller
             'address'
         ]));
 
-        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $userId, $request) {
+        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver, $userId, $request) {
             $existing = SeaVehicleBookings::where('client_id', $userId)
                 ->where('vehicle_id', $vehicle->id)
                 ->where('status', 'pending')
@@ -1173,11 +1199,13 @@ class ClientBookingController extends Controller
                 throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
-            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
+            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver);
 
             if ($existing) {
                 $existing->update([
                     'price_per_day'   => $calc['price_per_day'],
+                    'needs_driver'    => $calc['needs_driver'],
+                    'driver_fee_per_day' => $calc['driver_fee_per_day'],
                     'rental_days'     => $calc['rental_days'],
                     'addons_total'    => $calc['addons_total'],
                     'subtotal'        => $calc['subtotal'],
@@ -1227,6 +1255,8 @@ class ClientBookingController extends Controller
                 'vehicle_id'      => $vehicle->id,
                 'status'          => 'pending',
                 'price_per_day'   => $calc['price_per_day'],
+                'needs_driver'    => $calc['needs_driver'],
+                'driver_fee_per_day' => $calc['driver_fee_per_day'],
                 'rental_days'     => $calc['rental_days'],
                 'addons_total'    => $calc['addons_total'],
                 'subtotal'        => $calc['subtotal'],
