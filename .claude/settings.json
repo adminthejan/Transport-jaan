@@ -28,7 +28,8 @@
       "Bash(git rev-list *)",
       "Bash(git ls-remote *)",
       "Bash(node -e \"const i = require\\('/home/thejan/Documents/Transport-jaan/node_modules/lucide-react'\\); console.log\\(['Ruler','Box','Boxes','Maximize2','Package'].map\\(n => n+': '+\\(!!i[n]\\)\\).join\\('\\\\n'\\)\\)\")",
-      "WebFetch(domain:www.xsarva.com)"
+      "WebFetch(domain:www.xsarva.com)",
+      "Bash(node -e \"const i = require\\('/home/thejan/Documents/Transport-jaan/node_modules/lucide-react'\\); console.log\\(['Check','Filter','SlidersHorizontal','X','ChevronDown','MapPin','Warehouse','PackageSearch'].map\\(n => n+': '+\\(!!i[n]\\)\\).join\\('\\\\n'\\)\\)\")"
     ]
   }
 }
