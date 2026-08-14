@@ -134,11 +134,11 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 id={`type-${type.id}`}
                 name="warehouseType"
                 value={type.id}
-                className="mr-1.5"
+                className="mr-2 w-[15px] h-[15px] accent-[#0955AC] cursor-pointer"
                 checked={selectedTypes.includes(type.id)}
                 onChange={() => handleTypeChange(type.id)}
               />
-              <label htmlFor={`type-${type.id}`}>{type.label}</label>
+              <label htmlFor={`type-${type.id}`} className="cursor-pointer hover:text-[#0955AC] transition-colors">{type.label}</label>
             </div>
           ))}
         </div>
@@ -155,11 +155,11 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 id={`service-${service.id}`}
                 name="services"
                 value={service.id}
-                className="mr-1.5"
+                className="mr-2 w-[15px] h-[15px] accent-[#0955AC] cursor-pointer"
                 checked={selectedServices.includes(service.id)}
                 onChange={() => handleServiceChange(service.id)}
               />
-              <label htmlFor={`service-${service.id}`}>{service.label}</label>
+              <label htmlFor={`service-${service.id}`} className="cursor-pointer hover:text-[#0955AC] transition-colors">{service.label}</label>
             </div>
           ))}
         </div>
@@ -175,11 +175,11 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 id={location.id}
                 name="location"
                 value={location.id}
-                className="mr-1.5"
+                className="mr-2 w-[15px] h-[15px] accent-[#0955AC] cursor-pointer"
                 checked={selectedLocation === location.id}
                 onChange={() => handleLocationChange(location.id)}
               />
-              <label htmlFor={location.id}>{location.label}</label>
+              <label htmlFor={location.id} className="cursor-pointer hover:text-[#0955AC] transition-colors">{location.label}</label>
             </div>
           ))}
         </div>

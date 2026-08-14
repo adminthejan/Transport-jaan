@@ -128,7 +128,7 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
 
   return (
     <div className="w-full py-6 md:py-12 px-4 md:px-40">
-      <div className="container mx-auto">
+      <div className="w-full">
         <p className="bebas-neue text-[28px] md:text-[40px] font-[400] mb-8">
           we found <span className="text-[#0955AC]">{warehouses.length} warehouses</span> for you
         </p>
