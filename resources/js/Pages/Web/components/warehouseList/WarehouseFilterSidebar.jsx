@@ -132,7 +132,7 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
       {/* Mobile Filter Button */}
       <button
         onClick={toggleSidebar}
-        className="md:hidden fixed bottom-4 right-4 z-40 bg-[#0955AC] text-white pl-4 pr-5 py-3 rounded-full shadow-lg flex items-center gap-2 text-[13px] font-[600]"
+        className="xl:hidden fixed bottom-4 right-4 z-40 bg-[#0955AC] text-white pl-4 pr-5 py-3 rounded-full shadow-lg flex items-center gap-2 text-[13px] font-[600]"
       >
         <SlidersHorizontal className="w-4 h-4" />
         {isOpen ? "Close Filters" : "Show Filters"}
@@ -146,7 +146,7 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
       {/* Backdrop for mobile */}
       {isOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="xl:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={toggleSidebar}
         />
       )}
@@ -154,20 +154,20 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
       {/* Sidebar */}
       <div
         className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[15px] shadow-lg shadow-[#00000014] border border-[#0000000D] p-5
-          fixed md:static
+          fixed xl:static
           top-0 left-0
-          h-full md:h-auto
+          h-full xl:h-auto
           overflow-y-auto
-          w-[283px] md:w-[283px]
+          w-[283px] xl:w-full
+          xl:sticky xl:top-6
           transform transition-transform duration-300 ease-in-out
           z-40
-          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-          ml-0 md:ml-10 mt-0 md:mt-10`}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}
       >
         {/* Close button for mobile */}
         <button
           onClick={toggleSidebar}
-          className="md:hidden absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+          className="xl:hidden absolute top-4 right-4 text-gray-600 hover:text-gray-800"
         >
           <X className="w-5 h-5" />
         </button>

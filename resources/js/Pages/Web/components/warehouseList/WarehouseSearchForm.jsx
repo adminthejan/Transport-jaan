@@ -65,7 +65,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
   };
 
   return (
-    <div className="px-4 sm:px-6 md:px-40 py-4 sm:py-6 md:py-10">
+    <div className="px-4 sm:px-6 lg:px-10 2xl:px-16 py-4 sm:py-6 md:py-10">
       {/* Search Form */}
       <form onSubmit={handleSearch}>
         <div className="figtree bg-white p-4 sm:p-6 rounded-[15px] shadow-2xl shadow-[#00000040] w-full text-[#286BB6] text-[13px] font-[400]">

@@ -34,21 +34,35 @@ const WarehouseList = () => {
   };
 
   return (
-    <div className="warehouse-list-page">
+    <div className="warehouse-list-page bg-[#F6F7F9] min-h-screen">
       <Head title="Find Warehouses - Transport Jaan" />
       <ClientHeader />
-      <div className="main-content flex">
-        <WarehouseFilterSidebar searchParams={formData} />
-        <div className="warehouse-list-container flex-1">
-          <WarehouseSearchForm formData={formData} onFormChange={handleFormChange} />
-          <div className="px-4 md:px-40">
-            <WarehouseListMap warehouses={props.warehouses} />
+
+      <WarehouseSearchForm formData={formData} onFormChange={handleFormChange} />
+
+      <div className="px-4 sm:px-6 lg:px-10 2xl:px-16 pb-16">
+        <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr_380px] gap-6 items-start">
+          {/* Filters */}
+          <div className="order-3 xl:order-1">
+            <WarehouseFilterSidebar searchParams={formData} />
           </div>
-          <WarehouseListContent
-            warehouses={props.warehouses}
-            authUser={props.auth?.user}                
-            likedWarehouseIds={props.likedWarehouseIds} 
-          />
+
+          {/* Results */}
+          <div className="order-2 xl:order-2 min-w-0">
+            <WarehouseListContent
+              warehouses={props.warehouses}
+              authUser={props.auth?.user}
+              likedWarehouseIds={props.likedWarehouseIds}
+            />
+          </div>
+
+          {/* Map — sticky beside the results on desktop, a compact strip above them on mobile */}
+          <div className="order-1 xl:order-3 xl:sticky xl:top-6">
+            <WarehouseListMap
+              warehouses={props.warehouses}
+              heightClass="h-[220px] xl:h-[calc(100vh-140px)]"
+            />
+          </div>
         </div>
       </div>
     </div>

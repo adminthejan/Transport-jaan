@@ -8,7 +8,7 @@ const GOOGLE_MAPS_API_KEY = "AIzaSyBWjVf-wK6rdmSON8eOXJCgxq2MI10QasE"; // fallba
  * clients can see where listings actually are relative to each other before
  * opening any of them.
  */
-const WarehouseListMap = ({ warehouses: rawWarehouses }) => {
+const WarehouseListMap = ({ warehouses: rawWarehouses, heightClass = "h-[280px]" }) => {
     const mapRef = useRef(null);
     const [mapLoaded, setMapLoaded] = useState(false);
     const [error, setError] = useState(false);
@@ -115,20 +115,24 @@ const WarehouseListMap = ({ warehouses: rawWarehouses }) => {
     }, [mapLoaded, pins.length]);
 
     if (pins.length === 0) {
-        return null;
+        return (
+            <div className={`flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 text-gray-400 text-sm ${heightClass}`}>
+                No locations to show on map
+            </div>
+        );
     }
 
     if (error) {
         return (
-            <div className="flex items-center justify-center bg-gray-100 rounded-xl text-gray-500 text-sm h-[280px] mb-8">
+            <div className={`flex items-center justify-center bg-gray-100 rounded-xl text-gray-500 text-sm ${heightClass}`}>
                 Map unavailable
             </div>
         );
     }
 
     return (
-        <div className="relative overflow-hidden rounded-xl border border-gray-200 h-[280px] mb-8">
-            <div ref={mapRef} className="w-full h-full" style={{ minHeight: 280 }} />
+        <div className={`relative overflow-hidden rounded-xl border border-gray-200 ${heightClass}`}>
+            <div ref={mapRef} className="w-full h-full" style={{ minHeight: 220 }} />
             {!mapLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
                     Loading map…
