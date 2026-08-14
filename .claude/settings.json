@@ -25,7 +25,8 @@
       "Bash(php -l app/Http/Controllers/CourierControllers/Client/ClientCourierController.php)",
       "Bash(php -l app/Support/Courier/ClientCourierShipmentTransformer.php)",
       "Bash(grep -n '$adults\\\\|$children\\\\|$infants' app/Http/Controllers/TrainController.php)",
-      "Bash(git rev-list *)"
+      "Bash(git rev-list *)",
+      "Bash(git ls-remote *)"
     ]
   }
 }
