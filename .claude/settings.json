@@ -31,7 +31,13 @@
       "WebFetch(domain:www.xsarva.com)",
       "Bash(node -e \"const i = require\\('/home/thejan/Documents/Transport-jaan/node_modules/lucide-react'\\); console.log\\(['Check','Filter','SlidersHorizontal','X','ChevronDown','MapPin','Warehouse','PackageSearch'].map\\(n => n+': '+\\(!!i[n]\\)\\).join\\('\\\\n'\\)\\)\")",
       "Bash(grep -n \"fillable\\\\|casts\\\\|protected \\\\$\" -A 60 /home/thejan/Documents/Transport-jaan/app/Models/Warehouse/WarehouseUnit.php)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(php -l app/Http/Controllers/VehicleControllers/Client/ClientVehicleController.php)",
+      "Bash(git merge *)",
+      "Bash(node -e \"const l = require\\('lucide-react'\\); ['Anchor','Ship','Fuel','Gauge','Heart','Users','Tag','Check','SlidersHorizontal','X'].forEach\\(n => console.log\\(n, typeof l[n]\\)\\)\")",
+      "Bash(git -C .claude/worktrees/agent-ace4b9403e55bba09 status --short)",
+      "Bash(git -C .claude/worktrees/agent-ace4b9403e55bba09 diff main_copy_dev --stat)",
+      "Bash(echo \"build exit: $?\")"
     ]
   }
 }

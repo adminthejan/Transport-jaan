@@ -96,6 +96,24 @@ const Hero = () => {
     const [trainData, setTrainData] = useState(null);
     const [isLoadingTrain, setIsLoadingTrain] = useState(false);
 
+    // Keep the URL's tab/subTab query params in sync with the active tab so
+    // that navigating away (e.g. into a bus/train preview page) and then
+    // hitting browser "back" restores this exact tab instead of always
+    // falling back to 'rental' (getInitialTab()'s default when tab= is absent).
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        params.set('tab', activeTab);
+        if (activeTab === 'rental') {
+            params.set('subTab', rentalSubTab);
+        } else if (activeTab === 'ticket') {
+            params.set('subTab', ticketSubTab);
+        } else {
+            params.delete('subTab');
+        }
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState(null, '', newUrl);
+    }, [activeTab, rentalSubTab, ticketSubTab]);
+
     const handleVehicleRentalClick = async (e) => {
         e.preventDefault();
         setActiveTab('rental');
@@ -697,7 +715,7 @@ const Hero = () => {
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
                                 </div>
                             ) : vehicleListData ? (
-                                <div className="flex">
+                                <div className="flex gap-6">
                                     <FilterSidebar searchParams={rentalFormData} />
                                     <div className="flex-1">
                                         <SearchForm
@@ -730,7 +748,7 @@ const Hero = () => {
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
                                 </div>
                             ) : seaVehicleData ? (
-                                <div className="flex">
+                                <div className="flex gap-6">
                                     <SeaFilterSidebar searchParams={seaFormData} />
                                     <div className="flex-1">
                                         <SeaSearchForm formData={seaFormData} onFormChange={setSeaFormData} />
@@ -753,7 +771,7 @@ const Hero = () => {
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
                                 </div>
                             ) : airVehicleData ? (
-                                <div className="flex">
+                                <div className="flex gap-6">
                                     <AirFilterSidebar searchParams={airFormData} />
                                     <div className="flex-1">
                                         <AirSearchForm formData={airFormData} onFormChange={setAirFormData} />

@@ -222,6 +222,10 @@ class ClientVehicleController extends Controller
                         'transmission_type' => $v->landSpec?->transmission_type ?? null,
                         'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
+                    // Distinguishing type-specific spec for the listing card
+                    // chip — body_type (land), aircraft_type (air), or
+                    // vessel_type (sea), whichever relation is loaded.
+                    'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
 
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
@@ -304,6 +308,10 @@ class ClientVehicleController extends Controller
                         'transmission_type' => $v->landSpec?->transmission_type ?? null,
                         'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
+                    // Distinguishing type-specific spec for the listing card
+                    // chip — body_type (land), aircraft_type (air), or
+                    // vessel_type (sea), whichever relation is loaded.
+                    'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
                 ];
@@ -353,6 +361,10 @@ class ClientVehicleController extends Controller
                         'transmission_type' => $v->landSpec?->transmission_type ?? null,
                         'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
+                    // Distinguishing type-specific spec for the listing card
+                    // chip — body_type (land), aircraft_type (air), or
+                    // vessel_type (sea), whichever relation is loaded.
+                    'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
                 ];
@@ -402,6 +414,10 @@ class ClientVehicleController extends Controller
                         'transmission_type' => $v->landSpec?->transmission_type ?? null,
                         'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
+                    // Distinguishing type-specific spec for the listing card
+                    // chip — body_type (land), aircraft_type (air), or
+                    // vessel_type (sea), whichever relation is loaded.
+                    'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
                 ];
@@ -554,6 +570,10 @@ class ClientVehicleController extends Controller
                         'transmission_type' => $v->landSpec?->transmission_type ?? null,
                         'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
+                    // Distinguishing type-specific spec for the listing card
+                    // chip — body_type (land), aircraft_type (air), or
+                    // vessel_type (sea), whichever relation is loaded.
+                    'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
 
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
@@ -736,6 +756,10 @@ class ClientVehicleController extends Controller
                         'transmission_type' => $v->landSpec?->transmission_type ?? null,
                         'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
+                    // Distinguishing type-specific spec for the listing card
+                    // chip — body_type (land), aircraft_type (air), or
+                    // vessel_type (sea), whichever relation is loaded.
+                    'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
 
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,

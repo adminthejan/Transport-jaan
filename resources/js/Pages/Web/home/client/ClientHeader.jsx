@@ -243,14 +243,14 @@ const ClientHeader = () => {
 
     return (
         <header className="relative z-50 w-full h-auto py-[5px]">
-            <div className="poppins font-[500] px-3 sm:px-4 md:px-6 lg:px-10 py-2 sm:py-4 flex items-center justify-between relative">
+            <div className="poppins font-[500] px-3 sm:px-4 md:px-6 lg:px-10 min-h-[60px] sm:min-h-[80px] md:min-h-[110px] flex items-center justify-between relative">
                 {/* Logo */}
                 <div
                     onClick={() => router.visit("/")}
-                    className="absolute left-1/2 transform -translate-x-1/2 text-center cursor-pointer transition-colors"
+                    className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center cursor-pointer transition-colors"
                     style={{ minWidth: "120px" }}
                 >
-                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="text-[16px] sm:text-[20px] md:text-[25px] lg:text-[30px] font-[700] text-black" />
+                    <CompanyLogo className="h-[44px] sm:h-[60px] md:h-[80px] lg:h-[100px] object-contain" fallbackClassName="text-[16px] sm:text-[20px] md:text-[25px] lg:text-[30px] font-[700] text-black" />
                 </div>
 
                 {/* Desktop icons */}

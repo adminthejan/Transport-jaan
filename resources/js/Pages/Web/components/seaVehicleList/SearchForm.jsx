@@ -3,7 +3,7 @@ import { router } from "@inertiajs/react";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png"
 import locationBlue from "../../assets/vehicleList/locationBlue.png"
 
-const SearchForm = ({ formData, onFormChange }) => {
+const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle = false }) => {
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     onFormChange({
@@ -13,6 +13,13 @@ const SearchForm = ({ formData, onFormChange }) => {
   };
 
   const handleSearch = async () => {
+    // If a custom onSearch handler is provided (e.g. inline filtering), call it
+    if (onSearch) {
+      onSearch(formData);
+      return;
+    }
+
+    // Otherwise navigate to seaVehicleList page with form data as query parameters
     const params = new URLSearchParams();
     if (formData.pickupLocation) params.set('pickupLocation', formData.pickupLocation);
     if (formData.pickupDate) params.set('pickupDate', formData.pickupDate);
@@ -21,37 +28,37 @@ const SearchForm = ({ formData, onFormChange }) => {
 
     const queryString = params.toString();
 
-    try {
-      const response = await fetch(queryString ? `/seaVehicleList/json?${queryString}` : '/seaVehicleList/json');
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (redirectToFirstVehicle) {
+      try {
+        const response = await fetch(queryString ? `/seaVehicleList/json?${queryString}` : '/seaVehicleList/json');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const data = await response.json();
-      const vehicles = Array.isArray(data?.vehicles)
-        ? data.vehicles
-        : (Array.isArray(data?.vehicles?.data) ? data.vehicles.data : []);
-      const firstVehicle = vehicles[0];
+        const data = await response.json();
+        const vehicles = Array.isArray(data?.vehicles)
+          ? data.vehicles
+          : (Array.isArray(data?.vehicles?.data) ? data.vehicles.data : []);
+        const firstVehicle = vehicles[0];
 
-      if (firstVehicle?.id) {
-        router.visit(`/seaVehicleDetails/${firstVehicle.id}${queryString ? `?${queryString}` : ''}`, {
-          method: 'get',
-          preserveScroll: true,
-        });
-        return;
+        if (firstVehicle?.id) {
+          router.visit(`/seaVehicleDetails/${firstVehicle.id}${queryString ? `?${queryString}` : ''}`, {
+            method: 'get',
+            preserveScroll: true,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to find a sea vehicle:', error);
       }
-    } catch (error) {
-      console.error('Failed to find a sea vehicle:', error);
     }
 
-    router.visit(queryString ? `/seaVehicleList?${queryString}` : '/seaVehicleList', {
-      method: 'get',
-      preserveScroll: true,
-    });
+    const url = queryString ? `/seaVehicleList?${queryString}` : '/seaVehicleList';
+    router.visit(url, { method: 'get', preserveScroll: true });
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-10">
+    <div className="px-4 sm:px-6 lg:px-10 2xl:px-16 py-4 sm:py-6 md:py-10">
       {/* Search Form */}
-      <div className="figtree bg-white p-4 sm:p-6 rounded-[15px] shadow-2xl shadow-[#00000040] w-full max-w-[1110px] min-h-[132px] text-[#286BB6] text-[13px] font-[400]">
+      <div className="figtree bg-white p-4 sm:p-6 rounded-[15px] shadow-2xl shadow-[#00000040] w-full min-h-[132px] text-[#286BB6] text-[13px] font-[400]">
         {/* Combined Inputs and Button */}
         <div className="flex flex-col sm:flex-row items-end gap-4">
           {/* Input Fields Container */}
@@ -62,8 +69,7 @@ const SearchForm = ({ formData, onFormChange }) => {
                 Pick-up Location
               </label>
               <div className="relative flex items-center">
-                {/* Location Icon Placeholder */}
-                <img src={locationBlue} className="absolute inset-y-5 left-0 flex items-center pl-3 pointer-events-none" alt="location" />
+                <img src={locationBlue} className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none" alt="location" />
                 <input
                   type="text"
                   id="pickupLocation"
@@ -89,11 +95,10 @@ const SearchForm = ({ formData, onFormChange }) => {
                   onChange={handleInputChange}
                   className="shadow-sm w-full border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline pr-12 [&::-webkit-calendar-picker-indicator]:hidden"
                 />
-                {/* Calendar Icon Placeholder */}
-                <img 
-                  src={calendarBlue} 
-                  className="absolute inset-y-5 right-0 flex items-center pr-3 cursor-pointer" 
-                  alt="calendar" 
+                <img
+                  src={calendarBlue}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] cursor-pointer"
+                  alt="calendar"
                   onClick={() => document.getElementById('pickupDate').showPicker()}
                 />
               </div>
@@ -105,8 +110,7 @@ const SearchForm = ({ formData, onFormChange }) => {
                 Drop-off Location
               </label>
               <div className="relative flex items-center">
-                {/* Location Icon Placeholder */}
-                <img src={locationBlue} className="absolute inset-y-5 left-0 flex items-center pl-3 pointer-events-none" alt="location" />
+                <img src={locationBlue} className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none" alt="location" />
                 <input
                   type="text"
                   id="dropoffLocation"
@@ -132,10 +136,10 @@ const SearchForm = ({ formData, onFormChange }) => {
                   onChange={handleInputChange}
                   className="shadow-sm border-[#0000001A] rounded-[8px] p-[16px] w-full leading-tight focus:outline-none focus:shadow-outline pr-12 [&::-webkit-calendar-picker-indicator]:hidden"
                 />
-                <img 
-                  src={calendarBlue} 
-                  className="absolute inset-y-5 right-0 flex items-center pr-3 cursor-pointer" 
-                  alt="calendar" 
+                <img
+                  src={calendarBlue}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] cursor-pointer"
+                  alt="calendar"
                   onClick={() => document.getElementById('dropoffDate').showPicker()}
                 />
               </div>
@@ -143,7 +147,10 @@ const SearchForm = ({ formData, onFormChange }) => {
           </div>
 
           {/* Find a Vehicle Button */}
-          <button onClick={handleSearch} className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0">
+          <button
+            onClick={handleSearch}
+            className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0 hover:bg-[#074494] transition-colors"
+          >
             →
           </button>
         </div>

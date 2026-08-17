@@ -33,6 +33,12 @@ class DatabaseSeeder extends Seeder
 
             // Vehicle related data
             VehicleMediaSeeder::class ,
+
+            // Extra demo Land/Air/Sea vehicles — VehicleSeeder above only
+            // ships 3 per type, not enough to see the list pages' grid,
+            // pagination, sort, or filters actually doing anything.
+            DummyVehicleSeeder::class ,
+
             VehicleDocumentSeeder::class ,
             VehicleCrewSeeder::class ,
             VehicleFeaturePricingSeeder::class ,

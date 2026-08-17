@@ -1,5 +1,89 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
+import { Check, Fuel, Gauge, Plane, SlidersHorizontal, Tag, Users, X } from "lucide-react";
+
+const BODY_TYPES = [
+  { id: "lightaircraft", label: "Light Aircraft" },
+  { id: "turboprop", label: "Turboprop" },
+  { id: "businessjet", label: "Business Jet" },
+  { id: "commercialjet", label: "Commercial Jet" },
+  { id: "helicopter", label: "Helicopter" },
+  { id: "ultralight", label: "Ultralight" },
+  { id: "glider", label: "Glider" },
+  { id: "seaplane", label: "Seaplane" },
+];
+
+const BRANDS = [
+  { id: "airbus", label: "Airbus" },
+  { id: "boeing", label: "Boeing" },
+  { id: "cessna", label: "Cessna" },
+  { id: "bell", label: "Bell" },
+  { id: "gulfstream", label: "Gulfstream" },
+  { id: "embraer", label: "Embraer" },
+  { id: "dassault", label: "Dassault Falcon" },
+  { id: "bombardier", label: "Bombardier" },
+  { id: "atr", label: "ATR" },
+  { id: "pilatus", label: "Pilatus" },
+];
+
+const CAPACITIES = [
+  { id: "2person", label: "2 Person" },
+  { id: "4person", label: "4 Person" },
+  { id: "6person", label: "6 Person" },
+  { id: "8ormore", label: "8 or More" },
+];
+
+const PRICES = [
+  { id: "0-50", label: "US$ 0 - US$ 50" },
+  { id: "50-100", label: "US$ 50 - US$ 100" },
+  { id: "100-150", label: "US$ 100 - US$ 150" },
+  { id: "150-200", label: "US$ 150 - US$ 200" },
+  { id: "200plus", label: "US$ 200+" },
+];
+
+const MILEAGES = [
+  { id: "limited", label: "Limited" },
+  { id: "unlimited", label: "Unlimited" },
+];
+
+const FUELS = [
+  { id: "jet_a1", label: "Jet A-1" },
+  { id: "avgas", label: "Avgas" },
+  { id: "electric", label: "Electric" },
+  { id: "other", label: "Other" },
+];
+
+const FilterOption = ({ label, active, onClick }) => (
+  <button
+    type="button"
+    role="checkbox"
+    aria-checked={active}
+    onClick={onClick}
+    className={`flex items-center justify-between w-full px-3 py-2 rounded-[8px] text-[12px] font-[500] mb-1.5 border transition-colors cursor-pointer ${
+      active
+        ? "bg-[#0955AC] border-[#0955AC] text-white"
+        : "bg-white border-[#0000001A] text-[#4B5563] hover:border-[#0955AC] hover:text-[#0955AC]"
+    }`}
+  >
+    <span>{label}</span>
+    {active && <Check className="w-3.5 h-3.5 shrink-0" />}
+  </button>
+);
+
+const FilterSection = ({ icon, title, count, children }) => (
+  <div className="filter-section mb-7 pb-6 border-b border-[#00000014] last:border-b-0 last:mb-0 last:pb-0">
+    <div className="flex items-center gap-2 mb-3">
+      {icon}
+      <h3 className="bebas-neue text-[18px] text-[#0F0F0F] tracking-wide">{title}</h3>
+      {count > 0 && (
+        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0955AC1A] text-[#0955AC] text-[10px] font-[700]">
+          {count}
+        </span>
+      )}
+    </div>
+    {children}
+  </div>
+);
 
 const FilterSidebar = ({ searchParams }) => {
   const [selectedBodyType, setSelectedBodyType] = useState("");
@@ -10,298 +94,212 @@ const FilterSidebar = ({ searchParams }) => {
   const [selectedMileage, setSelectedMileage] = useState("");
   const [selectedFuel, setSelectedFuel] = useState("");
 
-  /* ---------- Sync with URL ---------- */
   useEffect(() => {
-    if (searchParams?.bodyType) setSelectedBodyType(searchParams.bodyType.toLowerCase());
-    if (searchParams?.brand) setSelectedBrand(searchParams.brand.toLowerCase());
+    if (searchParams?.bodyType) {
+      setSelectedBodyType(searchParams.bodyType.toLowerCase());
+    }
+    if (searchParams?.brand) {
+      setSelectedBrand(searchParams.brand.toLowerCase());
+    }
   }, [searchParams]);
 
-  /* ---------- Handlers ---------- */
+  const runSearch = (nextParams) => {
+    router.get('/airVehicleList', nextParams, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
+  };
+
   const handleBodyTypeChange = (bodyType) => {
     const newVal = selectedBodyType === bodyType ? "" : bodyType;
     setSelectedBodyType(newVal);
-    router.get(
-      "/airVehicleList",
-      { ...searchParams, bodyType: newVal },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
+    runSearch({ ...searchParams, bodyType: newVal });
   };
 
   const handleBrandChange = (brand) => {
     const newVal = selectedBrand === brand ? "" : brand;
     setSelectedBrand(newVal);
-    router.get(
-      "/airVehicleList",
-      { ...searchParams, brand: newVal },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
+    runSearch({ ...searchParams, brand: newVal });
   };
 
   const handleCapacityChange = (capacity) => {
     const newVal = selectedCapacity === capacity ? "" : capacity;
     setSelectedCapacity(newVal);
-    router.get(
-      "/airVehicleList",
-      { ...searchParams, capacity: newVal },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
+    runSearch({ ...searchParams, capacity: newVal });
   };
 
   const handlePriceChange = (priceRange) => {
     const newVal = selectedPrice === priceRange ? "" : priceRange;
     setSelectedPrice(newVal);
-    router.get(
-      "/airVehicleList",
-      { ...searchParams, price: newVal },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
+    runSearch({ ...searchParams, price: newVal });
   };
 
-  const handleMileagesChange = (mileage) => {
+  const handleMileageChange = (mileage) => {
     const newVal = selectedMileage === mileage ? "" : mileage;
     setSelectedMileage(newVal);
-    router.get(
-      "/airVehicleList",
-      { ...searchParams, mileage: newVal },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
+    runSearch({ ...searchParams, mileage: newVal });
   };
 
   const handleFuelChange = (fuel) => {
     const newVal = selectedFuel === fuel ? "" : fuel;
     setSelectedFuel(newVal);
-    router.get(
-      "/airVehicleList",
-      { ...searchParams, fuel: newVal },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
+    runSearch({ ...searchParams, fuel: newVal });
   };
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
-  /* ---------- Air-Vehicle Types ---------- */
-  const bodyTypes = [
-    { id: "lightaircraft", label: "Light Aircraft", count: 23 },
-    { id: "turboprop", label: "Turboprop", count: 23 },
-    { id: "businessjet", label: "Business Jet", count: 23 },
-    { id: "commercialjet", label: "Commercial Jet", count: 23 },
-    { id: "helicopter", label: "Helicopter", count: 23 },
-    { id: "ultralight", label: "Ultralight", count: 23 },
-    { id: "glider", label: "Glider", count: 23 },
-    { id: "seaplane", label: "Seaplane", count: 23 },
-  ];
+  const activeCount =
+    (selectedBodyType ? 1 : 0) +
+    (selectedBrand ? 1 : 0) +
+    (selectedCapacity ? 1 : 0) +
+    (selectedPrice ? 1 : 0) +
+    (selectedMileage ? 1 : 0) +
+    (selectedFuel ? 1 : 0);
 
-  /* ---------- Brands (kept as-is – they are aircraft manufacturers) ---------- */
-  const brands = [
-    { id: "airbus", label: "Airbus", count: 15 },
-    { id: "boeing", label: "Boeing", count: 12 },
-    { id: "cessna", label: "Cessna", count: 18 },
-    { id: "bell", label: "Bell", count: 10 },
-    { id: "gulfstream", label: "Gulfstream", count: 14 },
-    { id: "embraer", label: "Embraer", count: 9 },
-    { id: "dassault", label: "Dassault Falcon", count: 11 },
-    { id: "bombardier", label: "Bombardier", count: 11 },
-    { id: "atr", label: "ATR", count: 11 },
-    { id: "pilatus", label: "Pilatus", count: 11 },
-  ];
+  const clearAll = () => {
+    setSelectedBodyType("");
+    setSelectedBrand("");
+    setSelectedCapacity("");
+    setSelectedPrice("");
+    setSelectedMileage("");
+    setSelectedFuel("");
+    runSearch({
+      ...searchParams,
+      bodyType: "",
+      brand: "",
+      capacity: "",
+      price: "",
+      mileage: "",
+      fuel: "",
+    });
+  };
 
   return (
     <>
       {/* Mobile Filter Button */}
       <button
         onClick={toggleSidebar}
-        className="md:hidden fixed bottom-4 right-4 z-40 bg-[#0955AC] text-white px-4 py-2 rounded-full shadow-lg"
+        className="xl:hidden fixed bottom-4 right-4 z-40 bg-[#0955AC] text-white pl-4 pr-5 py-3 rounded-full shadow-lg flex items-center gap-2 text-[13px] font-[600]"
       >
+        <SlidersHorizontal className="w-4 h-4" />
         {isOpen ? "Close Filters" : "Show Filters"}
+        {!isOpen && activeCount > 0 && (
+          <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#0955AC] text-[10px] font-[700]">
+            {activeCount}
+          </span>
+        )}
       </button>
 
-      {/* Backdrop */}
+      {/* Backdrop for mobile */}
       {isOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="xl:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={toggleSidebar}
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`
-          poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-[#F4F3F3] rounded-[10px] p-5
-          fixed md:static top-0 left-0 h-full md:h-[998px] w-[283px] md:w-[283px]
-          transform transition-transform duration-300 ease-in-out z-40
-          ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-          ml-0 md:ml-10 mt-0 md:mt-10
-        `}
+        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[15px] shadow-lg shadow-[#00000014] border border-[#0000000D] p-5
+          fixed xl:sticky xl:top-6
+          top-0 left-0
+          h-full xl:h-auto
+          overflow-y-auto
+          w-[283px] xl:w-[260px] xl:shrink-0
+          transform transition-transform duration-300 ease-in-out
+          z-40
+          ${isOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}
       >
-        {/* Mobile close */}
+        {/* Close button for mobile */}
         <button
           onClick={toggleSidebar}
-          className="md:hidden absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+          className="xl:hidden absolute top-4 right-4 text-gray-600 hover:text-gray-800"
         >
-          ×
+          <X className="w-5 h-5" />
         </button>
 
-        {/* ---------- VEHICLE TYPE ---------- */}
-        <div className="filter-section mb-15 mt-5">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5">
-            VEHICLE TYPE
-          </h3>
-          {bodyTypes.map((type) => (
-            <div key={type.id} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={type.id}
-                  name="vehicleType"
-                  value={type.id}
-                  className="mr-1.5"
-                  checked={selectedBodyType === type.id}
-                  onChange={() => handleBodyTypeChange(type.id)}
-                />
-                <label htmlFor={type.id}>{type.label}</label>
-              </div>
-              <span>({type.count})</span>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#00000014]">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-[#0955AC]" />
+            <h2 className="bebas-neue text-[22px] text-[#0F0F0F] tracking-wide">FILTERS</h2>
+          </div>
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="text-[11px] font-[600] text-[#0955AC] hover:underline cursor-pointer"
+            >
+              Clear All
+            </button>
+          )}
         </div>
 
-        {/* ---------- BRANDS ---------- */}
-        <div className="filter-section mb-15 mt-5">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5">
-            BRANDS
-          </h3>
-          {brands.map((brand) => (
-            <div key={brand.id} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={brand.id}
-                  name="brand"
-                  value={brand.id}
-                  className="mr-1.5"
-                  checked={selectedBrand === brand.id}
-                  onChange={() => handleBrandChange(brand.id)}
-                />
-                <label htmlFor={brand.id}>{brand.label}</label>
-              </div>
-              <span>({brand.count})</span>
-            </div>
+        <FilterSection icon={<Plane className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType ? 1 : 0}>
+          {BODY_TYPES.map((type) => (
+            <FilterOption
+              key={type.id}
+              label={type.label}
+              active={selectedBodyType === type.id}
+              onClick={() => handleBodyTypeChange(type.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
 
-        {/* ---------- CAPACITY ---------- */}
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            CAPACITY
-          </h3>
-          {["2person", "4person", "6person", "8ormore"].map((cap) => (
-            <div key={cap} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={cap}
-                  name="capacity"
-                  value={cap}
-                  className="mr-1.5"
-                  checked={selectedCapacity === cap}
-                  onChange={() => handleCapacityChange(cap)}
-                />
-                <label htmlFor={cap}>
-                  {cap === "2person"
-                    ? "2 Person"
-                    : cap === "4person"
-                    ? "4 Person"
-                    : cap === "6person"
-                    ? "6 Person"
-                    : "8 or More"}
-                </label>
-              </div>
-              <span>(23)</span>
-            </div>
+        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand ? 1 : 0}>
+          {BRANDS.map((brand) => (
+            <FilterOption
+              key={brand.id}
+              label={brand.label}
+              active={selectedBrand === brand.id}
+              onClick={() => handleBrandChange(brand.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
 
-        {/* ---------- PRICE PER DAY ---------- */}
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            PRICE PER DAY
-          </h3>
-          {[
-            { id: "price0_50", value: "0-50", label: "US$ 0 - US$ 50" },
-            { id: "price50_100", value: "50-100", label: "US$ 50 - US$ 100" },
-            { id: "price100_150", value: "100-150", label: "US$ 100 - US$ 150" },
-            { id: "price150_200", value: "150-200", label: "US$ 150 - US$ 200" },
-            { id: "price200plus", value: "200plus", label: "US$ 200+" },
-          ].map((p) => (
-            <div key={p.id} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={p.id}
-                  name="price"
-                  value={p.value}
-                  className="mr-1.5"
-                  checked={selectedPrice === p.value}
-                  onChange={() => handlePriceChange(p.value)}
-                />
-                <label htmlFor={p.id}>{p.label}</label>
-              </div>
-              <span>(23)</span>
-            </div>
+        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={selectedCapacity ? 1 : 0}>
+          {CAPACITIES.map((cap) => (
+            <FilterOption
+              key={cap.id}
+              label={cap.label}
+              active={selectedCapacity === cap.id}
+              onClick={() => handleCapacityChange(cap.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
 
-        {/* ---------- MILEAGE / KILOMETERS ---------- */}
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            MILEAGE / KILOMETERS
-          </h3>
-          {["limited", "unlimited"].map((m) => (
-            <div key={m} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={m}
-                  name="mileage"
-                  value={m}
-                  className="mr-1.5"
-                  checked={selectedMileage === m}
-                  onChange={() => handleMileagesChange(m)}
-                />
-                <label htmlFor={m}>{m === "limited" ? "Limited" : "Unlimited"}</label>
-              </div>
-              <span>(23)</span>
-            </div>
+        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="PRICE PER DAY" count={selectedPrice ? 1 : 0}>
+          {PRICES.map((p) => (
+            <FilterOption
+              key={p.id}
+              label={p.label}
+              active={selectedPrice === p.id}
+              onClick={() => handlePriceChange(p.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
 
-        {/* ---------- FUEL TYPE ---------- */}
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            FUEL TYPE
-          </h3>
-          {[
-            { id: "jet_a1", label: "Jet A-1" },
-            { id: "avgas", label: "Avgas" },
-            { id: "electric", label: "Electric" },
-            { id: "other", label: "Other" },
-          ].map((f) => (
-            <div key={f.id} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`fuel_${f.id}`}
-                  name="fuel"
-                  value={f.id}
-                  className="mr-1.5"
-                  checked={selectedFuel === f.id}
-                  onChange={() => handleFuelChange(f.id)}
-                />
-                <label htmlFor={`fuel_${f.id}`}>{f.label}</label>
-              </div>
-            </div>
+        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage ? 1 : 0}>
+          {MILEAGES.map((m) => (
+            <FilterOption
+              key={m.id}
+              label={m.label}
+              active={selectedMileage === m.id}
+              onClick={() => handleMileageChange(m.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
+
+        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel ? 1 : 0}>
+          {FUELS.map((f) => (
+            <FilterOption
+              key={f.id}
+              label={f.label}
+              active={selectedFuel === f.id}
+              onClick={() => handleFuelChange(f.id)}
+            />
+          ))}
+        </FilterSection>
       </div>
     </>
   );

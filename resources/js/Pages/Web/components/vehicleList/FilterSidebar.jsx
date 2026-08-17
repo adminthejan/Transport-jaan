@@ -1,5 +1,98 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
+import { Car, Check, Cog, Fuel, Gauge, SlidersHorizontal, Tag, Users, X } from "lucide-react";
+
+const BODY_TYPES = [
+  { id: "suv", label: "SUV" },
+  { id: "crossover", label: "Crossover" },
+  { id: "wagon", label: "Wagon" },
+  { id: "family", label: "Family MBP" },
+  { id: "sportcoupe", label: "Sport Coupe" },
+  { id: "compact", label: "Compact" },
+  { id: "coupe", label: "Coupe" },
+  { id: "truck", label: "Truck" },
+  { id: "other", label: "Other" },
+];
+
+const BRANDS = [
+  { id: "toyota", label: "Toyota" },
+  { id: "ford", label: "Ford" },
+  { id: "honda", label: "Honda" },
+  { id: "bmw", label: "BMW" },
+  { id: "mercedes", label: "Mercedes-Benz" },
+  { id: "audi", label: "Audi" },
+  { id: "other", label: "Other" },
+];
+
+const CAPACITIES = [
+  { id: "2person", label: "2 Person" },
+  { id: "4person", label: "4 Person" },
+  { id: "6person", label: "6 Person" },
+  { id: "8ormore", label: "8 or More" },
+];
+
+const PRICES = [
+  { id: "0-50", label: "US$ 0 - US$ 50" },
+  { id: "50-100", label: "US$ 50 - US$ 100" },
+  { id: "100-150", label: "US$ 100 - US$ 150" },
+  { id: "150-200", label: "US$ 150 - US$ 200" },
+  { id: "200plus", label: "US$ 200+" },
+];
+
+const MILEAGES = [
+  { id: "limited", label: "Limited" },
+  { id: "unlimited", label: "Unlimited" },
+];
+
+const TRANSMISSIONS = [
+  { id: "automatic", label: "Automatic" },
+  { id: "manual", label: "Manual" },
+  { id: "amt", label: "AMT" },
+  { id: "cvt", label: "CVT" },
+  { id: "dct", label: "DCT" },
+];
+
+const FUELS = [
+  { id: "petrol", label: "Petrol" },
+  { id: "diesel", label: "Diesel" },
+  { id: "hybrid", label: "Hybrid" },
+  { id: "electric", label: "Electric" },
+  { id: "cng", label: "CNG" },
+  { id: "lpg", label: "LPG" },
+  { id: "other", label: "Other" },
+];
+
+const FilterOption = ({ label, active, onClick }) => (
+  <button
+    type="button"
+    role="checkbox"
+    aria-checked={active}
+    onClick={onClick}
+    className={`flex items-center justify-between w-full px-3 py-2 rounded-[8px] text-[12px] font-[500] mb-1.5 border transition-colors cursor-pointer ${
+      active
+        ? "bg-[#0955AC] border-[#0955AC] text-white"
+        : "bg-white border-[#0000001A] text-[#4B5563] hover:border-[#0955AC] hover:text-[#0955AC]"
+    }`}
+  >
+    <span>{label}</span>
+    {active && <Check className="w-3.5 h-3.5 shrink-0" />}
+  </button>
+);
+
+const FilterSection = ({ icon, title, count, children }) => (
+  <div className="filter-section mb-7 pb-6 border-b border-[#00000014] last:border-b-0 last:mb-0 last:pb-0">
+    <div className="flex items-center gap-2 mb-3">
+      {icon}
+      <h3 className="bebas-neue text-[18px] text-[#0F0F0F] tracking-wide">{title}</h3>
+      {count > 0 && (
+        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0955AC1A] text-[#0955AC] text-[10px] font-[700]">
+          {count}
+        </span>
+      )}
+    </div>
+    {children}
+  </div>
+);
 
 const FilterSidebar = ({ searchParams }) => {
   const [selectedBodyType, setSelectedBodyType] = useState("");
@@ -20,454 +113,223 @@ const FilterSidebar = ({ searchParams }) => {
     }
   }, [searchParams]);
 
-  const handleBodyTypeChange = (bodyType) => {
-    debugger
-    const newBodyType = selectedBodyType === bodyType ? "" : bodyType;
-    setSelectedBodyType(newBodyType);
-    
-    router.get('/vehicleList', {
-      ...searchParams,
-      bodyType: newBodyType
-    }, {
+  const runSearch = (nextParams) => {
+    router.get('/vehicleList', nextParams, {
       preserveState: true,
       preserveScroll: true,
-      replace: true
+      replace: true,
     });
+  };
+
+  const handleBodyTypeChange = (bodyType) => {
+    const newVal = selectedBodyType === bodyType ? "" : bodyType;
+    setSelectedBodyType(newVal);
+    runSearch({ ...searchParams, bodyType: newVal });
   };
 
   const handleBrandChange = (brand) => {
-    const newBrand = selectedBrand === brand ? "" : brand;
-    setSelectedBrand(newBrand);
-    
-    router.get('/vehicleList', {
+    const newVal = selectedBrand === brand ? "" : brand;
+    setSelectedBrand(newVal);
+    runSearch({ ...searchParams, brand: newVal });
+  };
+
+  const handleCapacityChange = (capacity) => {
+    const newVal = selectedCapacity === capacity ? "" : capacity;
+    setSelectedCapacity(newVal);
+    runSearch({ ...searchParams, capacity: newVal });
+  };
+
+  const handlePriceChange = (priceRange) => {
+    const newVal = selectedPrice === priceRange ? "" : priceRange;
+    setSelectedPrice(newVal);
+    runSearch({ ...searchParams, price: newVal });
+  };
+
+  const handleMileageChange = (mileage) => {
+    const newVal = selectedMileage === mileage ? "" : mileage;
+    setSelectedMileage(newVal);
+    runSearch({ ...searchParams, mileage: newVal });
+  };
+
+  const handleTransmissionChange = (transmission) => {
+    const newVal = selectedTransmission === transmission ? "" : transmission;
+    setSelectedTransmission(newVal);
+    runSearch({ ...searchParams, transmission: newVal });
+  };
+
+  const handleFuelChange = (fuel) => {
+    const newVal = selectedFuel === fuel ? "" : fuel;
+    setSelectedFuel(newVal);
+    runSearch({ ...searchParams, fuel: newVal });
+  };
+
+  const toggleSidebar = () => setIsOpen(!isOpen);
+
+  const activeCount =
+    (selectedBodyType ? 1 : 0) +
+    (selectedBrand ? 1 : 0) +
+    (selectedCapacity ? 1 : 0) +
+    (selectedPrice ? 1 : 0) +
+    (selectedMileage ? 1 : 0) +
+    (selectedTransmission ? 1 : 0) +
+    (selectedFuel ? 1 : 0);
+
+  const clearAll = () => {
+    setSelectedBodyType("");
+    setSelectedBrand("");
+    setSelectedCapacity("");
+    setSelectedPrice("");
+    setSelectedMileage("");
+    setSelectedTransmission("");
+    setSelectedFuel("");
+    runSearch({
       ...searchParams,
-      brand: newBrand
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true
+      bodyType: "",
+      brand: "",
+      capacity: "",
+      price: "",
+      mileage: "",
+      transmission: "",
+      fuel: "",
     });
   };
-
-const handleCapacityChange = (capacity) => {
-  const newCapacities = selectedCapacity === capacity ? "" : capacity;
-  setSelectedCapacity(newCapacities);
-  // Send to backend
-  router.get('/vehicleList', {
-    ...searchParams,
-    capacity: newCapacities,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    replace: true,
-  });
-};
-
-const handlePriceChange = (priceRange) => {
-  const newPrice = selectedPrice === priceRange ? "" : priceRange;
-  setSelectedPrice(newPrice);
-  // Send to backend
-  router.get('/vehicleList', {
-    ...searchParams,
-    price: newPrice,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    replace: true,
-  });
-}
-
-const handleMileagesChange = (mileageChange) => {
-  const newMileages = selectedMileage === mileageChange ? "" : mileageChange;
-  setSelectedMileage(newMileages);
-  // Send to backend
-  router.get('/vehicleList', {
-    ...searchParams,
-    mileage: newMileages,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    replace: true,
-  });
-}
-
-const handleTransmissionChange = (transmission) => {
-  const newVal = selectedTransmission === transmission ? "" : transmission;
-  setSelectedTransmission(newVal);
-  router.get('/vehicleList', {
-    ...searchParams,
-    transmission: newVal,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    replace: true,
-  });
-}
-
-const handleFuelChange = (fuel) => {
-  const newVal = selectedFuel === fuel ? "" : fuel;
-  setSelectedFuel(newVal);
-  router.get('/vehicleList', {
-    ...searchParams,
-    fuel: newVal,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    replace: true,
-  });
-}
-
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const bodyTypes = [
-    { id: "suv", label: "SUV", count: 23 },
-    { id: "crossover", label: "Crossover", count: 23 },
-    { id: "wagon", label: "Wagon", count: 23 },
-    { id: "family", label: "Family MBP", count: 23 },
-    { id: "sportcoupe", label: "Sport Coupe", count: 23 },
-    { id: "compact", label: "Compact", count: 23 },
-    { id: "coupe", label: "Coupe", count: 23 },
-    { id: "truck", label: "Truck", count: 23 },
-    { id: "other", label: "Other", count: 23}
-  ];
-
-  const brands = [
-    { id: "toyota", label: "Toyota", count: 15 },
-    { id: "ford", label: "Ford", count: 12 },
-    { id: "honda", label: "Honda", count: 18 },
-    { id: "bmw", label: "BMW", count: 10 },
-    { id: "mercedes", label: "Mercedes-Benz", count: 14 },
-    { id: "audi", label: "Audi", count: 9 },
-    { id: "other", label: "Other", count: 11 },
-  ];
 
   return (
     <>
       {/* Mobile Filter Button */}
       <button
         onClick={toggleSidebar}
-        className="md:hidden fixed bottom-4 right-4 z-40 bg-[#0955AC] text-white px-4 py-2 rounded-full shadow-lg"
+        className="xl:hidden fixed bottom-4 right-4 z-40 bg-[#0955AC] text-white pl-4 pr-5 py-3 rounded-full shadow-lg flex items-center gap-2 text-[13px] font-[600]"
       >
+        <SlidersHorizontal className="w-4 h-4" />
         {isOpen ? "Close Filters" : "Show Filters"}
+        {!isOpen && activeCount > 0 && (
+          <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#0955AC] text-[10px] font-[700]">
+            {activeCount}
+          </span>
+        )}
       </button>
 
       {/* Backdrop for mobile */}
       {isOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="xl:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={toggleSidebar}
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-[#F4F3F3] rounded-[10px] p-5
-          fixed md:static
+        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[15px] shadow-lg shadow-[#00000014] border border-[#0000000D] p-5
+          fixed xl:sticky xl:top-6
           top-0 left-0
-          h-full md:h-[998px]
-          w-[283px] md:w-[283px]
+          h-full xl:h-auto
+          overflow-y-auto
+          w-[283px] xl:w-[260px] xl:shrink-0
           transform transition-transform duration-300 ease-in-out
           z-40
-          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-          ml-0 md:ml-10 mt-0 md:mt-10`}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}
       >
         {/* Close button for mobile */}
         <button
           onClick={toggleSidebar}
-          className="md:hidden absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+          className="xl:hidden absolute top-4 right-4 text-gray-600 hover:text-gray-800"
         >
-          ×
+          <X className="w-5 h-5" />
         </button>
 
-        <div className="filter-section mb-15 mt-5">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5">
-            VEHICLE TYPE
-          </h3>
-          {bodyTypes.map((type) => (
-            <div key={type.id} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={type.id}
-                  name="vehicleType"
-                  value={type.id}
-                  className="mr-1.5"
-                  checked={selectedBodyType === type.id}
-                  onChange={() => handleBodyTypeChange(type.id)}
-                />
-                <label htmlFor={type.id}>{type.label}</label>
-              </div>
-              <span>({type.count})</span>
-            </div>
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#00000014]">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-[#0955AC]" />
+            <h2 className="bebas-neue text-[22px] text-[#0F0F0F] tracking-wide">FILTERS</h2>
+          </div>
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="text-[11px] font-[600] text-[#0955AC] hover:underline cursor-pointer"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
+
+        <FilterSection icon={<Car className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType ? 1 : 0}>
+          {BODY_TYPES.map((type) => (
+            <FilterOption
+              key={type.id}
+              label={type.label}
+              active={selectedBodyType === type.id}
+              onClick={() => handleBodyTypeChange(type.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
 
-        <div className="filter-section mb-15 mt-5">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5">
-            BRANDS
-          </h3>
-          {brands.map((brand) => (
-            <div key={brand.id} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={brand.id}
-                  name="brand"
-                  value={brand.id}
-                  className="mr-1.5"
-                  checked={selectedBrand === brand.id}
-                  onChange={() => handleBrandChange(brand.id)}
-                />
-                <label htmlFor={brand.id}>{brand.label}</label>
-              </div>
-              <span>({brand.count})</span>
-            </div>
+        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand ? 1 : 0}>
+          {BRANDS.map((brand) => (
+            <FilterOption
+              key={brand.id}
+              label={brand.label}
+              active={selectedBrand === brand.id}
+              onClick={() => handleBrandChange(brand.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
 
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            CAPACITY
-          </h3>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-             <input
-                type="checkbox"
-                id="2person"
-                name="capacity"
-                value="2person"
-                className="mr-1.5"
-                checked={selectedCapacity.includes("2person")}
-                onChange={() => handleCapacityChange("2person")}
-              />
-
-              <label htmlFor="2person">2 Person</label>
-            </div>
-            <span>(23)</span>
-          </div>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="4person"
-                name="capacity"
-                value="4person"
-                className="mr-1.5"
-                checked={selectedCapacity.includes("4person")}
-                onChange={() => handleCapacityChange("4person")}
-              />
-              <label htmlFor="4person">4 Person</label>
-            </div>
-            <span>(23)</span>
-          </div>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="6person"
-                name="capacity"
-                value="6person"
-                className="mr-1.5"
-                checked={selectedCapacity.includes("6person")}
-                onChange={() => handleCapacityChange("6person")}
-              />
-              <label htmlFor="6person">6 Person</label>
-            </div>
-            <span>(23)</span>
-          </div>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="8ormore"
-                name="capacity"
-                value="8ormore"
-                className="mr-1.5"
-                checked={selectedCapacity.includes("8ormore")}
-                onChange={() => handleCapacityChange("8ormore")}
-              />
-              <label htmlFor="8ormore">8 or More</label>
-            </div>
-            <span>(23)</span>
-          </div>
-        </div>
-
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            PRICE PER DAY
-          </h3>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="price0_50"
-                name="price"
-                value="0-50"
-                className="mr-1.5"
-                checked={selectedPrice === "0-50"}
-                onChange={() => handlePriceChange("0-50")}
-              />
-              <label htmlFor="price0_50">US$ 0 - US$ 50</label>
-            </div>
-            <span>(23)</span>
-          </div>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="price50_100"
-                name="price"
-                value="50-100"
-                className="mr-1.5"
-                checked={selectedPrice === "50-100"}
-                onChange={() => handlePriceChange("50-100")}
-              />
-              <label htmlFor="price50_100">US$ 50 - US$ 100</label>
-            </div>
-            <span>(23)</span>
-          </div>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="price100_150"
-                name="price"
-                value="100-150"
-                className="mr-1.5"
-                checked={selectedPrice === "100-150"}
-                onChange={() => handlePriceChange("100-150")}
-              />
-              <label htmlFor="price100_150">US$ 100 - US$ 150</label>
-            </div>
-            <span>(23)</span>
-          </div>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="price150_200"
-                name="price"
-                value="150-200"
-                className="mr-1.5"
-                checked={selectedPrice === "150-200"}
-                onChange={() => handlePriceChange("150-200")}
-              />
-              <label htmlFor="price150_200">US$ 150 - US$ 200</label>
-            </div>
-            <span>(23)</span>
-          </div>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="price200plus"
-                name="price"
-                value="200plus"
-                className="mr-1.5"
-                checked={selectedPrice === "200plus"}
-                onChange={() => handlePriceChange("200plus")}
-              />
-              <label htmlFor="price200plus">US$ 200+</label>
-            </div>
-            <span>(23)</span>
-          </div>
-        </div>
-
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            MILAGE / KILOMETERS
-          </h3>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="limited"
-                name="mileage"
-                value="limited"
-                className="mr-1.5"
-                checked={selectedMileage === "limited"}
-                onChange={() => handleMileagesChange("limited")}
-              />
-              <label htmlFor="limited">Limited</label>
-            </div>
-            <span>(23)</span>
-          </div>
-          <div className="mb-1.5 flex justify-between items-center">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="unlimited"
-                name="mileage"
-                value="unlimited"
-                className="mr-1.5"
-                checked={selectedMileage === "unlimited"}
-                onChange={() => handleMileagesChange("unlimited")}
-              />
-              <label htmlFor="unlimited">Unlimited</label>
-            </div>
-            <span>(23)</span>
-          </div>
-        </div>
-
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            TRANSMISSION
-          </h3>
-          {[
-            { id: "automatic", label: "Automatic" },
-            { id: "manual", label: "Manual" },
-            { id: "amt", label: "AMT" },
-            { id: "cvt", label: "CVT" },
-            { id: "dct", label: "DCT" },
-          ].map((t) => (
-            <div key={t.id} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`transmission_${t.id}`}
-                  name="transmission"
-                  value={t.id}
-                  className="mr-1.5"
-                  checked={selectedTransmission === t.id}
-                  onChange={() => handleTransmissionChange(t.id)}
-                />
-                <label htmlFor={`transmission_${t.id}`}>{t.label}</label>
-              </div>
-            </div>
+        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={selectedCapacity ? 1 : 0}>
+          {CAPACITIES.map((cap) => (
+            <FilterOption
+              key={cap.id}
+              label={cap.label}
+              active={selectedCapacity === cap.id}
+              onClick={() => handleCapacityChange(cap.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
 
-        <div className="filter-section mb-15">
-          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
-            FUEL TYPE
-          </h3>
-          {[
-            { id: "petrol", label: "Petrol" },
-            { id: "diesel", label: "Diesel" },
-            { id: "hybrid", label: "Hybrid" },
-            { id: "electric", label: "Electric" },
-            { id: "cng", label: "CNG" },
-            { id: "lpg", label: "LPG" },
-            { id: "other", label: "Other" },
-          ].map((f) => (
-            <div key={f.id} className="mb-1.5 flex justify-between items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`fuel_${f.id}`}
-                  name="fuel"
-                  value={f.id}
-                  className="mr-1.5"
-                  checked={selectedFuel === f.id}
-                  onChange={() => handleFuelChange(f.id)}
-                />
-                <label htmlFor={`fuel_${f.id}`}>{f.label}</label>
-              </div>
-            </div>
+        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="PRICE PER DAY" count={selectedPrice ? 1 : 0}>
+          {PRICES.map((p) => (
+            <FilterOption
+              key={p.id}
+              label={p.label}
+              active={selectedPrice === p.id}
+              onClick={() => handlePriceChange(p.id)}
+            />
           ))}
-        </div>
+        </FilterSection>
+
+        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage ? 1 : 0}>
+          {MILEAGES.map((m) => (
+            <FilterOption
+              key={m.id}
+              label={m.label}
+              active={selectedMileage === m.id}
+              onClick={() => handleMileageChange(m.id)}
+            />
+          ))}
+        </FilterSection>
+
+        <FilterSection icon={<Cog className="w-4 h-4 text-[#0955AC]" />} title="TRANSMISSION" count={selectedTransmission ? 1 : 0}>
+          {TRANSMISSIONS.map((t) => (
+            <FilterOption
+              key={t.id}
+              label={t.label}
+              active={selectedTransmission === t.id}
+              onClick={() => handleTransmissionChange(t.id)}
+            />
+          ))}
+        </FilterSection>
+
+        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel ? 1 : 0}>
+          {FUELS.map((f) => (
+            <FilterOption
+              key={f.id}
+              label={f.label}
+              active={selectedFuel === f.id}
+              onClick={() => handleFuelChange(f.id)}
+            />
+          ))}
+        </FilterSection>
       </div>
     </>
   );

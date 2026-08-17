@@ -154,12 +154,11 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
       {/* Sidebar */}
       <div
         className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[15px] shadow-lg shadow-[#00000014] border border-[#0000000D] p-5
-          fixed xl:static
+          fixed xl:sticky xl:top-6
           top-0 left-0
           h-full xl:h-auto
           overflow-y-auto
-          w-[283px] xl:w-full
-          xl:sticky xl:top-6
+          w-[283px] xl:w-[260px] xl:shrink-0
           transform transition-transform duration-300 ease-in-out
           z-40
           ${isOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}
