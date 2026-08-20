@@ -20,6 +20,11 @@ class TrainScheduleSeeder extends Seeder
         $stations = TrainStation::all()->keyBy('code');
         $trains = Train::all();
 
+        if ($stations->isEmpty() || $trains->isEmpty()) {
+            $this->command->error('Please run TrainStationSeeder and TrainSeeder first');
+            return;
+        }
+
         $schedules = [];
         $baseDate = Carbon::now()->addDays(1); // Start from tomorrow
 
