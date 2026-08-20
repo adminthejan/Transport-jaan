@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "@inertiajs/react";
 import axios from "axios";
+import { Bus as BusIcon, Car as CarIcon, Plane as PlaneIcon, Route as RouteIcon, Ship as ShipIcon, Ticket as TicketIcon, TrainFront as TrainIcon } from "lucide-react";
 import car from "../../../assets/multiModel/planJourney/car-icon.svg";
 import bus from "../../../assets/multiModel/planJourney/bus-icon.svg";
 import ship from "../../../assets/multiModel/planJourney/ship-icon.svg";
@@ -632,79 +633,89 @@ const Hero = () => {
         URL.revokeObjectURL(url);
     };
     return (
-        <>
+        <div className="bg-[#F6F7F9] min-h-screen">
 
-            <div className="relative flex items-center pt-6 sm:pt-8 px-5 md:px-10">
+            <div className="relative flex items-center pt-6 sm:pt-8 px-5 md:px-10 max-w-[1800px] mx-auto">
                 {/* Back Button - left corner */}
                 <div className="absolute left-5 md:left-[70px]">
                     <BackButton to="/" />
                 </div>
 
                 {/* Top Navigation Buttons - centered */}
-                <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full">
-                    <button
-                        onClick={handleVehicleRentalClick}
-                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'rental'
-                            ? 'bg-[#0955AC] text-white'
-                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                            }`}
-                    >
-                        Vehicle Rental
-                    </button>
-                    <button
-                        onClick={handleTicketBookingClick}
-                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'ticket'
-                            ? 'bg-[#0955AC] text-white'
-                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                            }`}
-                    >
-                        Ticket Booking
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('multimodal')}
-                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'multimodal'
-                            ? 'bg-[#0955AC] text-white shadow-md'
-                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                            }`}
-                    >
-                        Multimodal
-                    </button>
+                <div className="flex justify-center w-full">
+                    <div className="inline-flex flex-wrap justify-center items-center gap-1 p-1.5 rounded-full bg-[#F1F5F9] shadow-inner">
+                        <button
+                            onClick={handleVehicleRentalClick}
+                            className={`flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-2.5 rounded-full font-[600] text-[11px] sm:text-[14px] poppins transition-all ${activeTab === 'rental'
+                                ? 'bg-[#0955AC] text-white shadow-md'
+                                : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                }`}
+                        >
+                            <CarIcon className="w-4 h-4 shrink-0" />
+                            Vehicle Rental
+                        </button>
+                        <button
+                            onClick={handleTicketBookingClick}
+                            className={`flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-2.5 rounded-full font-[600] text-[11px] sm:text-[14px] poppins transition-all ${activeTab === 'ticket'
+                                ? 'bg-[#0955AC] text-white shadow-md'
+                                : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                }`}
+                        >
+                            <TicketIcon className="w-4 h-4 shrink-0" />
+                            Ticket Booking
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('multimodal')}
+                            className={`flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-2.5 rounded-full font-[600] text-[11px] sm:text-[14px] poppins transition-all ${activeTab === 'multimodal'
+                                ? 'bg-[#0955AC] text-white shadow-md'
+                                : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                }`}
+                        >
+                            <RouteIcon className="w-4 h-4 shrink-0" />
+                            Multimodal
+                        </button>
+                    </div>
                 </div>
 
             </div>
 
             {/* Vehicle Rental Inline View */}
             {activeTab === 'rental' && (
-                <div className="px-5 md:px-10 py-6">
+                <div className="px-5 md:px-10 py-6 max-w-[1800px] mx-auto">
                     {/* Sub-tab buttons: Land, Sea, Air */}
-                    <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                        <button
-                            onClick={() => handleRentalSubTabClick('land')}
-                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${rentalSubTab === 'land'
-                                ? 'bg-[#0955AC] text-white'
-                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                                }`}
-                        >
-                            Land
-                        </button>
-                        <button
-                            onClick={() => handleRentalSubTabClick('sea')}
-                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${rentalSubTab === 'sea'
-                                ? 'bg-[#0955AC] text-white'
-                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                                }`}
-                        >
-                            Sea
-                        </button>
-                        <button
-                            onClick={() => handleRentalSubTabClick('air')}
-                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${rentalSubTab === 'air'
-                                ? 'bg-[#0955AC] text-white'
-                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                                }`}
-                        >
-                            Air
-                        </button>
+                    <div className="flex justify-center mb-4 sm:mb-6">
+                        <div className="inline-flex flex-wrap justify-center items-center gap-1 p-1 rounded-full bg-[#F1F5F9] shadow-inner">
+                            <button
+                                onClick={() => handleRentalSubTabClick('land')}
+                                className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full font-[600] text-[11px] sm:text-[13px] poppins transition-all ${rentalSubTab === 'land'
+                                    ? 'bg-[#0955AC] text-white shadow-sm'
+                                    : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                    }`}
+                            >
+                                <CarIcon className="w-3.5 h-3.5 shrink-0" />
+                                Land
+                            </button>
+                            <button
+                                onClick={() => handleRentalSubTabClick('sea')}
+                                className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full font-[600] text-[11px] sm:text-[13px] poppins transition-all ${rentalSubTab === 'sea'
+                                    ? 'bg-[#0955AC] text-white shadow-sm'
+                                    : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                    }`}
+                            >
+                                <ShipIcon className="w-3.5 h-3.5 shrink-0" />
+                                Sea
+                            </button>
+                            <button
+                                onClick={() => handleRentalSubTabClick('air')}
+                                className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full font-[600] text-[11px] sm:text-[13px] poppins transition-all ${rentalSubTab === 'air'
+                                    ? 'bg-[#0955AC] text-white shadow-sm'
+                                    : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                    }`}
+                            >
+                                <PlaneIcon className="w-3.5 h-3.5 shrink-0" />
+                                Air
+                            </button>
+                        </div>
                     </div>
 
                     {/* Land Sub-tab Content */}
@@ -717,12 +728,14 @@ const Hero = () => {
                             ) : vehicleListData ? (
                                 <div className="flex gap-6">
                                     <FilterSidebar searchParams={rentalFormData} />
-                                    <div className="flex-1">
-                                        <SearchForm
-                                            formData={rentalFormData}
-                                            onFormChange={setRentalFormData}
-                                            redirectToFirstVehicle={true}
-                                        />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="max-w-[1200px] mb-6">
+                                            <SearchForm
+                                                formData={rentalFormData}
+                                                onFormChange={setRentalFormData}
+                                                redirectToFirstVehicle={true}
+                                            />
+                                        </div>
                                         <VehicleListContent
                                             vehicles={vehicleListData.vehicles}
                                             authUser={vehicleListData.auth?.user}
@@ -750,8 +763,10 @@ const Hero = () => {
                             ) : seaVehicleData ? (
                                 <div className="flex gap-6">
                                     <SeaFilterSidebar searchParams={seaFormData} />
-                                    <div className="flex-1">
-                                        <SeaSearchForm formData={seaFormData} onFormChange={setSeaFormData} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="max-w-[1200px] mb-6">
+                                            <SeaSearchForm formData={seaFormData} onFormChange={setSeaFormData} />
+                                        </div>
                                         <SeaVehicleListContent
                                             vehicles={seaVehicleData.vehicles}
                                             authUser={seaVehicleData.auth?.user}
@@ -773,8 +788,10 @@ const Hero = () => {
                             ) : airVehicleData ? (
                                 <div className="flex gap-6">
                                     <AirFilterSidebar searchParams={airFormData} />
-                                    <div className="flex-1">
-                                        <AirSearchForm formData={airFormData} onFormChange={setAirFormData} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="max-w-[1200px] mb-6">
+                                            <AirSearchForm formData={airFormData} onFormChange={setAirFormData} />
+                                        </div>
                                         <AirVehicleListContent
                                             vehicles={airVehicleData.vehicles}
                                             authUser={airVehicleData.auth?.user}
@@ -790,36 +807,41 @@ const Hero = () => {
 
             {/* Ticket Booking Inline View */}
             {activeTab === 'ticket' && (
-                <div className="px-5 md:px-10 py-6">
+                <div className="px-5 md:px-10 py-6 max-w-[1800px] mx-auto">
                     {/* Sub-tab buttons: Bus, Train, Flight */}
-                    <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                        <button
-                            onClick={() => handleTicketSubTabClick('bus')}
-                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${ticketSubTab === 'bus'
-                                ? 'bg-[#0955AC] text-white'
-                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                                }`}
-                        >
-                            Bus
-                        </button>
-                        <button
-                            onClick={() => handleTicketSubTabClick('train')}
-                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${ticketSubTab === 'train'
-                                ? 'bg-[#0955AC] text-white'
-                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                                }`}
-                        >
-                            Train
-                        </button>
-                        <button
-                            onClick={() => handleTicketSubTabClick('flight')}
-                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${ticketSubTab === 'flight'
-                                ? 'bg-[#0955AC] text-white'
-                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                                }`}
-                        >
-                            Flight
-                        </button>
+                    <div className="flex justify-center mb-4 sm:mb-6">
+                        <div className="inline-flex flex-wrap justify-center items-center gap-1 p-1 rounded-full bg-[#F1F5F9] shadow-inner">
+                            <button
+                                onClick={() => handleTicketSubTabClick('bus')}
+                                className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full font-[600] text-[11px] sm:text-[13px] poppins transition-all ${ticketSubTab === 'bus'
+                                    ? 'bg-[#0955AC] text-white shadow-sm'
+                                    : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                    }`}
+                            >
+                                <BusIcon className="w-3.5 h-3.5 shrink-0" />
+                                Bus
+                            </button>
+                            <button
+                                onClick={() => handleTicketSubTabClick('train')}
+                                className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full font-[600] text-[11px] sm:text-[13px] poppins transition-all ${ticketSubTab === 'train'
+                                    ? 'bg-[#0955AC] text-white shadow-sm'
+                                    : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                    }`}
+                            >
+                                <TrainIcon className="w-3.5 h-3.5 shrink-0" />
+                                Train
+                            </button>
+                            <button
+                                onClick={() => handleTicketSubTabClick('flight')}
+                                className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full font-[600] text-[11px] sm:text-[13px] poppins transition-all ${ticketSubTab === 'flight'
+                                    ? 'bg-[#0955AC] text-white shadow-sm'
+                                    : 'text-[#475569] hover:text-[#0955AC] hover:bg-white/70'
+                                    }`}
+                            >
+                                <PlaneIcon className="w-3.5 h-3.5 shrink-0" />
+                                Flight
+                            </button>
+                        </div>
                     </div>
 
                     {/* Bus Sub-tab Content */}
@@ -833,6 +855,9 @@ const Hero = () => {
                                 <HeroDetailsTwo
                                     stations={ticketData.stations}
                                     schedules={ticketData.schedules}
+                                    returnSchedules={ticketData.returnSchedules}
+                                    route={ticketData.route}
+                                    nearbyDates={ticketData.nearbyDates}
                                     searchParams={ticketData.searchParams}
                                 />
                             ) : null}
@@ -1042,7 +1067,7 @@ const Hero = () => {
                     )}
                 </div>
             </div>}
-        </>
+        </div>
     );
 };
 

@@ -281,8 +281,8 @@ const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = 
                 <BusCard />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div className="lg:col-span-2 min-w-0">
+            <div className={`grid grid-cols-1 gap-6 items-start ${route ? 'lg:grid-cols-3' : ''}`}>
+            <div className={route ? 'lg:col-span-2 min-w-0' : 'min-w-0'}>
 
             {/* Nearby dates — browse a few extra days without re-searching.
                 Prices reflect the outbound leg's route. */}

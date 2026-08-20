@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "@inertiajs/react";
-import { Search } from "lucide-react";
+import { MapPin, ArrowLeftRight, CalendarDays, Search } from "lucide-react";
 import { useLocale } from "../../context/LocaleContext";
 import PassengerSelector from "./PassengerSelector";
 
@@ -39,25 +38,28 @@ const trainStations = [
     { code: "BEN", name: "Bentota Railway Station", city: "Bentota", province: "Southern Province" },
 ];
 
-// LocationDropdown component for train stations
-const StationDropdown = ({ label, id, value, onChange, placeholder, error }) => {
+// Autocomplete station field styled to match BusCard's inputs (icon vertically
+// centered with absolute + -translate-y-1/2, 52px field height, same border
+// language) while keeping the search-as-you-type dropdown behavior.
+const StationDropdown = ({ label, id, value, onChange, placeholder, error, iconColor }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState(value);
     const [filteredStations, setFilteredStations] = useState([]);
+
+    const runFilter = (term) => {
+        return trainStations.filter(station =>
+            station.name.toLowerCase().includes(term.toLowerCase()) ||
+            station.city.toLowerCase().includes(term.toLowerCase()) ||
+            station.code.toLowerCase().includes(term.toLowerCase()) ||
+            station.province.toLowerCase().includes(term.toLowerCase())
+        );
+    };
 
     const handleInputChange = (e) => {
         const term = e.target.value;
-        setSearchTerm(term);
         onChange(term);
 
         if (term.length > 0) {
-            const filtered = trainStations.filter(station =>
-                station.name.toLowerCase().includes(term.toLowerCase()) ||
-                station.city.toLowerCase().includes(term.toLowerCase()) ||
-                station.code.toLowerCase().includes(term.toLowerCase()) ||
-                station.province.toLowerCase().includes(term.toLowerCase())
-            );
-            setFilteredStations(filtered);
+            setFilteredStations(runFilter(term));
             setIsOpen(true);
         } else {
             setIsOpen(false);
@@ -65,21 +67,13 @@ const StationDropdown = ({ label, id, value, onChange, placeholder, error }) => 
     };
 
     const handleStationSelect = (station) => {
-        const selectedValue = `${station.name} (${station.code})`;
-        setSearchTerm(selectedValue);
-        onChange(selectedValue);
+        onChange(`${station.name} (${station.code})`);
         setIsOpen(false);
     };
 
     const handleInputFocus = () => {
-        if (searchTerm.length > 0) {
-            const filtered = trainStations.filter(station =>
-                station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                station.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                station.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                station.province.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setFilteredStations(filtered);
+        if (value.length > 0) {
+            setFilteredStations(runFilter(value));
             setIsOpen(true);
         }
     };
@@ -90,51 +84,54 @@ const StationDropdown = ({ label, id, value, onChange, placeholder, error }) => 
     };
 
     return (
-        <div className="relative">
-            <label htmlFor={id} className="block mb-1 text-[#286BB6] text-[13px] font-[400]">
+        <div>
+            <label htmlFor={id} className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
                 {label}
             </label>
-            <input
-                type="text"
-                id={id}
-                value={searchTerm}
-                onChange={handleInputChange}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                placeholder={placeholder}
-                className={`appearance-none w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
-                    error ? 'border-red-500' : 'border-[#0000001A]'
-                }`}
-                autoComplete="off"
-                required
-            />
+            <div className="relative">
+                <MapPin className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none ${iconColor}`} />
+                <input
+                    type="text"
+                    id={id}
+                    value={value}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    placeholder={placeholder}
+                    className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white appearance-none outline-none transition-colors ${
+                        error ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                    }`}
+                    autoComplete="off"
+                />
 
-            {/* Dropdown List */}
-            {isOpen && filteredStations.length > 0 && (
-                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto mt-1">
-                    {filteredStations.slice(0, 10).map((station, index) => (
-                        <div
-                            key={`${station.code}-${index}`}
-                            onClick={() => handleStationSelect(station)}
-                            className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <div className="font-medium text-[#286BB6] text-sm">
-                                        {station.name}
+                {/* Dropdown List */}
+                {isOpen && filteredStations.length > 0 && (
+                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[12px] shadow-lg max-h-60 overflow-y-auto mt-1.5">
+                        {filteredStations.slice(0, 10).map((station, index) => (
+                            <div
+                                key={`${station.code}-${index}`}
+                                onClick={() => handleStationSelect(station)}
+                                className="px-4 py-3 hover:bg-[#0955AC]/5 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            >
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="min-w-0">
+                                        <div className="font-[700] text-[#0F172A] text-[13px] truncate">
+                                            {station.name}
+                                        </div>
+                                        <div className="text-[#94A3B8] text-[12px] truncate">
+                                            {station.city}, {station.province}
+                                        </div>
                                     </div>
-                                    <div className="text-gray-500 text-xs">
-                                        {station.city}, {station.province}
+                                    <div className="text-[#0955AC] font-[700] text-[11px] bg-[#0955AC]/10 px-2 py-1 rounded shrink-0">
+                                        {station.code}
                                     </div>
-                                </div>
-                                <div className="text-[#0955AC] font-bold text-xs bg-blue-100 px-2 py-1 rounded">
-                                    {station.code}
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
+            </div>
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
         </div>
     );
 };
@@ -172,6 +169,10 @@ const TrainCard = () => {
                 [field]: ''
             }));
         }
+    };
+
+    const swapStations = () => {
+        setFormData(prev => ({ ...prev, fromStation: prev.toStation, toStation: prev.fromStation }));
     };
 
     const validateForm = () => {
@@ -232,131 +233,116 @@ const TrainCard = () => {
                 <span className="text-yellow-400 font-bold text-[18px] tracking-wide">{t("find_your_trains", "Find Your Trains")}</span>
             </div>
 
-            <form onSubmit={onSubmitTrain} className="figtree flex flex-col justify-center items-center bg-white p-6 sm:p-10 w-full h-auto text-[#286BB6] text-[13px] font-[400] space-y-6">
+            <form onSubmit={onSubmitTrain} className="p-6 sm:p-8">
                 {/* Trip Type segmented control */}
-                <div className="inline-flex bg-[#F1F5F9] rounded-full p-1 w-full sm:w-auto">
+                <div className="inline-flex bg-[#F1F5F9] rounded-full p-1 mb-6">
                     {[
                         { value: "oneway", label: t("one_way", "One way") },
                         { value: "roundtrip", label: t("round_trip", "Round Trip") },
-                    ].map((opt) => {
-                        const isActive = tripType === opt.value;
-                        return (
-                            <button
-                                type="button"
-                                key={opt.value}
-                                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-full text-[13px] font-[700] transition-all ${
-                                    isActive ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
-                                }`}
-                                onClick={() => setTripType(opt.value)}
-                            >
-                                {opt.label}
-                            </button>
-                        );
-                    })}
+                    ].map((opt) => (
+                        <button
+                            type="button"
+                            key={opt.value}
+                            onClick={() => setTripType(opt.value)}
+                            className={`px-6 py-2 rounded-full text-[13px] font-[700] transition-all ${
+                                tripType === opt.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
+                            }`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
                 </div>
 
-                {/* From & Date */}
-                <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
+                {/* From / To with swap button */}
+                <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <StationDropdown
+                        label={t("from", "FROM").toUpperCase()}
+                        id="fromStation"
+                        value={formData.fromStation}
+                        onChange={(value) => handleInputChange('fromStation', value)}
+                        placeholder="Search departure station"
+                        error={errors.fromStation}
+                        iconColor="text-[#0955AC]"
+                    />
+                    <StationDropdown
+                        label={t("to", "TO").toUpperCase()}
+                        id="toStation"
+                        value={formData.toStation}
+                        onChange={(value) => handleInputChange('toStation', value)}
+                        placeholder="Search destination station"
+                        error={errors.toStation}
+                        iconColor="text-[#EF3826]"
+                    />
+
+                    {/* Swap button, centered on the seam between the two fields */}
+                    <button
+                        type="button"
+                        onClick={swapStations}
+                        title="Swap stations"
+                        className="hidden md:flex absolute left-1/2 top-[34px] -translate-x-1/2 w-9 h-9 rounded-full bg-white border-2 border-[#0955AC] text-[#0955AC] items-center justify-center shadow-sm hover:bg-[#0955AC] hover:text-white transition-colors z-10"
+                    >
+                        <ArrowLeftRight className="w-4 h-4" />
+                    </button>
+                </div>
+
+                {/* Dates */}
+                <div className={`grid gap-4 mb-6 ${tripType === 'roundtrip' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                     <div>
-                        <StationDropdown
-                            label="From Station *"
-                            id="fromStation"
-                            value={formData.fromStation}
-                            onChange={(value) => handleInputChange('fromStation', value)}
-                            placeholder="Search departure station"
-                            error={errors.fromStation}
-                        />
-                        {errors.fromStation && (
-                            <p className="text-red-500 text-xs mt-1">{errors.fromStation}</p>
-                        )}
-                    </div>
-                    <div>
-                        <label htmlFor="departureDate" className="block mb-1 text-[#286BB6] text-[13px] font-[400]">
-                            Departure Date *
+                        <label htmlFor="departureDate" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
+                            {t("departure_date", "DEPARTURE DATE")}
                         </label>
-                        <input
-                            type="text"
-                            id="departureDate"
-                            value={formData.departureDate}
-                            onChange={(e) => handleInputChange('departureDate', e.target.value)}
-                            placeholder="DD/MM/YYYY"
-                            className={`w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
-                                errors.departureDate ? 'border-red-500' : 'border-[#0000001A]'
-                            }`}
-                            onFocus={(e) => (e.target.type = "date")}
-                            onBlur={(e) => (e.target.type = "text")}
-                            required
-                        />
+                        <div className="relative">
+                            <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="date"
+                                id="departureDate"
+                                value={formData.departureDate}
+                                onChange={(e) => handleInputChange('departureDate', e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                                className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white appearance-none outline-none transition-colors ${
+                                    errors.departureDate ? 'border-red-400 ring-1 ring-red-200' : 'border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15'
+                                }`}
+                            />
+                        </div>
                         {errors.departureDate && (
                             <p className="text-red-500 text-xs mt-1">{errors.departureDate}</p>
                         )}
                     </div>
-                </div>
 
-                {/* To (+ Return Date when Round Trip) */}
-                {tripType === "roundtrip" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
+                    {tripType === 'roundtrip' && (
                         <div>
-                            <StationDropdown
-                                label="To Station *"
-                                id="toStation"
-                                value={formData.toStation}
-                                onChange={(value) => handleInputChange('toStation', value)}
-                                placeholder="Search destination station"
-                                error={errors.toStation}
-                            />
-                            {errors.toStation && (
-                                <p className="text-red-500 text-xs mt-1">{errors.toStation}</p>
-                            )}
-                        </div>
-                        <div>
-                            <label htmlFor="returnDate" className="block mb-1 text-[#286BB6] text-[13px] font-[400]">
-                                Return Date *
+                            <label htmlFor="returnDate" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
+                                {t("return_date", "RETURN DATE")}
                             </label>
-                            <input
-                                type="text"
-                                id="returnDate"
-                                value={formData.returnDate}
-                                onChange={(e) => handleInputChange('returnDate', e.target.value)}
-                                placeholder="DD/MM/YYYY"
-                                className={`w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
-                                    errors.returnDate ? 'border-red-500' : 'border-[#0000001A]'
-                                }`}
-                                onFocus={(e) => (e.target.type = "date")}
-                                onBlur={(e) => (e.target.type = "text")}
-                                required
-                            />
+                            <div className="relative">
+                                <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826] pointer-events-none" />
+                                <input
+                                    type="date"
+                                    id="returnDate"
+                                    value={formData.returnDate}
+                                    onChange={(e) => handleInputChange('returnDate', e.target.value)}
+                                    min={formData.departureDate || new Date().toISOString().split('T')[0]}
+                                    className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white appearance-none outline-none transition-colors ${
+                                        errors.returnDate ? 'border-red-400 ring-1 ring-red-200' : 'border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15'
+                                    }`}
+                                />
+                            </div>
                             {errors.returnDate && (
                                 <p className="text-red-500 text-xs mt-1">{errors.returnDate}</p>
                             )}
                         </div>
-                    </div>
-                ) : (
-                    <div className="w-full">
-                        <StationDropdown
-                            label="To Station *"
-                            id="toStation"
-                            value={formData.toStation}
-                            onChange={(value) => handleInputChange('toStation', value)}
-                            placeholder="Search destination station"
-                            error={errors.toStation}
-                        />
-                        {errors.toStation && (
-                            <p className="text-red-500 text-xs mt-1">{errors.toStation}</p>
-                        )}
-                    </div>
-                )}
+                    )}
+                </div>
 
                 {/* Passengers */}
-                <div className="w-full">
+                <div className="mb-6">
                     <PassengerSelector value={passengers} onChange={setPassengers} />
                 </div>
 
                 {/* Search Button */}
                 <button
-                    type="button"
-                    onClick={handleSearchClick}
-                    className="bg-[#0955AC] text-white font-bold h-[52px] w-full rounded-[12px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#073E82] transition-colors flex justify-center items-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)]"
+                    type="submit"
+                    className="w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] text-[15px] rounded-[12px] transition-colors flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)]"
                 >
                     <Search className="w-[18px] h-[18px]" />
                     {t("search_trains", "Search Trains")}

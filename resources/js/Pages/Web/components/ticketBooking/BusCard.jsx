@@ -109,13 +109,13 @@ const BusCard = () => {
                 </div>
 
                 {/* From / To with swap button */}
-                <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-14 mb-4">
                     <div>
                         <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("from", "FROM").toUpperCase()}</label>
                         <div className="relative">
                             <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC]" />
                             <select value={busFrom} onChange={(e) => setBusFrom(e.target.value)} className={fieldClass(errors.busFrom)}>
-                                <option value="" disabled></option>
+                                <option value="" disabled>Select station</option>
                                 {stationOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>
@@ -126,7 +126,7 @@ const BusCard = () => {
                         <div className="relative">
                             <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826]" />
                             <select value={busTo} onChange={(e) => setBusTo(e.target.value)} className={fieldClass(errors.busTo)}>
-                                <option value="" disabled></option>
+                                <option value="" disabled>Select station</option>
                                 {stationOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>

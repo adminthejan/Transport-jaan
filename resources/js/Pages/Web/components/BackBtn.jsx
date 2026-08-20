@@ -22,9 +22,9 @@ const BackButton = ({ to = null }) => {
   return (
     <button
       onClick={handleBack}
-      className="flex items-center gap-1 text-[#0955AC] hover:text-[#073d82] font-[500] text-[14px] transition-colors"
+      className="flex items-center gap-1 pl-2 pr-4 py-2 rounded-full bg-white border border-[#0000001A] shadow-sm text-[#0955AC] hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] hover:shadow-md font-[600] text-[13px] transition-colors"
     >
-      <ChevronLeft className="w-5 h-5" />
+      <ChevronLeft className="w-4 h-4" />
       Back
     </button>
   );

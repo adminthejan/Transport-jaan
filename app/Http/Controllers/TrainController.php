@@ -52,11 +52,16 @@ class TrainController extends Controller
 
         $outboundSchedules = collect();
         $returnSchedules = collect();
+        $route = null;
+        $nearbyDates = [];
 
         // Check if any search criteria is provided
         $hasSearchCriteria = $fromStation || $toStation || $departureDate;
 
         if ($hasSearchCriteria && $fromStationRecord && $toStationRecord && $departureDate) {
+            $route = $this->routeCoordinates($fromStationRecord, $toStationRecord);
+            $nearbyDates = $this->nearbyDatePrices($fromStationRecord->id, $toStationRecord->id, $departureDate);
+
             // Get filtered outbound schedules based on search criteria
             $outboundSchedules = TrainSchedule::with(['train', 'departureStation', 'arrivalStation'])
                 ->where('departure_station_id', $fromStationRecord->id)
@@ -77,7 +82,7 @@ class TrainController extends Controller
                         'price' => $schedule->price,
                         'available_seats' => $schedule->available_seats,
                         'total_capacity' => $schedule->train->capacity,
-                        'status' => $schedule->available_seats > 0 ? 'View Seats' : 'Sold Out',
+                        'status' => $schedule->available_seats > 0 ? 'Book Now' : 'Sold Out',
                         'soldOut' => $schedule->available_seats == 0,
                         'facilities' => $schedule->train->facilities ?? [],
                         'train_number' => $schedule->train->train_number,
@@ -106,7 +111,7 @@ class TrainController extends Controller
                             'price' => $schedule->price,
                             'available_seats' => $schedule->available_seats,
                             'total_capacity' => $schedule->train->capacity,
-                            'status' => $schedule->available_seats > 0 ? 'View Seats' : 'Sold Out',
+                            'status' => $schedule->available_seats > 0 ? 'Book Now' : 'Sold Out',
                             'soldOut' => $schedule->available_seats == 0,
                             'facilities' => $schedule->train->facilities ?? [],
                             'train_number' => $schedule->train->train_number,
@@ -136,7 +141,7 @@ class TrainController extends Controller
                         'price' => $schedule->price,
                         'available_seats' => $schedule->available_seats,
                         'total_capacity' => $schedule->train->capacity,
-                        'status' => $schedule->available_seats > 0 ? 'View Seats' : 'Sold Out',
+                        'status' => $schedule->available_seats > 0 ? 'Book Now' : 'Sold Out',
                         'soldOut' => $schedule->available_seats == 0,
                         'facilities' => $schedule->train->facilities ?? [],
                         'train_number' => $schedule->train->train_number,
@@ -161,6 +166,8 @@ class TrainController extends Controller
             ],
             'outboundSchedules' => $outboundSchedules,
             'returnSchedules' => $returnSchedules,
+            'route' => $route,
+            'nearbyDates' => $nearbyDates,
             'fromStationName' => $fromStationRecord ? $fromStationRecord->name : $fromStation,
             'toStationName' => $toStationRecord ? $toStationRecord->name : $toStation,
             'hasActiveFilters' => $hasSearchCriteria && ($fromStationRecord && $toStationRecord && $departureDate),
@@ -193,7 +200,7 @@ class TrainController extends Controller
                     'price' => $schedule->price,
                     'available_seats' => $schedule->available_seats,
                     'total_capacity' => $schedule->train->capacity,
-                    'status' => $schedule->available_seats > 0 ? 'View Seats' : 'Sold Out',
+                    'status' => $schedule->available_seats > 0 ? 'Book Now' : 'Sold Out',
                     'soldOut' => $schedule->available_seats == 0,
                     'facilities' => $schedule->train->facilities ?? [],
                     'train_number' => $schedule->train->train_number,
@@ -288,6 +295,37 @@ class TrainController extends Controller
             'totalPrice' => $totalPrice,
             'tripType' => $returnSchedule ? 'roundtrip' : 'oneway',
         ]);
+    }
+
+    /**
+     * Cheapest fare per day around the searched date, so the results page can
+     * offer a "browse nearby dates" strip instead of locking the client into
+     * only the exact date they searched. Mirrors BusBookingController's
+     * nearbyDatePrices().
+     */
+    private function nearbyDatePrices(int $departureStationId, int $arrivalStationId, string $date): array
+    {
+        $centre = Carbon::parse($date);
+        $today = Carbon::today();
+
+        $start = $centre->copy()->subDay()->max($today);
+        $dates = collect(range(0, 6))
+            ->map(fn ($i) => $start->copy()->addDays($i)->toDateString())
+            ->unique()
+            ->values();
+
+        $priceByDate = TrainSchedule::where('departure_station_id', $departureStationId)
+            ->where('arrival_station_id', $arrivalStationId)
+            ->whereIn('date', $dates)
+            ->where('status', 'active')
+            ->select('date', DB::raw('MIN(price) as min_price'))
+            ->groupBy('date')
+            ->pluck('min_price', 'date');
+
+        return $dates->map(fn ($d) => [
+            'date' => $d,
+            'price' => isset($priceByDate[$d]) ? (float) $priceByDate[$d] : null,
+        ])->all();
     }
 
     /**

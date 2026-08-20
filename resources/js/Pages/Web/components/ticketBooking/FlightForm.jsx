@@ -1,5 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useForm } from "@inertiajs/react";
+import {
+    User,
+    Mail,
+    Phone,
+    MessageSquare,
+    PlaneTakeoff,
+    PlaneLanding,
+    CalendarDays,
+    Send,
+} from "lucide-react";
 
 const FlightForm = () => {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -8,7 +18,7 @@ const FlightForm = () => {
         phone: '',
         subject: '',
         special_requests: '',
-        trip_type: '',
+        trip_type: 'oneway',
         departure_date: '',
         return_date: '',
         departure_airport: '',
@@ -50,209 +60,215 @@ const FlightForm = () => {
         setData(name, value);
     };
 
+    const fieldClass = (hasError) =>
+        `w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors ${
+            hasError ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+        }`;
+
+    const textareaClass = (hasError) =>
+        `w-full rounded-[12px] border p-4 text-[14px] font-[500] text-[#0F172A] bg-white outline-none transition-colors resize-none ${
+            hasError ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+        }`;
+
+    const labelClass = "block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5";
+
     return (
-        <div className="px-4 sm:px-6 md:px-20 py-6">
-            <form
-                onSubmit={handleSubmit}
-                className="figtree flex flex-col justify-center items-center bg-white p-4 sm:p-6 rounded-[15px] w-full h-auto text-[#286BB6] text-[13px] font-[400]"
-                style={{ boxShadow: "0px 4px 4px 0px rgba(0, 0, 0, 0.25)" }}
-            >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-4">
-                    <div>
-                        <label className="block mb-1">Your Name *</label>
-                        <input
-                            type="text"
-                            name="name"
-                            value={data.name}
-                            onChange={handleInputChange}
-                            placeholder="Enter your name"
-                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                                errors.name ? 'border-red-500' : 'border-gray-300'
+        <div className="bg-white rounded-[20px] shadow-[0_10px_30px_rgba(9,85,172,0.10)] border border-black/5 overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-6 py-5 text-center">
+                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">
+                    Request a Charter Quote
+                </span>
+                <p className="text-white/80 text-[12px] mt-1">
+                    Tell us your route and travel dates — our team will get back to you with pricing and availability.
+                </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+                {/* Trip type segmented control */}
+                <div className="inline-flex bg-[#F1F5F9] rounded-full p-1 mb-6">
+                    {[
+                        { value: "oneway", label: "One way" },
+                        { value: "return", label: "Return" },
+                    ].map((opt) => (
+                        <button
+                            type="button"
+                            key={opt.value}
+                            onClick={() => setData("trip_type", opt.value)}
+                            className={`px-6 py-2 rounded-full text-[13px] font-[700] transition-all ${
+                                data.trip_type === opt.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
                             }`}
-                            required
-                        />
-                        {errors.name && (
-                            <p className="text-red-500 text-xs mt-1">{errors.name}</p>
-                        )}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+                {errors.trip_type && <p className="text-red-500 text-xs -mt-4 mb-4">{errors.trip_type}</p>}
+
+                {/* Trip details */}
+                <h3 className="text-[13px] font-[700] text-[#0F172A] mb-3">Trip Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className={labelClass}>DEPARTURE AIRPORT</label>
+                        <div className="relative">
+                            <PlaneTakeoff className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="text"
+                                name="departure_airport"
+                                value={data.departure_airport}
+                                onChange={handleInputChange}
+                                placeholder="e.g. Bandaranaike International (CMB)"
+                                className={fieldClass(errors.departure_airport)}
+                            />
+                        </div>
+                        {errors.departure_airport && <p className="text-red-500 text-xs mt-1">{errors.departure_airport}</p>}
                     </div>
                     <div>
-                        <label className="block mb-1">Your Email *</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={data.email}
-                            onChange={handleInputChange}
-                            placeholder="Enter your email"
-                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                                errors.email ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        />
-                        {errors.email && (
-                            <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                        )}
+                        <label className={labelClass}>ARRIVING AIRPORT</label>
+                        <div className="relative">
+                            <PlaneLanding className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826] pointer-events-none" />
+                            <input
+                                type="text"
+                                name="arriving_airport"
+                                value={data.arriving_airport}
+                                onChange={handleInputChange}
+                                placeholder="Destination airport"
+                                className={fieldClass(errors.arriving_airport)}
+                            />
+                        </div>
+                        {errors.arriving_airport && <p className="text-red-500 text-xs mt-1">{errors.arriving_airport}</p>}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-4">
+                <div className={`grid gap-4 mb-6 ${data.trip_type === 'return' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                     <div>
-                        <label className="block mb-1">Phone Number *</label>
-                        <input
-                            type="tel"
-                            name="phone"
-                            value={data.phone}
-                            onChange={handleInputChange}
-                            placeholder="Enter your phone number"
-                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                                errors.phone ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        />
-                        {errors.phone && (
-                            <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
-                        )}
+                        <label className={labelClass}>DEPARTURE DATE</label>
+                        <div className="relative">
+                            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="date"
+                                name="departure_date"
+                                value={data.departure_date}
+                                onChange={handleInputChange}
+                                min={new Date().toISOString().split('T')[0]}
+                                className={fieldClass(errors.departure_date)}
+                            />
+                        </div>
+                        {errors.departure_date && <p className="text-red-500 text-xs mt-1">{errors.departure_date}</p>}
+                    </div>
+
+                    {data.trip_type === 'return' && (
+                        <div>
+                            <label className={labelClass}>RETURN DATE</label>
+                            <div className="relative">
+                                <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826] pointer-events-none" />
+                                <input
+                                    type="date"
+                                    name="return_date"
+                                    value={data.return_date}
+                                    onChange={handleInputChange}
+                                    min={data.departure_date || new Date().toISOString().split('T')[0]}
+                                    className={fieldClass(errors.return_date)}
+                                />
+                            </div>
+                            {errors.return_date && <p className="text-red-500 text-xs mt-1">{errors.return_date}</p>}
+                        </div>
+                    )}
+                </div>
+
+                {/* Contact details */}
+                <h3 className="text-[13px] font-[700] text-[#0F172A] mb-3">Contact Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className={labelClass}>YOUR NAME</label>
+                        <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="text"
+                                name="name"
+                                value={data.name}
+                                onChange={handleInputChange}
+                                placeholder="Enter your name"
+                                className={fieldClass(errors.name)}
+                            />
+                        </div>
+                        {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                     </div>
                     <div>
-                        <label className="block mb-1">Subject *</label>
-                        <input
-                            type="text"
-                            name="subject"
-                            value={data.subject}
-                            onChange={handleInputChange}
-                            placeholder="Enter subject"
-                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                                errors.subject ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        />
-                        {errors.subject && (
-                            <p className="text-red-500 text-xs mt-1">{errors.subject}</p>
-                        )}
+                        <label className={labelClass}>YOUR EMAIL</label>
+                        <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="email"
+                                name="email"
+                                value={data.email}
+                                onChange={handleInputChange}
+                                placeholder="Enter your email"
+                                className={fieldClass(errors.email)}
+                            />
+                        </div>
+                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                     </div>
                 </div>
 
-                <div className="w-full mb-4">
-                    <label className="block mb-1">Special Requests</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className={labelClass}>PHONE NUMBER</label>
+                        <div className="relative">
+                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="tel"
+                                name="phone"
+                                value={data.phone}
+                                onChange={handleInputChange}
+                                placeholder="Enter your phone number"
+                                className={fieldClass(errors.phone)}
+                            />
+                        </div>
+                        {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                    </div>
+                    <div>
+                        <label className={labelClass}>SUBJECT</label>
+                        <div className="relative">
+                            <MessageSquare className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="text"
+                                name="subject"
+                                value={data.subject}
+                                onChange={handleInputChange}
+                                placeholder="e.g. Charter for 6 passengers"
+                                className={fieldClass(errors.subject)}
+                            />
+                        </div>
+                        {errors.subject && <p className="text-red-500 text-xs mt-1">{errors.subject}</p>}
+                    </div>
+                </div>
+
+                <div className="mb-6">
+                    <label className={labelClass}>SPECIAL REQUESTS (OPTIONAL)</label>
                     <textarea
                         name="special_requests"
                         value={data.special_requests}
                         onChange={handleInputChange}
-                        placeholder="Any special requests"
-                        className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                            errors.special_requests ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        placeholder="Passenger count, preferred aircraft type, luggage needs, etc."
                         rows="3"
+                        className={textareaClass(errors.special_requests)}
                     ></textarea>
-                    {errors.special_requests && (
-                        <p className="text-red-500 text-xs mt-1">{errors.special_requests}</p>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-4">
-                    <div>
-                        <label className="block mb-1">One way / Return *</label>
-                        <select
-                            name="trip_type"
-                            value={data.trip_type}
-                            onChange={handleInputChange}
-                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                                errors.trip_type ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        >
-                            <option value="">Select option</option>
-                            <option value="oneway">One way</option>
-                            <option value="return">Return</option>
-                        </select>
-                        {errors.trip_type && (
-                            <p className="text-red-500 text-xs mt-1">{errors.trip_type}</p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="block mb-1">Departure Date *</label>
-                        <input
-                            type="date"
-                            name="departure_date"
-                            value={data.departure_date}
-                            onChange={handleInputChange}
-                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                                errors.departure_date ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        />
-                        {errors.departure_date && (
-                            <p className="text-red-500 text-xs mt-1">{errors.departure_date}</p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-4">
-                    <div>
-                        <label className="block mb-1">
-                            Departure Airport *
-                        </label>
-                        <input
-                            type="text"
-                            name="departure_airport"
-                            value={data.departure_airport}
-                            onChange={handleInputChange}
-                            placeholder="Enter departure airport"
-                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                                errors.departure_airport ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        />
-                        {errors.departure_airport && (
-                            <p className="text-red-500 text-xs mt-1">{errors.departure_airport}</p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="block mb-1">Arriving Airport *</label>
-                        <input
-                            type="text"
-                            name="arriving_airport"
-                            value={data.arriving_airport}
-                            onChange={handleInputChange}
-                            placeholder="Enter arriving airport"
-                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                                errors.arriving_airport ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        />
-                        {errors.arriving_airport && (
-                            <p className="text-red-500 text-xs mt-1">{errors.arriving_airport}</p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="w-full mb-6">
-                    <label className="block mb-1">
-                        Return Date {data.trip_type === 'return' && '*'}
-                    </label>
-                    <input
-                        type="date"
-                        name="return_date"
-                        value={data.return_date}
-                        onChange={handleInputChange}
-                        className={`w-full border rounded-[8px] p-3 sm:p-4 ${
-                            errors.return_date ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        required={data.trip_type === 'return'}
-                    />
-                    {errors.return_date && (
-                        <p className="text-red-500 text-xs mt-1">{errors.return_date}</p>
-                    )}
+                    {errors.special_requests && <p className="text-red-500 text-xs mt-1">{errors.special_requests}</p>}
                 </div>
 
                 <button
                     type="submit"
                     disabled={processing}
-                    className={`bg-[#0955AC] text-white font-bold h-[56px] w-full rounded-[8px] hover:bg-[#07448a] transition-colors ${
+                    className={`w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] text-[15px] rounded-[12px] transition-colors flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)] ${
                         processing ? 'opacity-70 cursor-not-allowed' : ''
                     }`}
                 >
-                    {processing ? 'Processing...' : 'Submit Booking Request'}
+                    <Send className="w-[18px] h-[18px]" />
+                    {processing ? 'Sending Request...' : 'Get a Charter Quote'}
                 </button>
+                <p className="text-center text-[12px] text-[#94A3B8] mt-3">
+                    This is a quote request, not an instant booking — a member of our team will confirm pricing and availability by email or phone.
+                </p>
             </form>
         </div>
     );

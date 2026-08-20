@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { Clock, Users, TrainFront } from "lucide-react";
+import { Clock, Users, TrainFront, ArrowUpDown } from "lucide-react";
 import TrainCard from "./TrainCard";
 import LocaleSelector from "./LocaleSelector";
+import TripRouteMap from "./TripRouteMap";
 import { LocaleProvider, useLocale } from "../../context/LocaleContext";
 
 /** Parses durations like "8h 0m" or "45m" into total minutes for sorting. */
@@ -19,7 +20,7 @@ function parseDurationMinutes(duration) {
 function TripResultCard({ trip, mode, selected, onSelect, href }) {
     const { formatPrice } = useLocale();
     const content = (
-        <div className="grid grid-cols-12 items-center gap-6 sm:gap-8">
+        <div className="grid grid-cols-12 items-start sm:items-center gap-4 sm:gap-8">
             {/* Left meta */}
             <div className="col-span-12 sm:col-span-5">
                 <div className="flex items-center justify-between gap-4 sm:gap-6">
@@ -40,17 +41,19 @@ function TripResultCard({ trip, mode, selected, onSelect, href }) {
                             Train {trip.train_number} · {trip.operator}
                         </p>
                     </div>
-                    <div className="hidden gap-2 sm:flex">
-                        {trip.facilities && trip.facilities.map((facility, index) => (
-                            <span
-                                key={index}
-                                title={facility}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9] text-[12px] font-bold text-[#0955AC]"
-                            >
-                                {facility}
-                            </span>
-                        ))}
-                    </div>
+                    {trip.facilities && trip.facilities.length > 0 && (
+                        <div className="hidden gap-2 sm:flex">
+                            {trip.facilities.map((facility, index) => (
+                                <span
+                                    key={index}
+                                    title={facility}
+                                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9] text-[12px] font-bold text-[#0955AC]"
+                                >
+                                    {facility}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -83,25 +86,23 @@ function TripResultCard({ trip, mode, selected, onSelect, href }) {
                             <Users className="w-3.5 h-3.5" /> {trip.available_seats}/{trip.total_capacity} seats
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        disabled={trip.soldOut}
-                        className={`w-full rounded-full px-5 sm:px-7 py-2.5 sm:py-3 text-[13px] sm:text-[15px] font-[700] text-white sm:w-auto transition-colors ${
+                    <span
+                        className={`inline-block whitespace-nowrap text-center rounded-full px-5 sm:px-7 py-2.5 sm:py-3 text-[13px] sm:text-[15px] font-[700] text-white w-auto transition-colors ${
                             trip.soldOut
-                                ? "bg-red-400 cursor-not-allowed"
+                                ? "bg-red-400"
                                 : selected
-                                ? "bg-green-600 hover:bg-green-700"
-                                : "bg-[#0955AC] hover:bg-[#073E82]"
+                                ? "bg-green-600 group-hover:bg-green-700"
+                                : "bg-[#0955AC] group-hover:bg-[#073E82]"
                         }`}
                     >
-                        {trip.soldOut ? "Sold Out" : mode === "select" ? (selected ? "Selected" : "Select") : trip.status}
-                    </button>
+                        {trip.soldOut ? "Sold Out" : mode === "select" ? (selected ? "Selected" : "Select") : (trip.status || "Book Now")}
+                    </span>
                 </div>
             </div>
         </div>
     );
 
-    const cardClass = `block w-full text-left rounded-[16px] border bg-white p-4 sm:p-7 shadow-[0_2px_10px_rgba(15,23,42,0.05)] transition-all duration-200 hover:shadow-[0_12px_28px_rgba(9,85,172,0.14)] hover:-translate-y-0.5 ${
+    const cardClass = `group block w-full text-left rounded-[16px] border bg-white p-4 sm:p-7 shadow-[0_2px_10px_rgba(15,23,42,0.05)] transition-all duration-200 hover:shadow-[0_12px_28px_rgba(9,85,172,0.14)] hover:-translate-y-0.5 ${
         selected ? "border-green-400 ring-2 ring-green-100" : "border-[#EEF2F6]"
     }`;
 
@@ -114,7 +115,7 @@ function TripResultCard({ trip, mode, selected, onSelect, href }) {
     }
 
     return (
-        <Link href={href} className={cardClass}>
+        <Link href={trip.soldOut ? "#" : href} className={`${cardClass} ${trip.soldOut ? "pointer-events-none" : ""}`}>
             {content}
         </Link>
     );
@@ -123,6 +124,8 @@ function TripResultCard({ trip, mode, selected, onSelect, href }) {
 function HeroDetailsInner({
     outboundSchedules: propOutbound,
     returnSchedules: propReturn,
+    route: propRoute,
+    nearbyDates: propNearbyDates,
     searchParams: propSearchParams,
     fromStationName: propFromStation,
     toStationName: propToStation,
@@ -145,6 +148,8 @@ function HeroDetailsInner({
     const searchParams = propSearchParams ?? pageProps.searchParams ?? {};
     const outboundSchedules = propOutbound ?? pageProps.outboundSchedules ?? [];
     const returnSchedules = propReturn ?? pageProps.returnSchedules ?? [];
+    const route = propRoute ?? pageProps.route ?? null;
+    const nearbyDates = propNearbyDates ?? pageProps.nearbyDates ?? [];
     const fromStationName = propFromStation ?? pageProps.fromStationName ?? '';
     const toStationName = propToStation ?? pageProps.toStationName ?? '';
     const hasActiveFilters = propHasFilters ?? pageProps.hasActiveFilters ?? false;
@@ -155,6 +160,9 @@ function HeroDetailsInner({
     const [sortBy, setSortBy] = useState('fare');
     const [selectedOutboundId, setSelectedOutboundId] = useState(null);
     const [selectedReturnId, setSelectedReturnId] = useState(null);
+    // Round trips use tabs instead of a long stacked page, matching the
+    // pattern used on the bus results page.
+    const [activeLeg, setActiveLeg] = useState('outbound');
 
     // Sort schedules based on selected criteria
     const sortSchedules = (schedules, criteria) => {
@@ -189,6 +197,13 @@ function HeroDetailsInner({
 
     const bothLegsSelected = isRoundTrip && selectedOutboundId && selectedReturnId;
 
+    // Picking an outbound train automatically moves you to the Return tab —
+    // free to switch back manually, this is just a nudge along the flow.
+    const selectOutbound = (id) => {
+        setSelectedOutboundId(id);
+        setActiveLeg('return');
+    };
+
     const continueToBooking = () => {
         if (!selectedOutboundId) return;
         const params = new URLSearchParams({
@@ -203,14 +218,21 @@ function HeroDetailsInner({
         router.visit(`/trainTicketBookingPreview?${params.toString()}`);
     };
 
+    // Re-runs the search for a different date without going back through the
+    // search form — lets people browse nearby dates for a cheaper/earlier trip.
+    const changeDate = (newDate) => {
+        if (newDate === searchParams.departureDate || inline) return;
+        router.get('/trainTicketBookingDetails', { ...searchParams, departureDate: newDate }, { preserveScroll: true });
+    };
+
     return (
-        <section className="mx-auto w-full max-w-6xl px-6 py-8 pb-28">
+        <section className="mx-auto w-full max-w-7xl px-6 py-8 pb-28">
 
             {/* Search Summary */}
             {hasActiveFilters && (
                 <div className="mb-6 p-5 bg-[#0955AC]/5 rounded-[16px] border border-[#0955AC]/10">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
                             <h2 className="text-[15px] font-[800] text-[#0F172A] mb-3">Search Results</h2>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-[13px]">
                                 <div>
@@ -238,19 +260,21 @@ function HeroDetailsInner({
                             </div>
                             {isRoundTrip && (
                                 <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-[12px] font-[700] text-[#0955AC] border border-[#0955AC]/20">
-                                    ⇄ Round trip
+                                    <ArrowUpDown className="w-3.5 h-3.5" /> Round trip
                                 </div>
                             )}
                         </div>
-                        <button
-                            onClick={() => router.get('/trainTicketBookingDetails')}
-                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-[#334155] rounded-full transition-colors border border-[#E2E8F0] font-[700] text-[13px] ml-4"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                            Clear Filters
-                        </button>
+                        {!inline && (
+                            <button
+                                onClick={() => router.get('/trainTicketBookingDetails')}
+                                className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-[#334155] rounded-full transition-colors border border-[#E2E8F0] font-[700] text-[13px] shrink-0"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                                Clear Filters
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
@@ -272,9 +296,85 @@ function HeroDetailsInner({
             )}
 
             {/* Search form for modification */}
-            <div className="mb-14">
-                <TrainCard />
-            </div>
+            {!inline && (
+                <div className="mb-8 sm:mb-14">
+                    <TrainCard />
+                </div>
+            )}
+
+            <div className={`grid grid-cols-1 gap-6 items-start ${route ? 'lg:grid-cols-3' : ''}`}>
+            <div className={`min-w-0 ${route ? 'lg:col-span-2' : ''}`}>
+
+            {/* Nearby dates — browse a few extra days without re-searching. */}
+            {nearbyDates.length > 0 && (!isRoundTrip || activeLeg === 'outbound') && (
+                <div className="mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                    {nearbyDates.map((d) => {
+                        const dateObj = new Date(d.date + 'T00:00:00');
+                        const isSelected = d.date === searchParams.departureDate;
+                        return (
+                            <button
+                                key={d.date}
+                                type="button"
+                                onClick={() => changeDate(d.date)}
+                                disabled={d.price == null}
+                                className={`flex-shrink-0 min-w-[84px] rounded-[12px] border px-3 py-2 text-center transition-colors ${
+                                    isSelected
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white'
+                                        : d.price == null
+                                        ? 'border-[#E2E8F0] text-[#CBD5E1] cursor-not-allowed'
+                                        : 'border-[#E2E8F0] text-[#334155] hover:border-[#0955AC]/50'
+                                }`}
+                            >
+                                <div className={`text-[11px] font-[700] ${isSelected ? 'text-white' : 'text-[#64748B]'}`}>
+                                    {dateObj.toLocaleDateString('en-GB', { weekday: 'short' })}
+                                </div>
+                                <div className="text-[15px] font-[800]">
+                                    {dateObj.getDate()}
+                                </div>
+                                <div className={`text-[10px] font-[700] mt-0.5 ${isSelected ? 'text-white/90' : 'text-[#0955AC]'}`}>
+                                    {d.price != null ? `LKR ${Math.round(d.price).toLocaleString()}` : '—'}
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
+            {isRoundTrip && (
+                <div className="mb-6 flex items-center gap-2 rounded-full bg-[#0955AC]/10 px-4 py-2 text-[13px] font-[700] text-[#0955AC] w-fit">
+                    <ArrowUpDown className="w-4 h-4" /> Round trip — select your departure, then your return train
+                </div>
+            )}
+
+            {/* Outbound / Return tabs (round trip only) */}
+            {isRoundTrip && (
+                <div className="mb-6 flex items-center gap-8 border-b border-[#E2E8F0]">
+                    {[
+                        { key: 'outbound', label: 'Outbound', selectedId: selectedOutboundId, sub: `${fromStationName || searchParams.from} → ${toStationName || searchParams.to}` },
+                        { key: 'return', label: 'Return', selectedId: selectedReturnId, sub: `${toStationName || searchParams.to} → ${fromStationName || searchParams.from}` },
+                    ].map((leg) => (
+                        <button
+                            key={leg.key}
+                            type="button"
+                            onClick={() => setActiveLeg(leg.key)}
+                            className={`relative pb-3 text-[15px] sm:text-[17px] font-[800] transition-colors ${
+                                activeLeg === leg.key ? 'text-[#0955AC]' : 'text-[#94A3B8] hover:text-[#475569]'
+                            }`}
+                        >
+                            <span className="flex items-center gap-2">
+                                {leg.label}
+                                {leg.selectedId && (
+                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-500 text-white text-[10px]">✓</span>
+                                )}
+                            </span>
+                            <span className="block text-[11px] font-[500] text-[#94A3B8] normal-case">{leg.sub}</span>
+                            {activeLeg === leg.key && (
+                                <span className="absolute left-0 right-0 -bottom-[1px] h-[3px] bg-[#0955AC] rounded-full" />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* Toolbar */}
             <div className="sticky top-0 z-10 -mx-6 mb-6 bg-white/90 backdrop-blur px-4 sm:px-6 py-4 rounded-2xl shadow-[0_2px_10px_rgba(15,23,42,0.05)] border border-[#EEF2F6]">
@@ -303,49 +403,43 @@ function HeroDetailsInner({
                     </div>
                     <LocaleSelector />
                     {hasActiveFilters && (
-                        <div className="ml-auto flex items-center gap-2 sm:gap-3 text-[12px] sm:text-[14px] font-[600] text-[#334155]">
-                            <span>{fromStationName} → {toStationName}</span>
-                            <span className="text-[#CBD5E1]">•</span>
-                            <span className="text-[#64748B]">{searchParams.departureDate}</span>
+                        <div className="ml-auto flex items-center gap-2 sm:gap-3 text-[12px] sm:text-[14px] font-[600] text-[#334155] w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0">
+                            <span className="truncate">{fromStationName} → {toStationName}</span>
+                            <span className="hidden sm:inline text-[#CBD5E1]">•</span>
+                            <span className="whitespace-nowrap text-[#64748B]">{searchParams.departureDate}</span>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Outbound results list */}
-            {isRoundTrip && (
-                <h3 className="text-[18px] sm:text-[22px] font-[800] text-[#0F172A] mb-4">
-                    Step 1 · Departure — {fromStationName} → {toStationName}
-                </h3>
+            {/* Results list — round trips show only the active tab's leg */}
+            {(!isRoundTrip || activeLeg === 'outbound') && (
+                <div className="space-y-5">
+                    {sortedOutboundSchedules.length > 0 ? (
+                        sortedOutboundSchedules.map((trip) => (
+                            <TripResultCard
+                                key={trip.id}
+                                trip={trip}
+                                mode={isRoundTrip ? "select" : "link"}
+                                selected={selectedOutboundId === trip.id}
+                                onSelect={isRoundTrip ? selectOutbound : setSelectedOutboundId}
+                                href={`/trainTicketBookingPreview?schedule_id=${trip.id}&${passengerQuery}`}
+                            />
+                        ))
+                    ) : (
+                        <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
+                            <div className="text-[#334155] text-[15px] sm:text-[17px] font-[700]">No trains found for your search criteria.</div>
+                            <p className="text-[#94A3B8] mt-2 text-[13px] sm:text-[14px]">Please try different dates or stations.</p>
+                        </div>
+                    )}
+                </div>
             )}
-            <div className="space-y-5">
-                {sortedOutboundSchedules.length > 0 ? (
-                    sortedOutboundSchedules.map((trip) => (
-                        <TripResultCard
-                            key={trip.id}
-                            trip={trip}
-                            mode={isRoundTrip ? "select" : "link"}
-                            selected={selectedOutboundId === trip.id}
-                            onSelect={setSelectedOutboundId}
-                            href={`/trainTicketBookingPreview?schedule_id=${trip.id}&${passengerQuery}`}
-                        />
-                    ))
-                ) : (
-                    <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
-                        <div className="text-[#334155] text-[15px] sm:text-[17px] font-[700]">No trains found for your search criteria.</div>
-                        <p className="text-[#94A3B8] mt-2 text-[13px] sm:text-[14px]">Please try different dates or stations.</p>
-                    </div>
-                )}
-            </div>
 
             {/* Return journey schedules for round trip */}
-            {isRoundTrip && returnSchedules.length > 0 && (
-                <div className="mt-12">
-                    <h3 className="text-[18px] sm:text-[22px] font-[800] text-[#0F172A] mb-6">
-                        Step 2 · Return — {toStationName} → {fromStationName}
-                    </h3>
-                    <div className="space-y-5">
-                        {sortedReturnSchedules.map((trip) => (
+            {isRoundTrip && activeLeg === 'return' && (
+                <div className="space-y-5">
+                    {sortedReturnSchedules.length > 0 ? (
+                        sortedReturnSchedules.map((trip) => (
                             <TripResultCard
                                 key={trip.id}
                                 trip={trip}
@@ -353,10 +447,25 @@ function HeroDetailsInner({
                                 selected={selectedReturnId === trip.id}
                                 onSelect={setSelectedReturnId}
                             />
-                        ))}
-                    </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
+                            <div className="text-[#334155] text-[15px] sm:text-[17px] font-[700]">No return trains found for this date.</div>
+                        </div>
+                    )}
                 </div>
             )}
+
+            </div>
+
+            {/* Side map: shows the searched route so you can see the distance at a glance */}
+            {route && (
+                <div className="hidden lg:block lg:col-span-1 sticky top-24">
+                    <TripRouteMap route={route} className="h-[420px]" />
+                </div>
+            )}
+
+            </div>
 
             {/* Sticky continue bar for round trips */}
             {isRoundTrip && (selectedOutboundId || selectedReturnId) && (

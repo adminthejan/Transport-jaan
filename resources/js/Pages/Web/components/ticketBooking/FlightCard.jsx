@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Link } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
+import { PlaneTakeoff, PlaneLanding, CalendarDays, ArrowRight } from "lucide-react";
 
 // Sample airport/location data - you can replace this with API data
 const locations = [
@@ -29,10 +30,18 @@ const locations = [
 ];
 
 // LocationDropdown component
-const LocationDropdown = ({ label, id, value, onChange, placeholder, error }) => {
+const LocationDropdown = ({ label, id, icon: Icon, iconColor, value, onChange, placeholder, error }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(value);
     const [filteredLocations, setFilteredLocations] = useState([]);
+
+    const filterLocations = (term) =>
+        locations.filter(location =>
+            location.name.toLowerCase().includes(term.toLowerCase()) ||
+            location.city.toLowerCase().includes(term.toLowerCase()) ||
+            location.code.toLowerCase().includes(term.toLowerCase()) ||
+            location.country.toLowerCase().includes(term.toLowerCase())
+        );
 
     const handleInputChange = (e) => {
         const term = e.target.value;
@@ -40,13 +49,7 @@ const LocationDropdown = ({ label, id, value, onChange, placeholder, error }) =>
         onChange(term);
 
         if (term.length > 0) {
-            const filtered = locations.filter(location =>
-                location.name.toLowerCase().includes(term.toLowerCase()) ||
-                location.city.toLowerCase().includes(term.toLowerCase()) ||
-                location.code.toLowerCase().includes(term.toLowerCase()) ||
-                location.country.toLowerCase().includes(term.toLowerCase())
-            );
-            setFilteredLocations(filtered);
+            setFilteredLocations(filterLocations(term));
             setIsOpen(true);
         } else {
             setIsOpen(false);
@@ -62,13 +65,7 @@ const LocationDropdown = ({ label, id, value, onChange, placeholder, error }) =>
 
     const handleInputFocus = () => {
         if (searchTerm.length > 0) {
-            const filtered = locations.filter(location =>
-                location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                location.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                location.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                location.country.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setFilteredLocations(filtered);
+            setFilteredLocations(filterLocations(searchTerm));
             setIsOpen(true);
         }
     };
@@ -80,27 +77,29 @@ const LocationDropdown = ({ label, id, value, onChange, placeholder, error }) =>
 
     return (
         <div className="relative">
-            <label htmlFor={id} className="block mb-1">
+            <label htmlFor={id} className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
                 {label}
             </label>
-            <input
-                type="text"
-                id={id}
-                value={searchTerm}
-                onChange={handleInputChange}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                placeholder={placeholder}
-                className={`appearance-none w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
-                    error ? 'border-red-500' : 'border-[#0000001A]'
-                }`}
-                autoComplete="off"
-                required
-            />
+            <div className="relative">
+                <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none" style={{ color: iconColor }} />
+                <input
+                    type="text"
+                    id={id}
+                    value={searchTerm}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    placeholder={placeholder}
+                    autoComplete="off"
+                    className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors ${
+                        error ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                    }`}
+                />
+            </div>
 
             {/* Dropdown List */}
             {isOpen && filteredLocations.length > 0 && (
-                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto mt-1">
+                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[12px] shadow-lg max-h-60 overflow-y-auto mt-1.5">
                     {filteredLocations.slice(0, 10).map((location, index) => (
                         <div
                             key={`${location.code}-${index}`}
@@ -109,7 +108,7 @@ const LocationDropdown = ({ label, id, value, onChange, placeholder, error }) =>
                         >
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <div className="font-medium text-[#286BB6] text-sm">
+                                    <div className="font-medium text-[#0F172A] text-sm">
                                         {location.name}
                                     </div>
                                     <div className="text-gray-500 text-xs">
@@ -157,19 +156,15 @@ const FlightCard = () => {
         const newErrors = {};
 
         if (!formData.pickupLocation.trim()) {
-            newErrors.pickupLocation = 'Pick-up location is required';
+            newErrors.pickupLocation = 'Departure airport is required';
         }
 
         if (!formData.pickupDate.trim()) {
-            newErrors.pickupDate = 'Pick-up date is required';
+            newErrors.pickupDate = 'Departure date is required';
         }
 
         if (!formData.dropoffLocation.trim()) {
-            newErrors.dropoffLocation = 'Drop-off location is required';
-        }
-
-        if (!formData.dropoffDate.trim()) {
-            newErrors.dropoffDate = 'Drop-off date is required';
+            newErrors.dropoffLocation = 'Arrival airport is required';
         }
 
         setErrors(newErrors);
@@ -180,7 +175,6 @@ const FlightCard = () => {
         e.preventDefault();
 
         if (!validateForm()) {
-            // Scroll to first error field
             const firstErrorField = Object.keys(errors)[0];
             if (firstErrorField) {
                 document.getElementById(firstErrorField)?.focus();
@@ -188,28 +182,33 @@ const FlightCard = () => {
             return;
         }
 
-        // If validation passes, navigate to flight booking
-        window.location.href = '/flightBooking';
+        // Hand off into the flight quote-request form, pre-filled with what
+        // was entered here (FlightForm.jsx reads these from the query string).
+        router.get('/flightBooking', {
+            trip_type: formData.dropoffDate ? 'return' : 'oneway',
+            departure_airport: formData.pickupLocation,
+            arriving_airport: formData.dropoffLocation,
+            departure_date: formData.pickupDate,
+            ...(formData.dropoffDate ? { return_date: formData.dropoffDate } : {}),
+        });
     };
 
     return (
-        <div className="bg-white/95 rounded-[20px] shadow-xl ring-1 ring-[#0955AC]/15 overflow-hidden">
-            {/* Header (UI only, no field changes) */}
-            <div className="bg-[#0955AC] text-yellow-400 font-bold text-lg py-5 text-center">
-                Find Your Flights
+        <div className="bg-white rounded-[20px] shadow-[0_10px_30px_rgba(9,85,172,0.10)] border border-black/5 overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-6 py-5 text-center">
+                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">Request a Flight Quote</span>
+                <p className="text-white/80 text-[12px] mt-1">Tell us your route — we'll follow up with pricing and availability.</p>
             </div>
 
-            {/* Form body — inputs kept exactly as before */}
-            <form
-                // onSubmit={onSubmit}
-                className="figtree flex flex-col justify-center items-center bg-white p-10 w-full h-auto text-[#286BB6] text-[13px] font-[400] space-y-6"
-            >
-                <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
-                    {/* Pick-up Location */}
+            <form onSubmit={handleStartClick} className="p-6 sm:p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Departure Location */}
                     <div>
                         <LocationDropdown
-                            label="Pick-up Location *"
+                            label="DEPARTURE AIRPORT"
                             id="pickupLocation"
+                            icon={PlaneTakeoff}
+                            iconColor="#0955AC"
                             value={formData.pickupLocation}
                             onChange={(value) => handleInputChange('pickupLocation', value)}
                             placeholder="Search departure airport"
@@ -220,36 +219,38 @@ const FlightCard = () => {
                         )}
                     </div>
 
-                    {/* Pick-up Date */}
+                    {/* Departure Date */}
                     <div>
-                        <label htmlFor="pickupDate" className="block mb-1">
-                            Pick-up Date *
+                        <label htmlFor="pickupDate" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
+                            DEPARTURE DATE
                         </label>
-                        <input
-                            type="text"
-                            id="pickupDate"
-                            value={formData.pickupDate}
-                            onChange={(e) => handleInputChange('pickupDate', e.target.value)}
-                            placeholder="DD/MM/YYYY"
-                            className={`w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
-                                errors.pickupDate ? 'border-red-500' : 'border-[#0000001A]'
-                            }`}
-                            onFocus={(e) => (e.target.type = "date")}
-                            onBlur={(e) => (e.target.type = "text")}
-                            required
-                        />
+                        <div className="relative">
+                            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="date"
+                                id="pickupDate"
+                                value={formData.pickupDate}
+                                onChange={(e) => handleInputChange('pickupDate', e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                                className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors ${
+                                    errors.pickupDate ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                                }`}
+                            />
+                        </div>
                         {errors.pickupDate && (
                             <p className="text-red-500 text-xs mt-1">{errors.pickupDate}</p>
                         )}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
-                    {/* Drop-off Location */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {/* Arrival Location */}
                     <div>
                         <LocationDropdown
-                            label="Drop-off Location *"
+                            label="ARRIVAL AIRPORT"
                             id="dropoffLocation"
+                            icon={PlaneLanding}
+                            iconColor="#EF3826"
                             value={formData.dropoffLocation}
                             onChange={(value) => handleInputChange('dropoffLocation', value)}
                             placeholder="Search destination airport"
@@ -260,37 +261,32 @@ const FlightCard = () => {
                         )}
                     </div>
 
-                    {/* Drop-off Date */}
+                    {/* Return Date (optional) */}
                     <div>
-                        <label htmlFor="dropoffDate" className="block mb-1">
-                            Drop-off Date *
+                        <label htmlFor="dropoffDate" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
+                            RETURN DATE (OPTIONAL)
                         </label>
-                        <input
-                            type="text"
-                            id="dropoffDate"
-                            value={formData.dropoffDate}
-                            onChange={(e) => handleInputChange('dropoffDate', e.target.value)}
-                            placeholder="DD/MM/YYYY"
-                            className={`border-[1px] rounded-[8px] p-[16px] w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
-                                errors.dropoffDate ? 'border-red-500' : 'border-[#0000001A]'
-                            }`}
-                            onFocus={(e) => (e.target.type = "date")}
-                            onBlur={(e) => (e.target.type = "text")}
-                            required
-                        />
-                        {errors.dropoffDate && (
-                            <p className="text-red-500 text-xs mt-1">{errors.dropoffDate}</p>
-                        )}
+                        <div className="relative">
+                            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826] pointer-events-none" />
+                            <input
+                                type="date"
+                                id="dropoffDate"
+                                value={formData.dropoffDate}
+                                onChange={(e) => handleInputChange('dropoffDate', e.target.value)}
+                                min={formData.pickupDate || new Date().toISOString().split('T')[0]}
+                                className="w-full h-[52px] rounded-[12px] border border-[#E2E8F0] pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                            />
+                        </div>
                     </div>
                 </div>
 
                 {/* Action Button */}
                 <button
-                    type="button"
-                    onClick={handleStartClick}
-                    className="bg-[#0955AC] text-white font-bold h-[56px] w-full rounded-[10px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#07448a] transition-colors flex justify-center items-center"
+                    type="submit"
+                    className="w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] text-[15px] rounded-[12px] transition-colors flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)]"
                 >
-                    Start
+                    Continue to Quote Request
+                    <ArrowRight className="w-[18px] h-[18px]" />
                 </button>
             </form>
         </div>

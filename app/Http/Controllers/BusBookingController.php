@@ -138,15 +138,46 @@ class BusBookingController extends Controller
      */
     public function searchJson(Request $request)
     {
+        $from = $request->input('from');
+        $to = $request->input('to');
+        $date = $request->input('date');
+        $tripType = $request->input('tripType', 'oneway');
+        $returnDate = $request->input('returnDate');
+
         $stations = BusStation::where('status', 'active')->get();
+
+        $schedules = collect();
+        $returnSchedules = collect();
+        $route = null;
+        $nearbyDates = [];
+
+        if ($from && $to && $date) {
+            $departureStation = BusStation::where('name', $from)->first();
+            $arrivalStation = BusStation::where('name', $to)->first();
+
+            if ($departureStation && $arrivalStation) {
+                $schedules = $this->findBusSchedules($departureStation->id, $arrivalStation->id, $date);
+                $route = $this->routeCoordinates($departureStation, $arrivalStation);
+                $nearbyDates = $this->nearbyDatePrices($departureStation->id, $arrivalStation->id, $date);
+
+                if ($tripType === 'roundtrip' && $returnDate) {
+                    $returnSchedules = $this->findBusSchedules($arrivalStation->id, $departureStation->id, $returnDate);
+                }
+            }
+        }
 
         return response()->json([
             'stations' => $stations,
-            'schedules' => [],
+            'schedules' => $schedules,
+            'returnSchedules' => $returnSchedules,
+            'route' => $route,
+            'nearbyDates' => $nearbyDates,
             'searchParams' => [
-                'from' => $request->input('from'),
-                'to' => $request->input('to'),
-                'date' => $request->input('date'),
+                'from' => $from,
+                'to' => $to,
+                'date' => $date,
+                'returnDate' => $returnDate,
+                'tripType' => $tripType,
             ]
         ]);
     }

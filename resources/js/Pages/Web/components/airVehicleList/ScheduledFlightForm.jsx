@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { router } from "@inertiajs/react";
-import calendarBlue from "../../assets/vehicleList/calendarBlue.png"
+import { CalendarDays } from "lucide-react";
 
 /**
  * Quick search for booking a seat on an already-scheduled flight — distinct
@@ -117,10 +117,8 @@ const ScheduledFlightForm = () => {
                   min={new Date().toISOString().split('T')[0]}
                   className={`${fieldClass(errors.departureDate)} pr-12`}
                 />
-                <img
-                  src={calendarBlue}
-                  className="absolute inset-y-5 right-0 flex items-center pr-3 cursor-pointer"
-                  alt="calendar"
+                <CalendarDays
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] cursor-pointer"
                   onClick={() => document.getElementById('scheduledFlightDate')?.showPicker?.()}
                 />
               </div>
