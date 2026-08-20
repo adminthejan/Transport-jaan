@@ -131,7 +131,20 @@ class BusScheduleSeeder extends Seeder
         }
 
         foreach ($schedules as $schedule) {
-            BusSchedule::create($schedule);
+            // Keyed by route+bus+time+date rather than a plain create() so this
+            // seeder can be re-run to roll the 7-day window forward (dates are
+            // relative to "today" at seed time, so they go stale after a week)
+            // without piling up duplicate schedule rows.
+            BusSchedule::firstOrCreate(
+                [
+                    'bus_id' => $schedule['bus_id'],
+                    'departure_station_id' => $schedule['departure_station_id'],
+                    'arrival_station_id' => $schedule['arrival_station_id'],
+                    'departure_time' => $schedule['departure_time'],
+                    'date' => $schedule['date'],
+                ],
+                $schedule
+            );
         }
     }
 }
