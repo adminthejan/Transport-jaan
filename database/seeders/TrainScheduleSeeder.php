@@ -190,7 +190,21 @@ class TrainScheduleSeeder extends Seeder
             ];
         }
 
-        // Insert all schedules
-        TrainSchedule::insert($schedules);
+        // Keyed by route+train+time+date rather than a bulk insert() so this
+        // seeder can be re-run to roll the 30-day window forward (dates are
+        // relative to "today" at seed time, so they go stale after a month)
+        // without piling up duplicate schedule rows.
+        foreach ($schedules as $schedule) {
+            TrainSchedule::firstOrCreate(
+                [
+                    'train_id' => $schedule['train_id'],
+                    'departure_station_id' => $schedule['departure_station_id'],
+                    'arrival_station_id' => $schedule['arrival_station_id'],
+                    'departure_time' => $schedule['departure_time'],
+                    'date' => $schedule['date'],
+                ],
+                $schedule
+            );
+        }
     }
 }

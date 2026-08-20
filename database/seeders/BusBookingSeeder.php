@@ -51,7 +51,13 @@ class BusBookingSeeder extends Seeder
 
         foreach ($bookings as $booking) {
             if ($booking['bus_id'] && $booking['bus_schedule_id'] && $booking['user_id']) {
-                BusBooking::create($booking);
+                BusBooking::firstOrCreate(
+                    [
+                        'bus_schedule_id' => $booking['bus_schedule_id'],
+                        'passenger_email' => $booking['passenger_email'],
+                    ],
+                    $booking
+                );
             }
         }
     }

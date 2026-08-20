@@ -53,7 +53,13 @@ class TrainBookingSeeder extends Seeder
 
         foreach ($bookings as $booking) {
             if ($booking['train_id'] && $booking['train_schedule_id'] && $booking['user_id']) {
-                TrainBooking::create($booking);
+                TrainBooking::firstOrCreate(
+                    [
+                        'train_schedule_id' => $booking['train_schedule_id'],
+                        'passenger_email' => $booking['passenger_email'],
+                    ],
+                    $booking
+                );
             }
         }
     }

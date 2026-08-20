@@ -65,10 +65,12 @@ class DatabaseSeeder extends Seeder
             BusStationSeeder::class ,
             BusSeeder::class ,
             BusScheduleSeeder::class ,
+            BusBookingSeeder::class ,
 
             TrainStationSeeder::class ,
             TrainSeeder::class ,
             TrainScheduleSeeder::class ,
+            TrainBookingSeeder::class ,
 
             // Warehouse
             WarehouseUnitSeeder::class ,
