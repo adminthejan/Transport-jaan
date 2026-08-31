@@ -136,9 +136,23 @@ class ClientVehicleController extends Controller
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
             $bodyType = mb_strtolower(trim($rawBodyType));
-            $allowed = ['suv','wagon','crossover','family','sportcoupe','compact','coupe','truck','othe'];
+            // The frontend's filter id for "Family MBP" is "family", but the
+            // DB enum stores "familyMBP" — they never matched before.
+            if ($bodyType === 'family') {
+                $bodyType = 'familymbp';
+            }
+            $allowed = ['suv','wagon','crossover','familymbp','sportcoupe','compact','coupe','truck','sedan','hatchback','van','bus','pickup','jeep','convertible','limousine','mpv','motorcycle','three_wheeler','special_purpose','other'];
             if (in_array($bodyType, $allowed, true)) {
                 $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
+            }
+        }
+
+        // Use / Industry Category — a coarser grouping than body_type.
+        if ($request->filled('industryCategory')) {
+            $industryCategory = mb_strtolower(trim((string) $request->input('industryCategory')));
+            $allowedCategories = ['cars_suvs','vans_minibuses','buses','trucks','prime_movers_trailers','construction_equipment'];
+            if (in_array($industryCategory, $allowedCategories, true)) {
+                $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(industry_category) = ?', [$industryCategory]));
             }
         }
 
@@ -158,6 +172,30 @@ class ClientVehicleController extends Controller
             });
         }
 
+        // Capacity linear slider — "at least N seats", distinct from the
+        // fixed exact-match buckets above.
+        if ($request->filled('minSeats')) {
+            $query->where('passenger_capacity', '>=', (int) $request->input('minSeats'));
+        }
+        // Luggage Capacity Filter (multiple values, bucketed by bag count)
+        if ($request->filled('luggage')) {
+            $buckets = explode(',', $request->luggage); // e.g. "1-2,3-4,5plus"
+
+            $query->whereHas('landSpec', function ($q) use ($buckets) {
+                $q->where(function ($qq) use ($buckets) {
+                    foreach ($buckets as $bucket) {
+                        if ($bucket === '5plus') {
+                            $qq->orWhere('luggage_capacity', '>=', 5);
+                        } elseif (str_contains($bucket, '-')) {
+                            [$min, $max] = explode('-', $bucket);
+                            $qq->orWhereBetween('luggage_capacity', [(int) $min, (int) $max]);
+                        }
+                    }
+                });
+            });
+        }
+
+
                 // Price Filter (multiple values)
         if ($request->filled('price')) {
             $prices = explode(',', $request->price);
@@ -174,6 +212,33 @@ class ClientVehicleController extends Controller
                     }
                 }
             });
+        }
+
+        // Price range slider — a free-form min/max, distinct from the fixed
+        // buckets above. Omitting maxPrice (or leaving it at the slider's
+        // own ceiling) means "no upper bound" so dragging the top handle all
+        // the way right doesn't silently exclude anything priced above it.
+        if ($request->filled('minPrice') || $request->filled('maxPrice')) {
+            $minPrice = $request->filled('minPrice') ? (float) $request->input('minPrice') : null;
+            $maxPrice = $request->filled('maxPrice') ? (float) $request->input('maxPrice') : null;
+
+            if ($minPrice !== null) {
+                $query->where('rental_price_per_day', '>=', $minPrice);
+            }
+            if ($maxPrice !== null) {
+                $query->where('rental_price_per_day', '<=', $maxPrice);
+            }
+        }
+
+        // Extras -- the vehicles table already has these as boolean flags
+        // (gps, child_seat, wifi, insurance_coverage) but they were never
+        // filterable or shown anywhere client-facing until now.
+        if ($request->filled('extras')) {
+            $extras = array_filter(array_map('trim', explode(',', (string) $request->input('extras'))));
+            $allowedExtras = ['gps', 'child_seat', 'wifi', 'insurance_coverage'];
+            foreach (array_intersect($extras, $allowedExtras) as $extra) {
+                $query->where($extra, true);
+            }
         }
 
         // Mileage Filter
@@ -221,6 +286,8 @@ class ClientVehicleController extends Controller
                         'fuel_type'         => $v->landSpec?->fuel_type ?? $v->airSpec?->fuel_type ?? $v->seaSpec?->fuel_type ?? null,
                         'transmission_type' => $v->landSpec?->transmission_type ?? null,
                         'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
+                        'luggage_capacity'  => $v->landSpec?->luggage_capacity,
+                        'industry_category' => $v->landSpec?->industry_category,
                     ],
                     // Distinguishing type-specific spec for the listing card
                     // chip — body_type (land), aircraft_type (air), or
@@ -229,6 +296,12 @@ class ClientVehicleController extends Controller
 
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
+                    'extras' => [
+                        'gps'                => (bool) $v->gps,
+                        'child_seat'         => (bool) $v->child_seat,
+                        'wifi'               => (bool) $v->wifi,
+                        'insurance_coverage' => (bool) $v->insurance_coverage,
+                    ],
                 ];
             });
 
@@ -286,6 +359,121 @@ class ClientVehicleController extends Controller
                 ->orderBy('id'),
         ])->active()->type('land');
 
+        // Same filters as vehicleList() — this JSON endpoint feeds the inline
+        // Land tab in the multimodal Journey Planner, which shares the exact
+        // same FilterSidebar UI as the standalone list page, so it needs to
+        // actually respect the same query params instead of ignoring them.
+        if ($request->filled('transmission')) {
+            $transmissions = array_filter(array_map(
+                fn ($t) => mb_strtolower(trim($t)),
+                explode(',', (string) $request->input('transmission'))
+            ));
+            if (!empty($transmissions)) {
+                $query->whereHas('landSpec', fn ($q) => $q->whereIn('transmission_type', $transmissions));
+            }
+        }
+
+        if ($request->filled('fuel')) {
+            $fuels = array_filter(array_map(
+                fn ($f) => mb_strtolower(trim($f)),
+                explode(',', (string) $request->input('fuel'))
+            ));
+            if (!empty($fuels)) {
+                $query->whereHas('landSpec', fn ($q) => $q->whereIn('fuel_type', $fuels));
+            }
+        }
+
+        if ($request->filled('brand')) {
+            $brand = mb_strtolower(trim((string) $request->input('brand')));
+            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+        }
+
+        if ($request->filled('model')) {
+            $model = mb_strtolower(trim((string) $request->input('model')));
+            $query->whereRaw('LOWER(model) = ?', [$model]);
+        }
+
+        $rawBodyType = $request->input('bodyType') ?? $request->input('body_type');
+        if (!empty($rawBodyType)) {
+            $bodyType = mb_strtolower(trim($rawBodyType));
+            $allowed = ['suv','wagon','crossover','family','sportcoupe','compact','coupe','truck','othe'];
+            if (in_array($bodyType, $allowed, true)) {
+                $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
+            }
+        }
+
+        if ($request->filled('capacity')) {
+            $capacities = explode(',', $request->capacity);
+            $query->where(function ($q) use ($capacities) {
+                foreach ($capacities as $cap) {
+                    if ($cap === '8ormore') {
+                        $q->orWhere('passenger_capacity', '>=', 8);
+                    } else {
+                        $q->orWhere('passenger_capacity', intval($cap));
+                    }
+                }
+            });
+        }
+
+        if ($request->filled('minSeats')) {
+            $query->where('passenger_capacity', '>=', (int) $request->input('minSeats'));
+        }
+
+        if ($request->filled('luggage')) {
+            $buckets = explode(',', $request->luggage);
+            $query->whereHas('landSpec', function ($q) use ($buckets) {
+                $q->where(function ($qq) use ($buckets) {
+                    foreach ($buckets as $bucket) {
+                        if ($bucket === '5plus') {
+                            $qq->orWhere('luggage_capacity', '>=', 5);
+                        } elseif (str_contains($bucket, '-')) {
+                            [$min, $max] = explode('-', $bucket);
+                            $qq->orWhereBetween('luggage_capacity', [(int) $min, (int) $max]);
+                        }
+                    }
+                });
+            });
+        }
+
+        if ($request->filled('price')) {
+            $prices = explode(',', $request->price);
+            $query->where(function ($q) use ($prices) {
+                foreach ($prices as $price) {
+                    if ($price === '200plus') {
+                        $q->orWhere('rental_price_per_day', '>=', 200);
+                    } else {
+                        [$min, $max] = explode('-', $price);
+                        $q->orWhereBetween('rental_price_per_day', [(int) $min, (int) $max]);
+                    }
+                }
+            });
+        }
+
+        if ($request->filled('minPrice') || $request->filled('maxPrice')) {
+            $minPrice = $request->filled('minPrice') ? (float) $request->input('minPrice') : null;
+            $maxPrice = $request->filled('maxPrice') ? (float) $request->input('maxPrice') : null;
+
+            if ($minPrice !== null) {
+                $query->where('rental_price_per_day', '>=', $minPrice);
+            }
+            if ($maxPrice !== null) {
+                $query->where('rental_price_per_day', '<=', $maxPrice);
+            }
+        }
+
+        if ($request->filled('mileage')) {
+            $mileages = explode(',', $request->mileage);
+            $query->where(function ($q) use ($mileages) {
+                foreach ($mileages as $m) {
+                    if ($m === 'limited') {
+                        $q->orWhere('mileage_km', '<', 50000);
+                    } elseif ($m === 'unlimited') {
+                        $q->orWhere('mileage_km', '>=', 50000);
+                    }
+                }
+            });
+        }
+
         $vehicles = $query->paginate(12)->withQueryString()
             ->through(function (Vehicle $v) {
                 $primaryMedia = optional(
@@ -307,6 +495,7 @@ class ClientVehicleController extends Controller
                         'fuel_type'         => $v->landSpec?->fuel_type ?? $v->airSpec?->fuel_type ?? $v->seaSpec?->fuel_type ?? null,
                         'transmission_type' => $v->landSpec?->transmission_type ?? null,
                         'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
+                        'luggage_capacity'  => $v->landSpec?->luggage_capacity,
                     ],
                     // Distinguishing type-specific spec for the listing card
                     // chip — body_type (land), aircraft_type (air), or
@@ -314,6 +503,12 @@ class ClientVehicleController extends Controller
                     'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
+                    'extras' => [
+                        'gps'                => (bool) $v->gps,
+                        'child_seat'         => (bool) $v->child_seat,
+                        'wifi'               => (bool) $v->wifi,
+                        'insurance_coverage' => (bool) $v->insurance_coverage,
+                    ],
                 ];
             });
 
@@ -339,6 +534,66 @@ class ClientVehicleController extends Controller
                 ->orderBy('id'),
         ])->active()->type('sea');
 
+        // Same filters as seaVehicleList() — this JSON endpoint feeds the
+        // inline Sea tab in the multimodal Journey Planner, which shares the
+        // same FilterSidebar UI as the standalone list page.
+        if ($request->filled('fuel')) {
+            $fuels = array_filter(array_map(
+                fn ($f) => mb_strtolower(trim($f)),
+                explode(',', (string) $request->input('fuel'))
+            ));
+            if (!empty($fuels)) {
+                $query->whereHas('seaSpec', fn ($q) => $q->whereIn('fuel_type', $fuels));
+            }
+        }
+
+        if ($request->filled('brand')) {
+            $brand = mb_strtolower(trim((string) $request->input('brand')));
+            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+        }
+
+        if ($request->filled('model')) {
+            $model = mb_strtolower(trim((string) $request->input('model')));
+            $query->whereRaw('LOWER(model) = ?', [$model]);
+        }
+
+        $rawBodyType = $request->input('bodyType') ?? $request->input('body_type');
+        if (!empty($rawBodyType)) {
+            $bodyType = mb_strtolower(trim($rawBodyType));
+            $allowed = ['speedboat','yacht','catamaran','sailboat','fishing_boat','cruise_ship','ferry','houseboat','jet_ski','tugboat','cargo_vessel','boat','other'];
+            if (in_array($bodyType, $allowed, true)) {
+                $query->whereHas('seaSpec', fn($q) => $q->whereRaw('LOWER(vessel_type) = ?', [$bodyType]));
+            }
+        }
+
+        if ($request->filled('minSeats')) {
+            $query->where('passenger_capacity', '>=', (int) $request->input('minSeats'));
+        }
+
+        if ($request->filled('minPrice') || $request->filled('maxPrice')) {
+            $minPrice = $request->filled('minPrice') ? (float) $request->input('minPrice') : null;
+            $maxPrice = $request->filled('maxPrice') ? (float) $request->input('maxPrice') : null;
+            if ($minPrice !== null) {
+                $query->where('rental_price_per_day', '>=', $minPrice);
+            }
+            if ($maxPrice !== null) {
+                $query->where('rental_price_per_day', '<=', $maxPrice);
+            }
+        }
+
+        if ($request->filled('mileage')) {
+            $mileages = explode(',', $request->mileage);
+            $query->where(function ($q) use ($mileages) {
+                foreach ($mileages as $m) {
+                    if ($m === 'limited') {
+                        $q->orWhere('mileage_km', '<', 50000);
+                    } elseif ($m === 'unlimited') {
+                        $q->orWhere('mileage_km', '>=', 50000);
+                    }
+                }
+            });
+        }
+
         $vehicles = $query->paginate(12)->withQueryString()
             ->through(function (Vehicle $v) {
                 $primaryMedia = optional(
@@ -367,6 +622,12 @@ class ClientVehicleController extends Controller
                     'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
+                    'extras' => [
+                        'gps'                => (bool) $v->gps,
+                        'child_seat'         => (bool) $v->child_seat,
+                        'wifi'               => (bool) $v->wifi,
+                        'insurance_coverage' => (bool) $v->insurance_coverage,
+                    ],
                 ];
             });
 
@@ -392,6 +653,53 @@ class ClientVehicleController extends Controller
                 ->orderBy('id'),
         ])->active()->type('air');
 
+        // Same filters as airVehicleList() — this JSON endpoint feeds the
+        // inline Air tab in the multimodal Journey Planner, which shares the
+        // same FilterSidebar UI as the standalone list page.
+        if ($request->filled('fuel')) {
+            $fuels = array_filter(array_map(
+                fn ($f) => mb_strtolower(trim($f)),
+                explode(',', (string) $request->input('fuel'))
+            ));
+            if (!empty($fuels)) {
+                $query->whereHas('airSpec', fn ($q) => $q->whereIn('fuel_type', $fuels));
+            }
+        }
+
+        if ($request->filled('brand')) {
+            $brand = mb_strtolower(trim((string) $request->input('brand')));
+            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+        }
+
+        if ($request->filled('model')) {
+            $model = mb_strtolower(trim((string) $request->input('model')));
+            $query->whereRaw('LOWER(model) = ?', [$model]);
+        }
+
+        $rawBodyType = $request->input('bodyType') ?? $request->input('body_type');
+        if (!empty($rawBodyType)) {
+            $bodyType = mb_strtolower(trim($rawBodyType));
+            $allowed = ['private_jet','commercial_airliner','helicopter','charter_aircraft','light_aircraft','business_jet','turboprop_aircraft','glider','seaplane','cargo_aircraft','hot_air_balloon','fixed_wing','other'];
+            if (in_array($bodyType, $allowed, true)) {
+                $query->whereHas('airSpec', fn($q) => $q->whereRaw('LOWER(aircraft_type) = ?', [$bodyType]));
+            }
+        }
+
+        if ($request->filled('minSeats')) {
+            $query->where('passenger_capacity', '>=', (int) $request->input('minSeats'));
+        }
+
+        if ($request->filled('minPrice') || $request->filled('maxPrice')) {
+            $minPrice = $request->filled('minPrice') ? (float) $request->input('minPrice') : null;
+            $maxPrice = $request->filled('maxPrice') ? (float) $request->input('maxPrice') : null;
+            if ($minPrice !== null) {
+                $query->where('rental_price_per_day', '>=', $minPrice);
+            }
+            if ($maxPrice !== null) {
+                $query->where('rental_price_per_day', '<=', $maxPrice);
+            }
+        }
+
         $vehicles = $query->paginate(12)->withQueryString()
             ->through(function (Vehicle $v) {
                 $primaryMedia = optional(
@@ -420,6 +728,12 @@ class ClientVehicleController extends Controller
                     'typeSpec' => $v->landSpec?->body_type ?? $v->airSpec?->aircraft_type ?? $v->seaSpec?->vessel_type ?? null,
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
+                    'extras' => [
+                        'gps'                => (bool) $v->gps,
+                        'child_seat'         => (bool) $v->child_seat,
+                        'wifi'               => (bool) $v->wifi,
+                        'insurance_coverage' => (bool) $v->insurance_coverage,
+                    ],
                 ];
             });
 
@@ -481,12 +795,15 @@ class ClientVehicleController extends Controller
             $query->whereRaw('LOWER(model) = ?', [$model]);
         }
 
+        // Vessel type - was incorrectly querying landSpec/land body types
+        // (a copy-paste leftover), which meant selecting any vessel type
+        // silently excluded every sea vehicle. Fixed to query seaSpec.
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
             $bodyType = mb_strtolower(trim($rawBodyType));
-            $allowed = ['suv','wagon','crossover','family','sportcoupe','compact','coupe','truck','othe'];
+            $allowed = ['speedboat','yacht','catamaran','sailboat','fishing_boat','cruise_ship','ferry','houseboat','jet_ski','tugboat','cargo_vessel','boat','other'];
             if (in_array($bodyType, $allowed, true)) {
-                $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
+                $query->whereHas('seaSpec', fn($q) => $q->whereRaw('LOWER(vessel_type) = ?', [$bodyType]));
             }
         }
 
@@ -506,6 +823,12 @@ class ClientVehicleController extends Controller
             });
         }
 
+        // Capacity linear slider — "at least N seats", distinct from the
+        // fixed exact-match buckets above.
+        if ($request->filled('minSeats')) {
+            $query->where('passenger_capacity', '>=', (int) $request->input('minSeats'));
+        }
+
                 // Price Filter (multiple values)
         if ($request->filled('price')) {
             $prices = explode(',', $request->price);
@@ -522,6 +845,22 @@ class ClientVehicleController extends Controller
                     }
                 }
             });
+        }
+
+        // Price range slider — a free-form min/max, distinct from the fixed
+        // buckets above. Omitting maxPrice (or leaving it at the slider's
+        // own ceiling) means "no upper bound" so dragging the top handle all
+        // the way right doesn't silently exclude anything priced above it.
+        if ($request->filled('minPrice') || $request->filled('maxPrice')) {
+            $minPrice = $request->filled('minPrice') ? (float) $request->input('minPrice') : null;
+            $maxPrice = $request->filled('maxPrice') ? (float) $request->input('maxPrice') : null;
+
+            if ($minPrice !== null) {
+                $query->where('rental_price_per_day', '>=', $minPrice);
+            }
+            if ($maxPrice !== null) {
+                $query->where('rental_price_per_day', '<=', $maxPrice);
+            }
         }
 
         // Mileage Filter
@@ -577,13 +916,19 @@ class ClientVehicleController extends Controller
 
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
+                    'extras' => [
+                        'gps'                => (bool) $v->gps,
+                        'child_seat'         => (bool) $v->child_seat,
+                        'wifi'               => (bool) $v->wifi,
+                        'insurance_coverage' => (bool) $v->insurance_coverage,
+                    ],
                 ];
             });
 
         $brandCollection = Vehicle::query()
             ->when(!empty($rawBodyType), function ($q) use ($rawBodyType) {
                 $bt = mb_strtolower(trim($rawBodyType));
-                $q->whereHas('landSpec', fn($qq) => $qq->whereRaw('LOWER(body_type) = ?', [$bt]));
+                $q->whereHas('seaSpec', fn($qq) => $qq->whereRaw('LOWER(vessel_type) = ?', [$bt]));
             })
             ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
             ->whereNotNull('manufacturer')
@@ -667,12 +1012,15 @@ class ClientVehicleController extends Controller
             $query->whereRaw('LOWER(model) = ?', [$model]);
         }
 
+        // Aircraft type - was incorrectly querying landSpec/land body types
+        // (a copy-paste leftover), which meant selecting any aircraft type
+        // silently excluded every air vehicle. Fixed to query airSpec.
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
             $bodyType = mb_strtolower(trim($rawBodyType));
-            $allowed = ['suv','wagon','crossover','family','sportcoupe','compact','coupe','truck','othe'];
+            $allowed = ['private_jet','commercial_airliner','helicopter','charter_aircraft','light_aircraft','business_jet','turboprop_aircraft','glider','seaplane','cargo_aircraft','hot_air_balloon','fixed_wing','other'];
             if (in_array($bodyType, $allowed, true)) {
-                $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
+                $query->whereHas('airSpec', fn($q) => $q->whereRaw('LOWER(aircraft_type) = ?', [$bodyType]));
             }
         }
 
@@ -692,6 +1040,12 @@ class ClientVehicleController extends Controller
             });
         }
 
+        // Capacity linear slider — "at least N seats", distinct from the
+        // fixed exact-match buckets above.
+        if ($request->filled('minSeats')) {
+            $query->where('passenger_capacity', '>=', (int) $request->input('minSeats'));
+        }
+
                 // Price Filter (multiple values)
         if ($request->filled('price')) {
             $prices = explode(',', $request->price);
@@ -708,6 +1062,22 @@ class ClientVehicleController extends Controller
                     }
                 }
             });
+        }
+
+        // Price range slider — a free-form min/max, distinct from the fixed
+        // buckets above. Omitting maxPrice (or leaving it at the slider's
+        // own ceiling) means "no upper bound" so dragging the top handle all
+        // the way right doesn't silently exclude anything priced above it.
+        if ($request->filled('minPrice') || $request->filled('maxPrice')) {
+            $minPrice = $request->filled('minPrice') ? (float) $request->input('minPrice') : null;
+            $maxPrice = $request->filled('maxPrice') ? (float) $request->input('maxPrice') : null;
+
+            if ($minPrice !== null) {
+                $query->where('rental_price_per_day', '>=', $minPrice);
+            }
+            if ($maxPrice !== null) {
+                $query->where('rental_price_per_day', '<=', $maxPrice);
+            }
         }
 
         // Mileage Filter
@@ -763,13 +1133,19 @@ class ClientVehicleController extends Controller
 
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
+                    'extras' => [
+                        'gps'                => (bool) $v->gps,
+                        'child_seat'         => (bool) $v->child_seat,
+                        'wifi'               => (bool) $v->wifi,
+                        'insurance_coverage' => (bool) $v->insurance_coverage,
+                    ],
                 ];
             });
 
         $brandCollection = Vehicle::query()
             ->when(!empty($rawBodyType), function ($q) use ($rawBodyType) {
                 $bt = mb_strtolower(trim($rawBodyType));
-                $q->whereHas('landSpec', fn($qq) => $qq->whereRaw('LOWER(body_type) = ?', [$bt]));
+                $q->whereHas('airSpec', fn($qq) => $qq->whereRaw('LOWER(aircraft_type) = ?', [$bt]));
             })
             ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
             ->whereNotNull('manufacturer')

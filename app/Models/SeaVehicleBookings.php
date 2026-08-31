@@ -7,17 +7,21 @@ use App\Models\SeaVehicleBookingSchedule;
 use App\Models\SeaVehicleBookingPayment;
 use App\Models\SeaVehicleBookingAddon;
 use App\Models\SeaVehicleBookingCustomer;
+use App\Models\Concerns\HasTrackingPin;
+use App\Services\BookingReferenceGenerator;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Laravel\Scout\Searchable;
 
 class SeaVehicleBookings extends Model
 {
-    use Searchable;
+    use Searchable, HasTrackingPin;
 
     public const VEHICLE_OWNER_KEY = 'provider_id';
 
     protected $fillable = [
+        'booking_reference',
+        'tracking_pin',
         'client_id',
         'vehicle_id',
         'driver_id',
@@ -65,6 +69,18 @@ class SeaVehicleBookings extends Model
 
     protected $with    = ['schedule'];
     protected $appends = ['start_date', 'end_date'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $booking) {
+            if (empty($booking->booking_reference)) {
+                $booking->booking_reference = BookingReferenceGenerator::forSeaVehicle();
+            }
+            if (empty($booking->tracking_pin)) {
+                $booking->tracking_pin = self::generateTrackingPin();
+            }
+        });
+    }
 
     public function client()   { return $this->belongsTo(User::class, 'client_id'); }
     public function vehicle()  { return $this->belongsTo(Vehicle::class); }

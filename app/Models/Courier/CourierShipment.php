@@ -26,6 +26,7 @@ class CourierShipment extends Model
 
     protected $fillable = [
         'reference',
+        'tracking_pin',
         'requested_by_user_id',
         'assigned_vendor_user_id',
         'assigned_vendor_registration_id',
@@ -81,6 +82,10 @@ class CourierShipment extends Model
                 $shipment->reference = self::generateReference();
             }
 
+            if (empty($shipment->tracking_pin)) {
+                $shipment->tracking_pin = self::generateTrackingPin();
+            }
+
             if (empty($shipment->status)) {
                 $shipment->status = self::STATUS_PENDING;
             }
@@ -90,6 +95,11 @@ class CourierShipment extends Model
     public static function generateReference(): string
     {
         return 'CR-' . strtoupper(Str::random(8));
+    }
+
+    public static function generateTrackingPin(): string
+    {
+        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     }
 
     public function requestedBy()

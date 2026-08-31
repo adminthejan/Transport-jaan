@@ -185,6 +185,18 @@ const Summary = () => {
                   <p className="text-[13px] mt-1 text-[#13790A] font-[600]">
                     After service provider approval, a confirmation email will be sent to you.
                   </p>
+                  {booking?.booking_reference && (
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] font-[700] text-[#13790A]">
+                      <span className="bg-white/70 rounded-full px-3 py-1">
+                        Reference: {booking.booking_reference}
+                      </span>
+                      {booking?.tracking_pin && (
+                        <span className="bg-white/70 rounded-full px-3 py-1 tracking-[0.15em]">
+                          Tracking PIN: {booking.tracking_pin}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

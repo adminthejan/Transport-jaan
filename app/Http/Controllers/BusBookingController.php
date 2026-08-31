@@ -635,6 +635,7 @@ class BusBookingController extends Controller
     {
         return [
             'reference' => $booking->booking_reference,
+            'trackingPin' => $booking->tracking_pin,
             'passengerName' => $booking->passenger_name,
             'passengerEmail' => $booking->passenger_email,
             'passengerPhone' => $booking->passenger_phone,

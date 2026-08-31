@@ -75,7 +75,7 @@ const initialState = {
   category: "", vehicleType: "", model: "", manufacture: "", manufactureYear: "", registerYear: "", number: "", colour: "",
   condition: "", ownershipType: "", passengerCapacity: "", description: "", insuranceProvider: "",
   images: [], insuranceDocs: [],
-  mileage: "", bodyType: "", fuelType: "", transmissionType: "", gears: "", seats: "", doors: "", fuelTankCapacity: "",
+  mileage: "", bodyType: "", industryCategory: "", fuelType: "", transmissionType: "", gears: "", seats: "", doors: "", luggageCapacity: "", fuelTankCapacity: "",
   aircraft_type: "", icao_type_designator: "", base_airport_iata: "", base_airport_icao: "", crew_required: "", range_km: "", mtow_kg: "", cruising_speed_kts: "", air_fuel_type: "", flight_hours_total: "",
   vessel_type: "", hull_material: "", length_m: "", beam_m: "", draft_m: "", engine_type: "", engine_power_hp: "", sea_fuel_type: "", cabins: "", berths: "", toilets: "", fuel_tank_l: "", water_tank_l: "",
   rentalPricePerDay: "", totalRentalPrice: "", deposit: "", advancePayment: "",
@@ -83,15 +83,23 @@ const initialState = {
   gpsPrice: "", childSeatPrice: "", wifiPrice: "", insuranceCoveragePrice: "", addDriver: false, addDriverPrice: "",
   extraFeatures: [],
 };
-const bodyTypeOptions = ["Sedan", "SUV", "Hatchback", "Truck", "Van", "Bus", "Coupe", "Convertible", "Wagon", "Other", "crossover", "Limousine", "Family MBP", "Sport Coupe", "Compact"];
+const bodyTypeOptions = ["Sedan", "SUV", "Hatchback", "Truck", "Van", "Bus", "Coupe", "Convertible", "Wagon", "Other", "crossover", "Limousine", "Family MBP", "Sport Coupe", "Compact", "MPV / Minivan", "Motorcycle", "Three-Wheeler", "Special Purpose Vehicle"];
+const INDUSTRY_CATEGORY_OPTIONS = [
+  { value: "cars_suvs", label: "Cars & SUVs" },
+  { value: "vans_minibuses", label: "Vans & Minibuses" },
+  { value: "buses", label: "Buses" },
+  { value: "trucks", label: "Trucks" },
+  { value: "prime_movers_trailers", label: "Prime Movers & Trailers" },
+  { value: "construction_equipment", label: "Construction & Equipment" },
+];
 const fuelTypeOptions = ["Petrol", "Diesel", "Electric", "Hybrid", "CNG", "LPG", "Other"];
 const transmissionOptions = ["Manual", "Automatic", "Semi-Automatic", "CVT", "Other"];
 const conditionOptions = ["New", "Excellent", "Good", "Fair", "Needs Repair"];
 const ownershipTypeOptions = ["Owned", "Financed", "Leased", "Rented"];
 const categoryOptions = ["Land", "Air", "Sea"];
-const aircraftTypeOptions = ["fixed_wing", "helicopter", "glider", "other"];
+const aircraftTypeOptions = ["private_jet", "commercial_airliner", "helicopter", "charter_aircraft", "light_aircraft", "business_jet", "turboprop_aircraft", "glider", "seaplane", "cargo_aircraft", "hot_air_balloon", "other"];
 const airFuelTypeOptions = ["jet_a1", "avgas", "electric", "other"];
-const vesselTypeOptions = ["boat", "yacht", "catamaran", "ferry", "other"];
+const vesselTypeOptions = ["speedboat", "yacht", "catamaran", "sailboat", "fishing_boat", "cruise_ship", "ferry", "houseboat", "jet_ski", "tugboat", "cargo_vessel", "other"];
 const hullMaterialOptions = ["Fiberglass", "Aluminum", "Steel", "Wood", "Composite", "Other"];
 const engineTypeOptions = ["inboard", "outboard", "sail", "hybrid", "electric", "other"];
 const seaFuelTypeOptions = ["diesel", "petrol", "electric", "other"];
@@ -120,7 +128,12 @@ const toEnum = (s) => String(s || "").trim().toLowerCase().replace(/[\s-]+/g, "_
 // values don't all follow the generic "lowercase_with_underscores" convention
 // toEnum() produces (e.g. `familyMBP`, `sportcoupe`, `amt`) — map those explicitly
 // so a mismatched value never reaches the DB and blows up as a raw SQL error.
-const BODY_TYPE_ENUM_OVERRIDES = { family_mbp: "familyMBP", sport_coupe: "sportcoupe" };
+const BODY_TYPE_ENUM_OVERRIDES = {
+  family_mbp: "familyMBP",
+  sport_coupe: "sportcoupe",
+  "mpv_/_minivan": "mpv",
+  special_purpose_vehicle: "special_purpose",
+};
 const TRANSMISSION_ENUM_OVERRIDES = { semi_automatic: "amt" };
 const ALLOWED_TRANSMISSIONS = ["manual", "automatic", "amt", "cvt", "dct"];
 const extractMediaEntries = (maybe) => { if (!maybe) return []; const arr = Array.isArray(maybe) ? maybe : []; const out = []; arr.forEach((it) => { if (typeof it === "string") out.push({ id: null, url: it }); else if (it && typeof it === "object") { const id = it.id ?? it.media_id ?? it.uuid ?? it.file_id ?? null; const url = it.url || it.src || it.path || it.preview_url || it.original_url || it.full_url || (it.attributes && (it.attributes.url || it.attributes.src)) || it.file_path; if (url) out.push({ id, url }); } }); return out; };
@@ -245,8 +258,10 @@ const AddUnit = () => {
       gps: mapYesNo(gps), childSeat: mapYesNo(childSeat), wifi: mapYesNo(wifi), insuranceCoverage: mapYesNo(insuranceCoverage),
       extra: vehicle.extra || "",
       mileage: vehicle.mileage ?? "",
-      bodyType: bodyTypeVal, fuelType: fuelTypeVal, transmissionType: transmissionVal,
-      gears: vehicle.gears ?? "", seats: vehicle.seats ?? "", doors: vehicle.doors ?? "", fuelTankCapacity: vehicle.fuelTankCapacity ?? vehicle.fuel_tank_capacity ?? "",
+      bodyType: bodyTypeVal, industryCategory: vehicle.industryCategory ?? vehicle.industry_category ?? "", fuelType: fuelTypeVal, transmissionType: transmissionVal,
+      gears: vehicle.gears ?? "", seats: vehicle.seats ?? "", doors: vehicle.doors ?? "",
+      luggageCapacity: vehicle.luggageCapacity ?? vehicle.luggage_capacity ?? "",
+      fuelTankCapacity: vehicle.fuelTankCapacity ?? vehicle.fuel_tank_capacity ?? "",
       aircraft_type: vehicle.aircraft_type || "", icao_type_designator: vehicle.icao_type_designator || "", base_airport_iata: vehicle.base_airport_iata || "", base_airport_icao: vehicle.base_airport_icao || "",
       crew_required: vehicle.crew_required ?? "", range_km: vehicle.range_km ?? "", mtow_kg: vehicle.mtow_kg ?? "", cruising_speed_kts: vehicle.cruising_speed_kts ?? "", air_fuel_type: vehicle.air_fuel_type || "", flight_hours_total: vehicle.flight_hours_total ?? "",
       vessel_type: vehicle.vessel_type || "", hull_material: vehicle.hull_material || "", length_m: vehicle.length_m ?? "", beam_m: vehicle.beam_m ?? "", draft_m: vehicle.draft_m ?? "", engine_type: vehicle.engine_type || "", engine_power_hp: vehicle.engine_power_hp ?? "", sea_fuel_type: vehicle.sea_fuel_type || "",
@@ -656,6 +671,15 @@ const AddUnit = () => {
                 {form.category === "Land" && (
                   <>
                     <div className="space-y-2">
+                      <label htmlFor="industryCategory" className="block text-[14px] font-medium text-gray-700">Use / Industry Category</label>
+                      <select id="industryCategory" name="industryCategory" className={selectClasses("industryCategory")} value={form.industryCategory} onChange={handleChange}>
+                        <option value="">Select category</option>
+                        {INDUSTRY_CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                      {errors.industryCategory && <div className="text-red-500 text-xs mt-1">{errors.industryCategory}</div>}
+                    </div>
+
+                    <div className="space-y-2">
                       <label htmlFor="bodyType" className="block text-[14px] font-medium text-gray-700">Body Type <Req /></label>
                       <select id="bodyType" name="bodyType" className={selectClasses("bodyType")} value={form.bodyType} onChange={handleChange} {...req("Please select a body type.")}>
                         <option value="">Select body type</option>{bodyTypeOptions.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -694,6 +718,12 @@ const AddUnit = () => {
                       <label htmlFor="doors" className="block text-[14px] font-medium text-gray-700">Number of Doors <Req /></label>
                       <input id="doors" type="number" name="doors" min="1" className={inputClasses("doors")} value={form.doors} onChange={handleChange} placeholder="Enter number of doors" {...req("Please enter number of doors.")} />
                       {errors.doors && <div className="text-red-500 text-xs mt-1">{errors.doors}</div>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="luggageCapacity" className="block text-[14px] font-medium text-gray-700">Luggage Capacity (bags)</label>
+                      <input id="luggageCapacity" type="number" name="luggageCapacity" min="0" className={inputClasses("luggageCapacity")} value={form.luggageCapacity} onChange={handleChange} placeholder="Enter luggage capacity" />
+                      {errors.luggageCapacity && <div className="text-red-500 text-xs mt-1">{errors.luggageCapacity}</div>}
                     </div>
 
                     <div className="space-y-2">

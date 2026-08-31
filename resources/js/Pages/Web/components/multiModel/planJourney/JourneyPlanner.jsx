@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "@inertiajs/react";
+import { Route as RouteIcon, SlidersHorizontal, X, Plus as PlusIcon, Search as SearchIcon } from "lucide-react";
 import location from "../../../assets/multiModel/planJourney/location.svg";
 import locationRed from "../../../assets/multiModel/planJourney/locationRed.svg";
 import calander from "../../../assets/multiModel/planJourney/calander.svg";
@@ -364,7 +365,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
     return (
         <>
-            <div className="relative w-full h-full rounded-b-[0px] xl:rounded-bl-[20px] xl:rounded-br-[0px] bg-[#F4F3F3] flex flex-col justify-start items-center shadow-lg rounded-[20px] p-5">
+            <div className="relative w-full h-full bg-[#F4F3F3] flex flex-col justify-start items-center shadow-lg rounded-[20px] p-5">
                 <div className="w-full flex flex-row gap-2 justify-start items-start mb-5">
                     <img
                         src={leftArrow}
@@ -381,6 +382,143 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                         </h3>
                     </div>
                 </div>
+
+                {/* Journey / Filter tab bar - kept at the top so it stays visible while building a trip */}
+                <div className="w-full flex justify-center mb-4">
+                    <div className="inline-flex gap-1 p-1.5 rounded-full bg-[#F1F5F9] shadow-inner">
+                        <button
+                            onClick={() => setActiveView("journey")}
+                            className={`flex items-center justify-center gap-1.5 px-5 sm:px-7 py-2 rounded-full font-[600] text-[12px] sm:text-[14px] poppins transition-all ${
+                                activeView === "journey"
+                                    ? "bg-[#0955AC] text-white shadow-md"
+                                    : "text-[#475569] hover:bg-white/70"
+                            }`}
+                        >
+                            <RouteIcon className="w-3.5 h-3.5 shrink-0" />
+                            Journey
+                        </button>
+                        <button
+                            onClick={() => setActiveView("filter")}
+                            className={`flex items-center justify-center gap-1.5 px-5 sm:px-7 py-2 rounded-full font-[600] text-[12px] sm:text-[14px] poppins transition-all ${
+                                activeView === "filter"
+                                    ? "bg-[#0955AC] text-white shadow-md"
+                                    : "text-[#475569] hover:bg-white/70"
+                            }`}
+                        >
+                            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                            Filter
+                        </button>
+                    </div>
+                </div>
+
+                {/* Rome2Rio-style multi-stop chip search bar */}
+                {activeView === "journey" && (
+                    <div className="w-full mb-4">
+                        <div className="flex flex-wrap items-center gap-2 bg-white border border-[#E5E7EB] rounded-full px-3 py-2 shadow-sm">
+                            {trips[currentTripIndex].startJourney.location && (
+                                <span className="flex items-center gap-1 bg-[#E8F3FF] text-[#0955AC] text-[12px] font-[600] pl-3 pr-2 py-1.5 rounded-full">
+                                    {trips[currentTripIndex].startJourney.location}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newTrips = [...trips];
+                                            newTrips[currentTripIndex].startJourney = {
+                                                ...newTrips[currentTripIndex].startJourney,
+                                                location: "",
+                                                coordinates: null,
+                                            };
+                                            setTrips(newTrips);
+                                        }}
+                                        className="ml-1 hover:text-red-600"
+                                        aria-label="Remove start location"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            )}
+
+                            {trips[currentTripIndex].stops.map((stop) =>
+                                stop.destination ? (
+                                    <React.Fragment key={stop.id}>
+                                        <span className="text-[#9CA3AF] text-[12px]">→</span>
+                                        <span className="flex items-center gap-1 bg-[#F1F5F9] text-[#334155] text-[12px] font-[600] pl-3 pr-2 py-1.5 rounded-full">
+                                            {stop.destination}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveStop(stop.id)}
+                                                className="ml-1 hover:text-red-600"
+                                                aria-label={`Remove ${stop.destination}`}
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </span>
+                                    </React.Fragment>
+                                ) : null
+                            )}
+
+                            {trips[currentTripIndex].endJourney.location && (
+                                <>
+                                    <span className="text-[#9CA3AF] text-[12px]">→</span>
+                                    <span className="flex items-center gap-1 bg-[#FEF2F2] text-[#C10007] text-[12px] font-[600] pl-3 pr-2 py-1.5 rounded-full">
+                                        {trips[currentTripIndex].endJourney.location}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newTrips = [...trips];
+                                                newTrips[currentTripIndex].endJourney = {
+                                                    ...newTrips[currentTripIndex].endJourney,
+                                                    location: "",
+                                                    coordinates: null,
+                                                };
+                                                setTrips(newTrips);
+                                            }}
+                                            className="ml-1 hover:text-red-600"
+                                            aria-label="Remove end location"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </span>
+                                </>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={isStartDateTimeFilled() ? handleAddStop : undefined}
+                                disabled={!isStartDateTimeFilled()}
+                                className={`flex items-center gap-1 text-[12px] font-[600] px-3 py-1.5 rounded-full border border-dashed whitespace-nowrap transition-colors ${
+                                    isStartDateTimeFilled()
+                                        ? "text-[#0955AC] border-[#0955AC] hover:bg-[#0955AC] hover:text-white"
+                                        : "text-gray-400 border-gray-300 cursor-not-allowed"
+                                }`}
+                            >
+                                <PlusIcon className="w-3 h-3" />
+                                Add stop
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={onFindVehicles}
+                                disabled={isLoadingVehicles}
+                                className="ml-auto flex items-center justify-center w-9 h-9 rounded-full bg-[#0955AC] hover:bg-[#073E82] text-white transition-colors disabled:bg-gray-400 shrink-0"
+                                aria-label="Search"
+                            >
+                                <SearchIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {(trips[currentTripIndex].startJourney.location || trips[currentTripIndex].endJourney.location) && (
+                            <p className="text-[11px] text-[#6F6F6F] mt-2 px-2">
+                                {[
+                                    trips[currentTripIndex].startJourney.location,
+                                    ...trips[currentTripIndex].stops.map((s) => s.destination).filter(Boolean),
+                                    trips[currentTripIndex].endJourney.location,
+                                ]
+                                    .filter(Boolean)
+                                    .join(" → ")}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {/* Trip Selector */}
                 <div className="w-full mb-4">
@@ -1193,29 +1331,6 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                             : "Apply Filters"
                     )}
                 </button>
-
-                <div className="absolute w-full xl:w-auto xl:-right-[100px] xl:bottom-12 -bottom-[52px] xl:-rotate-90 grid grid-cols-2 z-10 figtree font-[600] text-[14px]">
-                    <div
-                        onClick={() => setActiveView("journey")}
-                        className={`w-full xl:w-[74px] h-[52px] rounded-b-[10px] flex justify-center items-center shadow-lg cursor-pointer transition-all ${
-                            activeView === "journey"
-                                ? "bg-[#0955AC] text-[#FFFFFF]"
-                                : "bg-[#F4F3F3] text-[#000000]"
-                        }`}
-                    >
-                        Journey
-                    </div>
-                    <div
-                        onClick={() => setActiveView("filter")}
-                        className={`w-full xl:w-[74px] h-[52px] rounded-b-[10px] flex justify-center items-center shadow-lg cursor-pointer transition-all ${
-                            activeView === "filter"
-                                ? "bg-[#0955AC] text-[#FFFFFF]"
-                                : "bg-[#F4F3F3] text-[#000000]"
-                        }`}
-                    >
-                        Filter
-                    </div>
-                </div>
             </div>
 
             {/* Add Stop Popup */}

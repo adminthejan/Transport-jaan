@@ -418,20 +418,26 @@ class ClientCourierController extends Controller
     }
 
     /**
-     * Public "Track Shipment" page — no login required. Anyone with a valid
-     * reference number can look up status/tracking history, matching how
-     * ordinary carrier tracking pages work. Deliberately returns a stripped
-     * payload (see ClientCourierShipmentTransformer::forPublicTracking) —
-     * no contact details, addresses, payment, or internal notes.
+     * Public "Track Shipment" page — no login required, but a reference
+     * number alone is guessable/shareable, so full details are only shown
+     * once the requester also confirms the email on file AND the 6-digit
+     * tracking PIN generated when the shipment was created (see
+     * CourierShipment::generateTrackingPin()). Reference-only lookups get a
+     * "verify to continue" state instead of the stripped tracking payload.
      */
     public function trackPublic(Request $request)
     {
         $reference = trim((string) $request->query('reference', ''));
+        $email = trim((string) $request->query('email', ''));
+        $pin = trim((string) $request->query('pin', ''));
         $result = null;
         $notFound = false;
+        $needsVerification = false;
 
         if ($reference !== '') {
             $shipment = CourierShipment::with([
+                'sender',
+                'recipient',
                 'senderAddress',
                 'recipientAddress',
                 'trackingEvents' => function ($query) {
@@ -441,17 +447,28 @@ class ClientCourierController extends Controller
                 ->where('reference', $reference)
                 ->first();
 
-            if ($shipment) {
-                $result = app(ClientCourierShipmentTransformer::class)->forPublicTracking($shipment);
-            } else {
+            if (!$shipment) {
                 $notFound = true;
+            } else {
+                $senderEmail = mb_strtolower((string) ($shipment->sender?->email ?? ''));
+                $recipientEmail = mb_strtolower((string) ($shipment->recipient?->email ?? ''));
+                $emailMatches = $email !== '' && in_array(mb_strtolower($email), array_filter([$senderEmail, $recipientEmail]), true);
+                $pinMatches = $pin !== '' && hash_equals((string) $shipment->tracking_pin, $pin);
+
+                if ($emailMatches && $pinMatches) {
+                    $result = app(ClientCourierShipmentTransformer::class)->forPublicTracking($shipment);
+                } else {
+                    $needsVerification = true;
+                }
             }
         }
 
         return Inertia::render('Web/courier/TrackShipment', [
             'reference' => $reference !== '' ? $reference : null,
+            'email' => $email !== '' ? $email : null,
             'result' => $result,
             'notFound' => $notFound,
+            'needsVerification' => $needsVerification,
         ]);
     }
 

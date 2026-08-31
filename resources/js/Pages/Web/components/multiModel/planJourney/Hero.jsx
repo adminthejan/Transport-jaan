@@ -127,11 +127,25 @@ const Hero = () => {
         }
     };
 
-    const fetchLandVehicles = async () => {
-        if (vehicleListData) return;
+    // A truthy `params` forces a fresh fetch even if data is already loaded
+    // (used when a filter changes) — without params this only fetches once
+    // and caches, matching the original "load on tab open" behaviour.
+    const buildQueryString = (params) => {
+        if (!params) return '';
+        const usp = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '') return;
+            usp.set(key, Array.isArray(value) ? value.join(',') : value);
+        });
+        const qs = usp.toString();
+        return qs ? `?${qs}` : '';
+    };
+
+    const fetchLandVehicles = async (params = null) => {
+        if (vehicleListData && !params) return;
         setIsLoadingRental(true);
         try {
-            const res = await fetch('/vehicleList/json');
+            const res = await fetch(`/vehicleList/json${buildQueryString(params)}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setVehicleListData(data);
@@ -143,11 +157,11 @@ const Hero = () => {
         }
     };
 
-    const fetchSeaVehicles = async () => {
-        if (seaVehicleData) return;
+    const fetchSeaVehicles = async (params = null) => {
+        if (seaVehicleData && !params) return;
         setIsLoadingSea(true);
         try {
-            const res = await fetch('/seaVehicleList/json');
+            const res = await fetch(`/seaVehicleList/json${buildQueryString(params)}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setSeaVehicleData(data);
@@ -159,11 +173,11 @@ const Hero = () => {
         }
     };
 
-    const fetchAirVehicles = async () => {
-        if (airVehicleData) return;
+    const fetchAirVehicles = async (params = null) => {
+        if (airVehicleData && !params) return;
         setIsLoadingAir(true);
         try {
-            const res = await fetch('/airVehicleList/json');
+            const res = await fetch(`/airVehicleList/json${buildQueryString(params)}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setAirVehicleData(data);
@@ -173,6 +187,26 @@ const Hero = () => {
         } finally {
             setIsLoadingAir(false);
         }
+    };
+
+    // Filter sidebars call this instead of navigating away to the standalone
+    // /vehicleList page (which was the actual bug — selecting a filter while
+    // inside the Journey Planner sent you to a whole different page, and the
+    // Vehicle Rental/Ticket Booking/Multimodal + Land/Sea/Air tabs live only
+    // on this page, so they appeared to "disappear").
+    const handleRentalFilterSearch = (nextParams) => {
+        setRentalFormData(nextParams);
+        fetchLandVehicles(nextParams);
+    };
+
+    const handleSeaFilterSearch = (nextParams) => {
+        setSeaFormData(nextParams);
+        fetchSeaVehicles(nextParams);
+    };
+
+    const handleAirFilterSearch = (nextParams) => {
+        setAirFormData(nextParams);
+        fetchAirVehicles(nextParams);
     };
 
     const handleRentalSubTabClick = async (subTab) => {
@@ -727,13 +761,13 @@ const Hero = () => {
                                 </div>
                             ) : vehicleListData ? (
                                 <div className="flex gap-6">
-                                    <FilterSidebar searchParams={rentalFormData} />
+                                    <FilterSidebar searchParams={rentalFormData} onSearch={handleRentalFilterSearch} />
                                     <div className="flex-1 min-w-0">
                                         <div className="max-w-[1200px] mb-6">
                                             <SearchForm
                                                 formData={rentalFormData}
                                                 onFormChange={setRentalFormData}
-                                                redirectToFirstVehicle={true}
+                                                onSearch={handleRentalFilterSearch}
                                             />
                                         </div>
                                         <VehicleListContent
@@ -762,10 +796,10 @@ const Hero = () => {
                                 </div>
                             ) : seaVehicleData ? (
                                 <div className="flex gap-6">
-                                    <SeaFilterSidebar searchParams={seaFormData} />
+                                    <SeaFilterSidebar searchParams={seaFormData} onSearch={handleSeaFilterSearch} />
                                     <div className="flex-1 min-w-0">
                                         <div className="max-w-[1200px] mb-6">
-                                            <SeaSearchForm formData={seaFormData} onFormChange={setSeaFormData} />
+                                            <SeaSearchForm formData={seaFormData} onFormChange={setSeaFormData} onSearch={handleSeaFilterSearch} />
                                         </div>
                                         <SeaVehicleListContent
                                             vehicles={seaVehicleData.vehicles}
@@ -787,10 +821,10 @@ const Hero = () => {
                                 </div>
                             ) : airVehicleData ? (
                                 <div className="flex gap-6">
-                                    <AirFilterSidebar searchParams={airFormData} />
+                                    <AirFilterSidebar searchParams={airFormData} onSearch={handleAirFilterSearch} />
                                     <div className="flex-1 min-w-0">
                                         <div className="max-w-[1200px] mb-6">
-                                            <AirSearchForm formData={airFormData} onFormChange={setAirFormData} />
+                                            <AirSearchForm formData={airFormData} onFormChange={setAirFormData} onSearch={handleAirFilterSearch} />
                                         </div>
                                         <AirVehicleListContent
                                             vehicles={airVehicleData.vehicles}
@@ -894,8 +928,8 @@ const Hero = () => {
             )}
 
             {/* Multimodal Journey Planner View */}
-            {activeTab === 'multimodal' && <div className="grid grid-cols-1 xl:grid-cols-3 px-5 md:px-10 py-10 gap-20">
-                <div className="xl:col-span-1">
+            {activeTab === 'multimodal' && <div className="grid grid-cols-1 xl:grid-cols-3 px-5 md:px-10 py-10 gap-10">
+                <div className="xl:col-span-2 flex flex-col gap-10">
                     <JourneyPlanner
                         startJourney={startJourney}
                         setStartJourney={setStartJourney}
@@ -912,27 +946,6 @@ const Hero = () => {
                         onFindVehicles={fetchAvailableVehicles}
                         isLoadingVehicles={isLoadingVehicles}
                     />
-                </div>
-                <div className="xl:col-span-2 flex flex-col gap-10">
-                    <div className="w-full xl:h-[295px] bg-[#F4F3F3] shadow-lg rounded-[20px] overflow-hidden mt-10 xl:mt-0">
-                        {/* OpenStreetMap Component */}
-                        <MapComponent
-                            startLocation={trips[currentTripIndex]?.startJourney.coordinates ? {
-                                name: trips[currentTripIndex].startJourney.location,
-                                coordinates: trips[currentTripIndex].startJourney.coordinates
-                            } : null}
-                            endLocation={trips[currentTripIndex]?.endJourney.coordinates ? {
-                                name: trips[currentTripIndex].endJourney.location,
-                                coordinates: trips[currentTripIndex].endJourney.coordinates
-                            } : null}
-                            stops={trips[currentTripIndex]?.stops || []}
-                            onMapReady={handleMapReady}
-                            onLocationUpdate={handleLocationUpdate}
-                            onRouteCalculated={handleRouteCalculated}
-                            showAlternatives={showAlternatives}
-                            routePreference={routePreference}
-                        />
-                    </div>
 
                     <div className="flex flex-row items-center text-[#6F6F6F] text-[10px] font-[500] latto mb-16">
                         <div className="relative flex flex-col items-center justify-center">
@@ -1065,6 +1078,29 @@ const Hero = () => {
                             availableYachts={availableYachts}
                         />
                     )}
+                </div>
+
+                {/* Sticky map side panel */}
+                <div className="xl:col-span-1">
+                    <div className="xl:sticky xl:top-6 w-full h-[320px] xl:h-[calc(100vh-3rem)] xl:max-h-[820px] bg-[#F4F3F3] shadow-lg rounded-[20px] overflow-hidden mt-10 xl:mt-0">
+                        {/* OpenStreetMap Component */}
+                        <MapComponent
+                            startLocation={trips[currentTripIndex]?.startJourney.coordinates ? {
+                                name: trips[currentTripIndex].startJourney.location,
+                                coordinates: trips[currentTripIndex].startJourney.coordinates
+                            } : null}
+                            endLocation={trips[currentTripIndex]?.endJourney.coordinates ? {
+                                name: trips[currentTripIndex].endJourney.location,
+                                coordinates: trips[currentTripIndex].endJourney.coordinates
+                            } : null}
+                            stops={trips[currentTripIndex]?.stops || []}
+                            onMapReady={handleMapReady}
+                            onLocationUpdate={handleLocationUpdate}
+                            onRouteCalculated={handleRouteCalculated}
+                            showAlternatives={showAlternatives}
+                            routePreference={routePreference}
+                        />
+                    </div>
                 </div>
             </div>}
         </div>

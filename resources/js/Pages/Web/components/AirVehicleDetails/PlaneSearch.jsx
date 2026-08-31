@@ -531,32 +531,6 @@ const PlaneSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) =>
           <h1 className="font-[600] mb-5 text-[#000000D9]">Pricing Breakdown</h1>
           <div className="w-full h-[1px] bg-[#CDD0D4]" />
 
-          <h1 className="font-[600] mt-5 text-[#000000D9]">Driver</h1>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {[
-              { value: false, label: "Self-Drive" },
-              { value: true, label: "With Driver" },
-            ].map((opt) => (
-              <button
-                type="button"
-                key={String(opt.value)}
-                onClick={() => setNeedsDriver(opt.value)}
-                className={`rounded-[5px] border-[1.5px] px-4 py-2.5 text-[12px] font-[700] transition-colors ${
-                  needsDriver === opt.value
-                    ? "bg-[#0955AC] border-[#0955AC] text-white"
-                    : "border-[#0000001F] text-[#00000099] hover:border-[#0955AC]/40"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {needsDriver && (
-            <p className="mt-3 text-[12px] font-[700] text-[#0955AC] bg-[#0955AC1A] border border-[#0955AC]/30 rounded-[6px] px-3 py-2">
-              A pilot/driver adds {(DRIVER_FEE_RATE * 100).toFixed(0)}% of the daily rate for chauffeur service.
-            </p>
-          )}
-
           <h1 className="font-[600] mt-5 text-[#000000D9]">Add Extras</h1>
 
           <div className="flex flex-col justify-center text-[12px] font-[500] mt-5">

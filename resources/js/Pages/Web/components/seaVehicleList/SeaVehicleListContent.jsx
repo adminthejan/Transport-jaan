@@ -90,6 +90,7 @@ const SeaVehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehic
       if (searchParams.pickupDate) p.set("pickupDate", searchParams.pickupDate);
       if (searchParams.dropoffLocation) p.set("dropoffLocation", searchParams.dropoffLocation);
       if (searchParams.dropoffDate) p.set("dropoffDate", searchParams.dropoffDate);
+      if (searchParams.withSkipper) p.set("withSkipper", "true");
       const qs = p.toString();
       if (qs) search = `?${qs}`;
     } else {

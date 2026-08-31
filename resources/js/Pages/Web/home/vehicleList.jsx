@@ -14,6 +14,7 @@ const VehicleList = () => {
     pickupDate: "",
     dropoffLocation: "",
     dropoffDate: "",
+    withDriver: false,
     brand: "",
     bodyType: "",
   });
@@ -54,7 +55,8 @@ const VehicleList = () => {
                 dropoffDate: formData.dropoffDate,
                 dropoffLocation: formData.dropoffLocation,
                 pickupDate: formData.pickupDate,
-                pickupLocation: formData.pickupLocation
+                pickupLocation: formData.pickupLocation,
+                withDriver: formData.withDriver
               }}
             />
           </div>

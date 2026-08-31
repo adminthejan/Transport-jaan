@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { CheckCircle2, Bus, Users, Download, Eye, Mail, Home, Info } from 'lucide-react';
+import { CheckCircle2, Bus, Users, Download, Eye, Mail, Home, Info, KeyRound } from 'lucide-react';
 import Header from '../client/ClientHeader';
 import Footer from '../../layouts/Footer';
 import BookingReferenceDisplay from '../../../../Components/BookingReferenceDisplay';
@@ -98,6 +98,12 @@ const BusBookingSuccess = ({ booking, returnBooking }) => {
                         <div className="mt-5 inline-flex">
                             <BookingReferenceDisplay reference={booking.reference} size="medium" showCopy={true} showValidation={false} />
                         </div>
+                        {booking.trackingPin && (
+                            <div className="mt-3 inline-flex items-center gap-2 bg-white/15 rounded-full px-4 py-2 text-[13px] font-[700]">
+                                <KeyRound className="h-4 w-4" />
+                                Tracking PIN: <span className="tracking-[0.2em]">{booking.trackingPin}</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Passenger details */}

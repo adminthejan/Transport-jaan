@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
-import { Check, MapPin, PackageSearch, SlidersHorizontal, Warehouse, X } from "lucide-react";
+import { Check, ChevronDown, MapPin, PackageSearch, SlidersHorizontal, Warehouse, X } from "lucide-react";
 
 // Warehouse Type describes the facility itself; Services describes what a
 // client can book on top of storage. Kept as two separate filter groups to
@@ -23,13 +23,87 @@ const SERVICES = [
   { id: "transportation", label: "Transportation" },
 ];
 
-const LOCATIONS = [
-  { id: "colombo", label: "Colombo" },
-  { id: "gampaha", label: "Gampaha" },
-  { id: "kalutara", label: "Kalutara" },
-  { id: "kandy", label: "Kandy" },
-  { id: "galle", label: "Galle" },
-  { id: "matara", label: "Matara" },
+// Sri Lanka's real 9-province / 25-district administrative hierarchy.
+const PROVINCES = [
+  {
+    id: "western",
+    label: "Western",
+    districts: [
+      { id: "colombo", label: "Colombo" },
+      { id: "gampaha", label: "Gampaha" },
+      { id: "kalutara", label: "Kalutara" },
+    ],
+  },
+  {
+    id: "central",
+    label: "Central",
+    districts: [
+      { id: "kandy", label: "Kandy" },
+      { id: "matale", label: "Matale" },
+      { id: "nuwara_eliya", label: "Nuwara Eliya" },
+    ],
+  },
+  {
+    id: "southern",
+    label: "Southern",
+    districts: [
+      { id: "galle", label: "Galle" },
+      { id: "matara", label: "Matara" },
+      { id: "hambantota", label: "Hambantota" },
+    ],
+  },
+  {
+    id: "northern",
+    label: "Northern",
+    districts: [
+      { id: "jaffna", label: "Jaffna" },
+      { id: "kilinochchi", label: "Kilinochchi" },
+      { id: "mannar", label: "Mannar" },
+      { id: "vavuniya", label: "Vavuniya" },
+      { id: "mullaitivu", label: "Mullaitivu" },
+    ],
+  },
+  {
+    id: "eastern",
+    label: "Eastern",
+    districts: [
+      { id: "trincomalee", label: "Trincomalee" },
+      { id: "batticaloa", label: "Batticaloa" },
+      { id: "ampara", label: "Ampara" },
+    ],
+  },
+  {
+    id: "north_western",
+    label: "North Western",
+    districts: [
+      { id: "kurunegala", label: "Kurunegala" },
+      { id: "puttalam", label: "Puttalam" },
+    ],
+  },
+  {
+    id: "north_central",
+    label: "North Central",
+    districts: [
+      { id: "anuradhapura", label: "Anuradhapura" },
+      { id: "polonnaruwa", label: "Polonnaruwa" },
+    ],
+  },
+  {
+    id: "uva",
+    label: "Uva",
+    districts: [
+      { id: "badulla", label: "Badulla" },
+      { id: "monaragala", label: "Monaragala" },
+    ],
+  },
+  {
+    id: "sabaragamuwa",
+    label: "Sabaragamuwa",
+    districts: [
+      { id: "ratnapura", label: "Ratnapura" },
+      { id: "kegalle", label: "Kegalle" },
+    ],
+  },
 ];
 
 const asArray = (value) => {
@@ -54,6 +128,45 @@ const FilterOption = ({ label, active, onClick }) => (
   </button>
 );
 
+// A collapsible province header with its district checkboxes underneath —
+// same chip visual language as FilterOption, grouped under a toggle row.
+const ProvinceGroup = ({ province, selectedDistricts, onToggleDistrict, defaultOpen }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  const activeInProvince = province.districts.filter((d) => selectedDistricts.includes(d.id)).length;
+
+  return (
+    <div className="mb-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center justify-between w-full px-3 py-2 rounded-[8px] text-[12px] font-[700] text-[#0F0F0F] bg-[#F8FAFC] hover:bg-[#F1F5F9] transition-colors cursor-pointer"
+      >
+        <span className="flex items-center gap-2">
+          {province.label}
+          {activeInProvince > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[#0955AC1A] text-[#0955AC] text-[9px] font-[700]">
+              {activeInProvince}
+            </span>
+          )}
+        </span>
+        <ChevronDown className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="pl-2 pt-1.5">
+          {province.districts.map((district) => (
+            <FilterOption
+              key={district.id}
+              label={district.label}
+              active={selectedDistricts.includes(district.id)}
+              onClick={() => onToggleDistrict(district.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const FilterSection = ({ icon, title, subtitle, count, children }) => (
   <div className="filter-section mb-7 pb-6 border-b border-[#00000014] last:border-b-0 last:mb-0 last:pb-0">
     <div className="flex items-center gap-2 mb-1">
@@ -74,15 +187,13 @@ const FilterSection = ({ icon, title, subtitle, count, children }) => (
 const WarehouseFilterSidebar = ({ searchParams }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedDistricts, setSelectedDistricts] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setSelectedTypes(asArray(searchParams?.warehouseType));
     setSelectedServices(asArray(searchParams?.services));
-    if (searchParams?.location) {
-      setSelectedLocation(searchParams.location.toLowerCase());
-    }
+    setSelectedDistricts(asArray(searchParams?.location).map((v) => v.toLowerCase()));
   }, [searchParams]);
 
   const runSearch = (nextParams) => {
@@ -108,23 +219,23 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
     runSearch({ ...searchParams, services: next });
   };
 
-  const handleLocationChange = (location) => {
-    const newLocation = selectedLocation === location ? "" : location;
-    setSelectedLocation(newLocation);
-    runSearch({ ...searchParams, location: newLocation });
+  const handleDistrictToggle = (districtId) => {
+    const next = toggleInList(selectedDistricts, districtId);
+    setSelectedDistricts(next);
+    runSearch({ ...searchParams, location: next });
   };
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
 
-  const activeCount = selectedTypes.length + selectedServices.length + (selectedLocation ? 1 : 0);
+  const activeCount = selectedTypes.length + selectedServices.length + selectedDistricts.length;
 
   const clearAll = () => {
     setSelectedTypes([]);
     setSelectedServices([]);
-    setSelectedLocation("");
-    runSearch({ ...searchParams, warehouseType: [], services: [], location: "" });
+    setSelectedDistricts([]);
+    runSearch({ ...searchParams, warehouseType: [], services: [], location: [] });
   };
 
   return (
@@ -222,14 +333,16 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
         <FilterSection
           icon={<MapPin className="w-4 h-4 text-[#0955AC]" />}
           title="LOCATION"
-          count={selectedLocation ? 1 : 0}
+          subtitle="Province and district."
+          count={selectedDistricts.length}
         >
-          {LOCATIONS.map((location) => (
-            <FilterOption
-              key={location.id}
-              label={location.label}
-              active={selectedLocation === location.id}
-              onClick={() => handleLocationChange(location.id)}
+          {PROVINCES.map((province) => (
+            <ProvinceGroup
+              key={province.id}
+              province={province}
+              selectedDistricts={selectedDistricts}
+              onToggleDistrict={handleDistrictToggle}
+              defaultOpen={province.districts.some((d) => selectedDistricts.includes(d.id))}
             />
           ))}
         </FilterSection>

@@ -3,7 +3,7 @@ import { router } from "@inertiajs/react";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png"
 import locationBlue from "../../assets/vehicleList/locationBlue.png"
 
-const SearchForm = ({ formData, onFormChange }) => {
+const SearchForm = ({ formData, onFormChange, onSearch }) => {
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     onFormChange({
@@ -13,6 +13,15 @@ const SearchForm = ({ formData, onFormChange }) => {
   };
 
   const handleSearch = async () => {
+    // If a custom onSearch handler is provided (e.g. inline filtering inside
+    // the multimodal Journey Planner), call it instead of navigating away —
+    // this component is embedded there, and a hard navigation used to kick
+    // the user out to the standalone /airVehicleList page entirely.
+    if (onSearch) {
+      onSearch(formData);
+      return;
+    }
+
     const params = new URLSearchParams();
     if (formData.pickupLocation) params.set('pickupLocation', formData.pickupLocation);
     if (formData.pickupDate) params.set('pickupDate', formData.pickupDate);

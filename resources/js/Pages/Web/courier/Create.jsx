@@ -4075,9 +4075,26 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
                                 {quoteMatrix.length === 0 ? (
                                     <div className="mt-6 rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
-                                        {incompletePackages > 0
-                                            ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available ${selectedRouteType} courier services.`
-                                            : `Add package details to view available ${selectedRouteType} courier services.`}
+                                        {incompletePackages > 0 ? (
+                                            `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available ${selectedRouteType} courier services.`
+                                        ) : verifiedQuoteProviders.length > 0 && paymentFilteredQuoteProviders.length === 0 ? (
+                                            <div className="space-y-3">
+                                                <p>
+                                                    No couriers currently accept your selected payment method for this route.
+                                                    Try a different payment option above, or request a custom quote instead.
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleGetQuoteOnly}
+                                                    disabled={!isReadyForQuoteOnly || isPlacing}
+                                                    className={`rounded-lg border border-[#0955AC] bg-white px-4 py-2 text-sm font-semibold text-[#0955AC] transition ${!isReadyForQuoteOnly || isPlacing ? "cursor-not-allowed opacity-50" : "hover:bg-[#EEF5FF]"}`}
+                                                >
+                                                    Get a quote
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            `Add package details to view available ${selectedRouteType} courier services.`
+                                        )}
                                     </div>
                                 ) : (
                                     <div ref={quotesTableRef} className="mt-8 space-y-8">

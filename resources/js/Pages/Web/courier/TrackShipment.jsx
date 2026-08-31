@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { router } from "@inertiajs/react";
-import { Search, Package, Truck, CheckCircle, Clock, MapPin, AlertCircle } from "lucide-react";
+import { Search, Package, Truck, CheckCircle, Clock, MapPin, AlertCircle, Mail, KeyRound, ShieldCheck } from "lucide-react";
 import Header from "../home/client/ClientHeader";
 import Footer from "../layouts/Footer";
 
@@ -13,13 +13,18 @@ const STATUS_STYLES = {
     cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700 border-red-200", icon: AlertCircle },
 };
 
-const TrackShipment = ({ reference: initialReference, result, notFound }) => {
+const TrackShipment = ({ reference: initialReference, email: initialEmail, result, notFound, needsVerification }) => {
     const [reference, setReference] = useState(initialReference || "");
+    const [email, setEmail] = useState(initialEmail || "");
+    const [pin, setPin] = useState("");
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!reference.trim()) return;
-        router.get("/track-shipment", { reference: reference.trim() }, { preserveScroll: true });
+        const params = { reference: reference.trim() };
+        if (email.trim()) params.email = email.trim();
+        if (pin.trim()) params.pin = pin.trim();
+        router.get("/track-shipment", params, { preserveScroll: true });
     };
 
     const statusInfo = result ? (STATUS_STYLES[result.status] || STATUS_STYLES.pending) : null;
@@ -32,24 +37,56 @@ const TrackShipment = ({ reference: initialReference, result, notFound }) => {
                 <div className="text-center mb-10">
                     <Package className="w-10 h-10 text-[#0955AC] mx-auto mb-3" />
                     <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F172A]">Track Your Shipment</h1>
-                    <p className="text-[#64748B] mt-2">Enter your courier reference number to see its status — no account needed.</p>
+                    <p className="text-[#64748B] mt-2">
+                        Enter your reference number, the email on the shipment, and your 6-digit tracking PIN.
+                    </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 mb-10">
-                    <input
-                        type="text"
-                        value={reference}
-                        onChange={(e) => setReference(e.target.value)}
-                        placeholder="e.g. CR-2026-000123"
-                        className="flex-1 h-[52px] rounded-[12px] border border-[#E2E8F0] px-4 text-[14px] font-[600] text-[#0F172A] focus:outline-none focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-                    />
+                <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-[#EEF2F6] shadow-sm p-5 md:p-6 mb-10 space-y-3">
+                    <div className="relative">
+                        <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                        <input
+                            type="text"
+                            value={reference}
+                            onChange={(e) => setReference(e.target.value)}
+                            placeholder="Reference number, e.g. CR-2026-000123"
+                            className="w-full h-[52px] rounded-[12px] border border-[#E2E8F0] pl-12 pr-4 text-[14px] font-[600] text-[#0F172A] focus:outline-none focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Email on the shipment"
+                                className="w-full h-[52px] rounded-[12px] border border-[#E2E8F0] pl-12 pr-4 text-[14px] font-[600] text-[#0F172A] focus:outline-none focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                            />
+                        </div>
+                        <div className="relative">
+                            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={pin}
+                                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                                placeholder="6-digit tracking PIN"
+                                className="w-full h-[52px] rounded-[12px] border border-[#E2E8F0] pl-12 pr-4 text-[14px] font-[600] tracking-[0.3em] text-[#0F172A] focus:outline-none focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                            />
+                        </div>
+                    </div>
                     <button
                         type="submit"
-                        className="h-[52px] px-8 bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] rounded-[12px] flex items-center justify-center gap-2 transition-colors"
+                        className="w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] rounded-[12px] flex items-center justify-center gap-2 transition-colors"
                     >
                         <Search className="w-[18px] h-[18px]" />
-                        Track
+                        Track Shipment
                     </button>
+                    <p className="text-[12px] text-[#94A3B8] text-center pt-1">
+                        Your PIN was included in your shipment confirmation email.
+                    </p>
                 </form>
 
                 {notFound && (
@@ -57,6 +94,16 @@ const TrackShipment = ({ reference: initialReference, result, notFound }) => {
                         <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
                         <p className="text-[#334155] font-[700]">We couldn't find a shipment with that reference number.</p>
                         <p className="text-[#94A3B8] text-[13px] mt-1">Double-check the reference and try again.</p>
+                    </div>
+                )}
+
+                {needsVerification && (
+                    <div className="text-center py-10 bg-white rounded-2xl border border-[#EEF2F6] shadow-sm">
+                        <ShieldCheck className="w-8 h-8 text-amber-500 mx-auto mb-3" />
+                        <p className="text-[#334155] font-[700]">We need to verify it's you before showing this shipment.</p>
+                        <p className="text-[#94A3B8] text-[13px] mt-1">
+                            Enter both the email on the shipment and the correct 6-digit PIN, then try again.
+                        </p>
                     </div>
                 )}
 

@@ -45,6 +45,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
       const dDate = sp.get("dropoffDate") || sp.get("dropoff_date");
       const pTime = sp.get("pickupTime") || sp.get("pickup_time");
       const dTime = sp.get("dropoffTime") || sp.get("dropoff_time");
+      const withDriver = sp.get("withDriver") || sp.get("needs_driver");
 
       if (pLoc && !pickupLocation) setPickupLocation(pLoc);
       if (dLoc && !dropoffLocation) setDropoffLocation(dLoc);
@@ -52,6 +53,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
       if (dDate && !dropoffDate) setDropoffDate(dDate);
       if (pTime && (pickupTime === "0:00" || !pickupTime)) setPickupTime(pTime);
       if (dTime && (dropoffTime === "0:00" || !dropoffTime)) setDropoffTime(dTime);
+      if (withDriver === "true" || withDriver === "1") setNeedsDriver(true);
     } catch (e) {
       // ignore
     }

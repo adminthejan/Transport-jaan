@@ -372,11 +372,13 @@ class VehicleController extends Controller
 
             // land
             'bodyType'           => $v->landSpec?->body_type,
+            'industryCategory'   => $v->landSpec?->industry_category,
             'fuelType'           => $v->landSpec?->fuel_type,
             'transmissionType'   => $v->landSpec?->transmission_type,
             'gears'              => $v->landSpec?->gears,
             'seats'              => $v->landSpec?->seats,
             'doors'              => $v->landSpec?->doors,
+            'luggageCapacity'    => $v->landSpec?->luggage_capacity,
             'fuelTankCapacity'   => $v->landSpec?->fuel_tank_capacity_l,
 
             // air
@@ -479,16 +481,18 @@ class VehicleController extends Controller
 
             // land — must match the land_vehicle_specs enum columns exactly
             // (see database/migrations/2025_08_18_000200_create_land_vehicle_specs_table.php)
-            'bodyType'           => ['nullable', Rule::in(['sedan','hatchback','suv','van','bus','pickup','jeep','other','coupe','truck','convertible','limousine','crossover','wagon','familyMBP','sportcoupe','compact'])],
+            'bodyType'           => ['nullable', Rule::in(['sedan','hatchback','suv','van','bus','pickup','jeep','other','coupe','truck','convertible','limousine','crossover','wagon','familyMBP','sportcoupe','compact','mpv','motorcycle','three_wheeler','special_purpose'])],
+            'industryCategory'   => ['nullable', Rule::in(['cars_suvs','vans_minibuses','buses','trucks','prime_movers_trailers','construction_equipment'])],
             'fuelType'           => ['nullable', Rule::in(['petrol','diesel','hybrid','electric','cng','lpg','other'])],
             'transmissionType'   => ['nullable', Rule::in(['manual','automatic','amt','cvt','dct'])],
             'gears'              => ['nullable','integer','min:0'],
             'seats'              => ['nullable','integer','min:0','max:255'],
             'doors'              => ['nullable','integer','min:0','max:255'],
+            'luggageCapacity'    => ['nullable','integer','min:0','max:255'],
             'fuelTankCapacity'   => ['nullable','numeric','min:0'],
 
             // air
-            'aircraft_type'          => ['nullable', Rule::in(['fixed_wing','helicopter','glider','other'])],
+            'aircraft_type'          => ['nullable', Rule::in(['fixed_wing','private_jet','commercial_airliner','helicopter','charter_aircraft','light_aircraft','business_jet','turboprop_aircraft','glider','seaplane','cargo_aircraft','hot_air_balloon','other'])],
             'icao_type_designator'   => ['nullable','string','max:8'],
             'base_airport_iata'      => ['nullable','string','max:3'],
             'base_airport_icao'      => ['nullable','string','max:4'],
@@ -500,7 +504,7 @@ class VehicleController extends Controller
             'flight_hours_total'     => ['nullable','integer','min:0'],
 
             // sea
-            'vessel_type'        => ['nullable', Rule::in(['boat','yacht','catamaran','ferry','other'])],
+            'vessel_type'        => ['nullable', Rule::in(['boat','speedboat','yacht','catamaran','sailboat','fishing_boat','cruise_ship','ferry','houseboat','jet_ski','tugboat','cargo_vessel','other'])],
             'hull_material'      => ['nullable','string','max:64'],
             'length_m'           => ['nullable','numeric','min:0'],
             'beam_m'             => ['nullable','numeric','min:0'],
@@ -666,11 +670,13 @@ class VehicleController extends Controller
                         ['vehicle_id' => $vehicle->id],
                         [
                             'body_type'            => $request->input('bodyType'),
+                            'industry_category'    => $request->input('industryCategory'),
                             'fuel_type'            => $request->input('fuelType'),
                             'transmission_type'    => $request->input('transmissionType'),
                             'gears'                => $request->integer('gears') ?: null,
                             'seats'                => $request->integer('seats') ?: null,
                             'doors'                => $request->integer('doors') ?: null,
+                            'luggage_capacity'     => $request->integer('luggageCapacity') ?: null,
                             'fuel_tank_capacity_l' => $request->input('fuelTankCapacity'),
                         ]
                     );

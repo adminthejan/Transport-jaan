@@ -14,6 +14,7 @@ const seaVehicleList = () => {
     pickupDate: "",
     dropoffLocation: "",
     dropoffDate: "",
+    withSkipper: false,
     brand: "",
     bodyType: "",
   });
@@ -54,7 +55,8 @@ const seaVehicleList = () => {
                 dropoffDate: formData.dropoffDate,
                 dropoffLocation: formData.dropoffLocation,
                 pickupDate: formData.pickupDate,
-                pickupLocation: formData.pickupLocation
+                pickupLocation: formData.pickupLocation,
+                withSkipper: formData.withSkipper
               }}
             />
           </div>

@@ -25,6 +25,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
     if (formData.pickupDate) params.set('pickupDate', formData.pickupDate);
     if (formData.dropoffLocation) params.set('dropoffLocation', formData.dropoffLocation);
     if (formData.dropoffDate) params.set('dropoffDate', formData.dropoffDate);
+    if (formData.withDriver) params.set('withDriver', 'true');
 
     const queryString = params.toString();
 
@@ -143,6 +144,30 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   onClick={() => document.getElementById('dropoffDate').showPicker()}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Driver preference */}
+          <div className="w-full sm:w-auto shrink-0">
+            <label className="block mb-1">Driver</label>
+            <div className="inline-flex w-full sm:w-auto rounded-[8px] border border-[#0000001A] bg-[#F1F5F9] p-1">
+              {[
+                { value: false, label: "Without Driver" },
+                { value: true, label: "With Driver" },
+              ].map((opt) => (
+                <button
+                  type="button"
+                  key={String(opt.value)}
+                  onClick={() => onFormChange({ ...formData, withDriver: opt.value })}
+                  className={`flex-1 sm:flex-none whitespace-nowrap rounded-[6px] px-3 sm:px-4 h-[46px] text-[12px] font-[700] transition-colors ${
+                    Boolean(formData.withDriver) === opt.value
+                      ? "bg-[#0955AC] text-white shadow-sm"
+                      : "text-[#475569] hover:text-[#0955AC]"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 

@@ -1,17 +1,41 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
-import { Car, Check, Cog, Fuel, Gauge, SlidersHorizontal, Tag, Users, X } from "lucide-react";
+import { Briefcase, Car, Check, Cog, Fuel, Gauge, LayoutGrid, ShieldCheck, SlidersHorizontal, Tag, Users, Wifi, X } from "lucide-react";
+
+const INDUSTRY_CATEGORIES = [
+  { id: "cars_suvs", label: "Cars & SUVs" },
+  { id: "vans_minibuses", label: "Vans & Minibuses" },
+  { id: "buses", label: "Buses" },
+  { id: "trucks", label: "Trucks" },
+  { id: "prime_movers_trailers", label: "Prime Movers & Trailers" },
+  { id: "construction_equipment", label: "Construction & Equipment" },
+];
 
 const BODY_TYPES = [
+  { id: "sedan", label: "Sedan" },
+  { id: "hatchback", label: "Hatchback" },
   { id: "suv", label: "SUV" },
   { id: "crossover", label: "Crossover" },
   { id: "wagon", label: "Wagon" },
+  { id: "mpv", label: "MPV / Minivan" },
+  { id: "van", label: "Van" },
+  { id: "pickup", label: "Pickup / Truck" },
+  { id: "bus", label: "Bus / Coach" },
+  { id: "motorcycle", label: "Motorcycle" },
+  { id: "three_wheeler", label: "Three-Wheeler" },
+  { id: "special_purpose", label: "Special Purpose Vehicle" },
   { id: "family", label: "Family MBP" },
   { id: "sportcoupe", label: "Sport Coupe" },
   { id: "compact", label: "Compact" },
   { id: "coupe", label: "Coupe" },
-  { id: "truck", label: "Truck" },
   { id: "other", label: "Other" },
+];
+
+const EXTRAS = [
+  { id: "gps", label: "GPS", icon: Gauge },
+  { id: "child_seat", label: "Child Seat", icon: Users },
+  { id: "wifi", label: "WiFi", icon: Wifi },
+  { id: "insurance_coverage", label: "Insurance Coverage", icon: ShieldCheck },
 ];
 
 const BRANDS = [
@@ -24,19 +48,17 @@ const BRANDS = [
   { id: "other", label: "Other" },
 ];
 
-const CAPACITIES = [
-  { id: "2person", label: "2 Person" },
-  { id: "4person", label: "4 Person" },
-  { id: "6person", label: "6 Person" },
-  { id: "8ormore", label: "8 or More" },
-];
+const SEATS_FLOOR = 1;
+const SEATS_CEILING = 12;
 
-const PRICES = [
-  { id: "0-50", label: "US$ 0 - US$ 50" },
-  { id: "50-100", label: "US$ 50 - US$ 100" },
-  { id: "100-150", label: "US$ 100 - US$ 150" },
-  { id: "150-200", label: "US$ 150 - US$ 200" },
-  { id: "200plus", label: "US$ 200+" },
+const PRICE_FLOOR = 0;
+const PRICE_CEILING = 300;
+const PRICE_STEP = 5;
+
+const LUGGAGE_CAPACITIES = [
+  { id: "1-2", label: "1 - 2 Bags" },
+  { id: "3-4", label: "3 - 4 Bags" },
+  { id: "5plus", label: "5+ Bags" },
 ];
 
 const MILEAGES = [
@@ -94,12 +116,123 @@ const FilterSection = ({ icon, title, count, children }) => (
   </div>
 );
 
-const FilterSidebar = ({ searchParams }) => {
+const THUMB_STYLES =
+  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#0955AC] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer " +
+  "[&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#0955AC] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer";
+
+// Dual-handle price range slider. Drag updates the visual position and the
+// "US$ X - US$ Y" readout instantly (local state), but only actually
+// triggers a search (a full round trip) once you release the handle —
+// otherwise every pixel of drag would fire a request.
+const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
+  const [localMin, setLocalMin] = useState(valueMin);
+  const [localMax, setLocalMax] = useState(valueMax);
+
+  useEffect(() => setLocalMin(valueMin), [valueMin]);
+  useEffect(() => setLocalMax(valueMax), [valueMax]);
+
+  const commit = () => onCommit(localMin, localMax);
+
+  const minPct = ((localMin - min) / (max - min)) * 100;
+  const maxPct = ((localMax - min) / (max - min)) * 100;
+  // Keep whichever handle is closer to the max end on top, so the two
+  // thumbs stay independently grabbable even when they're near each other.
+  const minOnTop = localMin > min + (max - min) * 0.6;
+
+  return (
+    <div className="px-1 pt-1">
+      <div className="relative h-1.5 rounded-full bg-[#E2E8F0] mt-3 mb-4">
+        <div
+          className="absolute h-1.5 rounded-full bg-[#0955AC]"
+          style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={localMin}
+          onChange={(e) => setLocalMin(Math.min(Number(e.target.value), localMax - step))}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          onKeyUp={commit}
+          aria-label="Minimum price per day"
+          style={{ zIndex: minOnTop ? 5 : 3 }}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent pointer-events-none ${THUMB_STYLES}`}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={localMax}
+          onChange={(e) => setLocalMax(Math.max(Number(e.target.value), localMin + step))}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          onKeyUp={commit}
+          aria-label="Maximum price per day"
+          style={{ zIndex: minOnTop ? 3 : 5 }}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent pointer-events-none ${THUMB_STYLES}`}
+        />
+      </div>
+      <div className="flex items-center justify-between text-[12px] font-[700] text-[#334155]">
+        <span>US$ {localMin}</span>
+        <span>US$ {localMax}{localMax >= max ? "+" : ""}</span>
+      </div>
+    </div>
+  );
+};
+
+// Single-handle linear slider — "at least N seats" reads more naturally as
+// a magnitude you drag up, rather than a min/max range like price does.
+const MinValueSlider = ({ min, max, value, suffix, onCommit }) => {
+  const [local, setLocal] = useState(value);
+
+  useEffect(() => setLocal(value), [value]);
+
+  const pct = ((local - min) / (max - min)) * 100;
+
+  return (
+    <div className="px-1 pt-1">
+      <div className="relative h-1.5 rounded-full bg-[#E2E8F0] mt-3 mb-4">
+        <div className="absolute h-1.5 rounded-full bg-[#0955AC]" style={{ width: `${pct}%` }} />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={1}
+          value={local}
+          onChange={(e) => setLocal(Number(e.target.value))}
+          onMouseUp={() => onCommit(local)}
+          onTouchEnd={() => onCommit(local)}
+          onKeyUp={() => onCommit(local)}
+          aria-label={`Minimum ${suffix}`}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent cursor-pointer ${THUMB_STYLES}`}
+        />
+      </div>
+      <div className="text-[12px] font-[700] text-[#334155]">
+        At least {local} {suffix}{local >= max ? "+" : ""}
+      </div>
+    </div>
+  );
+};
+
+const FilterSidebar = ({ searchParams, onSearch }) => {
   const [selectedBodyType, setSelectedBodyType] = useState("");
+  const [selectedIndustryCategory, setSelectedIndustryCategory] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedCapacity, setSelectedCapacity] = useState("");
-  const [selectedPrice, setSelectedPrice] = useState("");
+  const [selectedExtras, setSelectedExtras] = useState([]);
+  const [minSeats, setMinSeats] = useState(
+    searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR
+  );
+  const [selectedLuggage, setSelectedLuggage] = useState("");
+  const [priceMin, setPriceMin] = useState(
+    searchParams?.minPrice !== undefined && searchParams?.minPrice !== "" ? Number(searchParams.minPrice) : PRICE_FLOOR
+  );
+  const [priceMax, setPriceMax] = useState(
+    searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING
+  );
   const [selectedMileage, setSelectedMileage] = useState("");
   const [selectedTransmission, setSelectedTransmission] = useState("");
   const [selectedFuel, setSelectedFuel] = useState("");
@@ -111,9 +244,25 @@ const FilterSidebar = ({ searchParams }) => {
     if (searchParams?.brand) {
       setSelectedBrand(searchParams.brand.toLowerCase());
     }
+    if (searchParams?.industryCategory) {
+      setSelectedIndustryCategory(searchParams.industryCategory.toLowerCase());
+    }
+    if (searchParams?.extras) {
+      setSelectedExtras(String(searchParams.extras).split(',').filter(Boolean));
+    }
+    setPriceMin(searchParams?.minPrice !== undefined && searchParams?.minPrice !== "" ? Number(searchParams.minPrice) : PRICE_FLOOR);
+    setPriceMax(searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING);
+    setMinSeats(searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR);
   }, [searchParams]);
 
   const runSearch = (nextParams) => {
+    // Inside the multimodal Journey Planner this is rendered inline, and a
+    // hard navigation here used to boot the user out to the standalone
+    // /vehicleList page — losing the Land/Sea/Air tabs entirely.
+    if (onSearch) {
+      onSearch(nextParams);
+      return;
+    }
     router.get('/vehicleList', nextParams, {
       preserveState: true,
       preserveScroll: true,
@@ -133,16 +282,42 @@ const FilterSidebar = ({ searchParams }) => {
     runSearch({ ...searchParams, brand: newVal });
   };
 
-  const handleCapacityChange = (capacity) => {
-    const newVal = selectedCapacity === capacity ? "" : capacity;
-    setSelectedCapacity(newVal);
-    runSearch({ ...searchParams, capacity: newVal });
+  const handleIndustryCategoryChange = (category) => {
+    const newVal = selectedIndustryCategory === category ? "" : category;
+    setSelectedIndustryCategory(newVal);
+    runSearch({ ...searchParams, industryCategory: newVal });
   };
 
-  const handlePriceChange = (priceRange) => {
-    const newVal = selectedPrice === priceRange ? "" : priceRange;
-    setSelectedPrice(newVal);
-    runSearch({ ...searchParams, price: newVal });
+  const handleExtraToggle = (extra) => {
+    const newVal = selectedExtras.includes(extra)
+      ? selectedExtras.filter((e) => e !== extra)
+      : [...selectedExtras, extra];
+    setSelectedExtras(newVal);
+    runSearch({ ...searchParams, extras: newVal.join(',') });
+  };
+
+  const handleSeatsCommit = (val) => {
+    setMinSeats(val);
+    runSearch({ ...searchParams, minSeats: val > SEATS_FLOOR ? val : "" });
+  };
+
+  const handleLuggageChange = (luggage) => {
+    const newVal = selectedLuggage === luggage ? "" : luggage;
+    setSelectedLuggage(newVal);
+    runSearch({ ...searchParams, luggage: newVal });
+  };
+
+  const handlePriceCommit = (min, max) => {
+    setPriceMin(min);
+    setPriceMax(max);
+    runSearch({
+      ...searchParams,
+      minPrice: min > PRICE_FLOOR ? min : "",
+      // At the ceiling it means "no upper bound" — omit it entirely instead
+      // of sending 300, so anything priced above the slider's own max still
+      // matches (see ClientVehicleController's minPrice/maxPrice handling).
+      maxPrice: max < PRICE_CEILING ? max : "",
+    });
   };
 
   const handleMileageChange = (mileage) => {
@@ -167,27 +342,38 @@ const FilterSidebar = ({ searchParams }) => {
 
   const activeCount =
     (selectedBodyType ? 1 : 0) +
+    (selectedIndustryCategory ? 1 : 0) +
     (selectedBrand ? 1 : 0) +
-    (selectedCapacity ? 1 : 0) +
-    (selectedPrice ? 1 : 0) +
+    (minSeats > SEATS_FLOOR ? 1 : 0) +
+    (selectedLuggage ? 1 : 0) +
+    (priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0) +
+    (selectedExtras.length > 0 ? 1 : 0) +
     (selectedMileage ? 1 : 0) +
     (selectedTransmission ? 1 : 0) +
     (selectedFuel ? 1 : 0);
 
   const clearAll = () => {
     setSelectedBodyType("");
+    setSelectedIndustryCategory("");
     setSelectedBrand("");
-    setSelectedCapacity("");
-    setSelectedPrice("");
+    setMinSeats(SEATS_FLOOR);
+    setSelectedLuggage("");
+    setPriceMin(PRICE_FLOOR);
+    setPriceMax(PRICE_CEILING);
+    setSelectedExtras([]);
     setSelectedMileage("");
     setSelectedTransmission("");
     setSelectedFuel("");
     runSearch({
       ...searchParams,
       bodyType: "",
+      industryCategory: "",
       brand: "",
-      capacity: "",
-      price: "",
+      minSeats: "",
+      luggage: "",
+      minPrice: "",
+      maxPrice: "",
+      extras: "",
       mileage: "",
       transmission: "",
       fuel: "",
@@ -254,6 +440,17 @@ const FilterSidebar = ({ searchParams }) => {
           )}
         </div>
 
+        <FilterSection icon={<LayoutGrid className="w-4 h-4 text-[#0955AC]" />} title="USE / INDUSTRY CATEGORY" count={selectedIndustryCategory ? 1 : 0}>
+          {INDUSTRY_CATEGORIES.map((cat) => (
+            <FilterOption
+              key={cat.id}
+              label={cat.label}
+              active={selectedIndustryCategory === cat.id}
+              onClick={() => handleIndustryCategoryChange(cat.id)}
+            />
+          ))}
+        </FilterSection>
+
         <FilterSection icon={<Car className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType ? 1 : 0}>
           {BODY_TYPES.map((type) => (
             <FilterOption
@@ -276,26 +473,51 @@ const FilterSidebar = ({ searchParams }) => {
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={selectedCapacity ? 1 : 0}>
-          {CAPACITIES.map((cap) => (
+        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={minSeats > SEATS_FLOOR ? 1 : 0}>
+          <MinValueSlider
+            min={SEATS_FLOOR}
+            max={SEATS_CEILING}
+            value={minSeats}
+            suffix="Seats"
+            onCommit={handleSeatsCommit}
+          />
+        </FilterSection>
+
+        <FilterSection icon={<Briefcase className="w-4 h-4 text-[#0955AC]" />} title="LUGGAGE CAPACITY" count={selectedLuggage ? 1 : 0}>
+          {LUGGAGE_CAPACITIES.map((l) => (
             <FilterOption
-              key={cap.id}
-              label={cap.label}
-              active={selectedCapacity === cap.id}
-              onClick={() => handleCapacityChange(cap.id)}
+              key={l.id}
+              label={l.label}
+              active={selectedLuggage === l.id}
+              onClick={() => handleLuggageChange(l.id)}
             />
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="PRICE PER DAY" count={selectedPrice ? 1 : 0}>
-          {PRICES.map((p) => (
+        <FilterSection icon={<ShieldCheck className="w-4 h-4 text-[#0955AC]" />} title="EXTRAS" count={selectedExtras.length}>
+          {EXTRAS.map((extra) => (
             <FilterOption
-              key={p.id}
-              label={p.label}
-              active={selectedPrice === p.id}
-              onClick={() => handlePriceChange(p.id)}
+              key={extra.id}
+              label={extra.label}
+              active={selectedExtras.includes(extra.id)}
+              onClick={() => handleExtraToggle(extra.id)}
             />
           ))}
+        </FilterSection>
+
+        <FilterSection
+          icon={<Gauge className="w-4 h-4 text-[#0955AC]" />}
+          title="PRICE PER DAY"
+          count={priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0}
+        >
+          <PriceRangeSlider
+            min={PRICE_FLOOR}
+            max={PRICE_CEILING}
+            step={PRICE_STEP}
+            valueMin={priceMin}
+            valueMax={priceMax}
+            onCommit={handlePriceCommit}
+          />
         </FilterSection>
 
         <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage ? 1 : 0}>

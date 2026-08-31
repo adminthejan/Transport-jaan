@@ -35,8 +35,11 @@ use App\Http\Controllers\VehicleControllers\Client\ClientVehicleController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
+use App\Http\Controllers\VehicleControllers\Client\VehicleTrackingController;
+use App\Http\Controllers\TicketBookingTrackingController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSettingsController;
+use App\Http\Controllers\Client\WalletController;
 use App\Http\Controllers\Api\LocationLookupController;
 use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 use App\Http\Controllers\CourierControllers\Client\CourierPaymentController;
@@ -92,6 +95,12 @@ Route::get('/courier-service', [WebController::class, 'courierService'])->name('
 Route::get('/track-shipment', [ClientCourierController::class, 'trackPublic'])
     ->middleware('throttle:30,1')
     ->name('couriers.track.public');
+Route::get('/track-vehicle-booking', [VehicleTrackingController::class, 'trackPublic'])
+    ->middleware('throttle:30,1')
+    ->name('vehicles.track.public');
+Route::get('/track-ticket-booking', [TicketBookingTrackingController::class, 'trackPublic'])
+    ->middleware('throttle:30,1')
+    ->name('tickets.track.public');
 Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/create', function () {
         return redirect()->route('couriers.flow.create', ['flow' => 'domestic']);
@@ -400,6 +409,11 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::post('/bookings/{booking}/confirm', [ClientBookingController::class, 'confirm'])->name('bookings.confirm');
         Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
         Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
+
+        // Central client wallet
+        Route::get('/wallet', [WalletController::class, 'dashboard'])->name('wallet.dashboard');
+        Route::get('/wallet/summary', [WalletController::class, 'summary'])->name('wallet.summary');
+        Route::post('/wallet/topup', [WalletController::class, 'topup'])->name('wallet.topup');
         
         // Vehicle booking cancellation routes
         Route::get('/bookings/{booking}/cancellation-policy', [ClientBookingController::class, 'getCancellationPolicy'])->name('bookings.cancellation-policy');

@@ -69,6 +69,9 @@
 
             <div class="card">
                 <div class="row"><span class="label">Reference:</span> {{ $shipment->reference }}</div>
+                @if($dispatch->event_type === 'shipment_placed' && $shipment->tracking_pin)
+                    <div class="row"><span class="label">Tracking PIN:</span> {{ $shipment->tracking_pin }}</div>
+                @endif
                 <div class="row"><span class="label">Current Status:</span> {{ ucfirst(str_replace('_', ' ', (string) $shipment->status)) }}</div>
                 <div class="row"><span class="label">Service Level:</span> {{ ucfirst((string) ($shipment->service_level ?? '-')) }}</div>
                 <div class="row"><span class="label">Sender:</span> {{ (string) ($shipment->sender?->name ?? '-') }}</div>

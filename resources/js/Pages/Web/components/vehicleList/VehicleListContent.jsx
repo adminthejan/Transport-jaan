@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { router, Link } from "@inertiajs/react";
 import axios from "axios";
-import { Car as CarIcon, Fuel, Gauge, Heart, Settings2, Users } from "lucide-react";
+import { Briefcase, Car as CarIcon, Fuel, Gauge, Heart, Settings2, Users } from "lucide-react";
 
 const SORT_OPTIONS = [
   { value: "default", label: "Featured" },
@@ -90,6 +90,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
       if (searchParams.pickupDate) p.set("pickupDate", searchParams.pickupDate);
       if (searchParams.dropoffLocation) p.set("dropoffLocation", searchParams.dropoffLocation);
       if (searchParams.dropoffDate) p.set("dropoffDate", searchParams.dropoffDate);
+      if (searchParams.withDriver) p.set("withDriver", "true");
       const qs = p.toString();
       if (qs) search = `?${qs}`;
     } else {
@@ -128,6 +129,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
           if (v.landSpec?.fuel_type) specs.push({ icon: Fuel, label: formatLabel(v.landSpec.fuel_type) });
           const seats = v.landSpec?.seats || v.passenger_capacity;
           if (seats) specs.push({ icon: Users, label: `${seats} Seats` });
+          if (v.landSpec?.luggage_capacity) specs.push({ icon: Briefcase, label: `${v.landSpec.luggage_capacity} Bags` });
           if (v.mileage_km) specs.push({ icon: Gauge, label: `${Number(v.mileage_km).toLocaleString()} km` });
 
           const title = [v.manufacturer, v.model].filter(Boolean).join(" ") || v.model || "Vehicle";

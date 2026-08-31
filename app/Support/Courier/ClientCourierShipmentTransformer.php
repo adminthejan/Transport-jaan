@@ -89,6 +89,7 @@ class ClientCourierShipmentTransformer
         return [
             'id' => $shipment->id,
             'code' => $shipment->reference,
+            'trackingPin' => $shipment->tracking_pin,
             'status' => $shipment->status,
             'serviceLevel' => $shipment->service_level,
             'pickupDate' => $shipment->pickup_date?->format('Y-m-d'),

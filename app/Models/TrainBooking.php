@@ -5,16 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\BookingReferenceGenerator;
+use App\Models\Concerns\HasTrackingPin;
 use Laravel\Scout\Searchable;
 
 class TrainBooking extends Model
 {
     use HasFactory;
     use Searchable;
+    use HasTrackingPin;
 
     protected $fillable = [
         'user_id',
         'train_schedule_id',
+        'tracking_pin',
         'passenger_name',
         'passenger_email',
         'passenger_phone',
@@ -81,6 +84,9 @@ class TrainBooking extends Model
         static::creating(function ($booking) {
             if (empty($booking->booking_reference)) {
                 $booking->booking_reference = BookingReferenceGenerator::forTrain();
+            }
+            if (empty($booking->tracking_pin)) {
+                $booking->tracking_pin = self::generateTrackingPin();
             }
         });
     }

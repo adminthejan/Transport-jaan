@@ -736,9 +736,19 @@ class WebController extends Controller
 
         // Apply filters based on search parameters
 
-        // Location filter (from both search form and filter sidebar)
-        if (isset($searchParams['location']) && !empty($searchParams['location'])) {
-            $query->where('address', 'LIKE', '%' . $searchParams['location'] . '%');
+        // Location filter (from both search form and filter sidebar). The
+        // sidebar now sends a district multi-select (array), while the
+        // search form still sends a single free-text string — support both.
+        if (!empty($searchParams['location'])) {
+            $locations = is_array($searchParams['location']) ? $searchParams['location'] : [$searchParams['location']];
+            $locations = array_filter($locations, fn($l) => !empty($l));
+            if (!empty($locations)) {
+                $query->where(function ($q) use ($locations) {
+                    foreach ($locations as $loc) {
+                        $q->orWhere('address', 'LIKE', '%' . str_replace('_', ' ', $loc) . '%');
+                    }
+                });
+            }
         }
         if (isset($searchParams['warehouseLocation']) && !empty($searchParams['warehouseLocation'])) {
             $query->where('address', 'LIKE', '%' . $searchParams['warehouseLocation'] . '%');
@@ -819,9 +829,31 @@ class WebController extends Controller
         //     // Add lease duration filtering logic if your model supports it
         // }
 
-        $warehouses = $query->with(['images' => function($q) {
+        $query->with(['images' => function($q) {
             $q->active()->ordered();
-        }, 'mainImage'])->orderBy('created_at', 'desc')->get();
+        }, 'mainImage']);
+
+        // "Nearby Location" — when the client detected their coordinates via
+        // the browser Geolocation API, sort results by real distance (km,
+        // haversine formula) instead of the default recency order.
+        $nearLat = $searchParams['nearLat'] ?? null;
+        $nearLng = $searchParams['nearLng'] ?? null;
+        if (is_numeric($nearLat) && is_numeric($nearLng)) {
+            $query->selectRaw(
+                '*, (6371 * acos(least(1, greatest(-1,
+                    cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?))
+                    + sin(radians(?)) * sin(radians(latitude))
+                )))) AS distance_km',
+                [$nearLat, $nearLng, $nearLat]
+            )
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->orderBy('distance_km', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $warehouses = $query->get();
 
         // Check if JSON format is requested
         if ($request->get('format') === 'json' || $request->expectsJson()) {

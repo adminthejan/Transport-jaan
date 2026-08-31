@@ -13,6 +13,8 @@ use App\Models\VehicleFeaturePricing;
 use App\Models\BookingCustomer;
 use App\Models\AirVehicleBookingCustomer;
 use App\Services\VehicleBookingCancellationService;
+use App\Services\WalletService;
+use App\Services\InsufficientWalletBalanceException;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -360,23 +362,29 @@ class ClientBookingController extends Controller
     }
 
     /** RENDER: Payments page */
-    public function payments(Booking $booking)
+    public function payments(Booking $booking, WalletService $wallets)
     {
         $this->authorizeBooking($booking);
         $booking->load('vehicle', 'schedule', 'addons', 'customer');
 
+        $wallet = $wallets->walletFor(Auth::user());
+
         return Inertia::render('Web/components/LandVehicleDetails/Payments', [
             'booking' => $booking,
+            'wallet' => [
+                'balance' => (float) $wallet->balance,
+                'currency' => $wallet->currency,
+            ],
         ]);
     }
 
     /** CONFIRM: POST /bookings/{booking}/confirm */
-    public function confirm(Request $request, Booking $booking)
+    public function confirm(Request $request, Booking $booking, WalletService $wallets)
     {
         $this->authorizeBooking($booking);
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'in:Credit Card,PayPal,Bank Transfer'],
+            'payment_method' => ['required', 'in:Credit Card,PayPal,Bank Transfer,Wallet'],
             'payment_option' => ['required', 'in:full,advance'],
             'slip_number'    => ['nullable', 'string', 'max:255'],
             // Accept PDF or common image formats for bank slip uploads
@@ -392,55 +400,74 @@ class ClientBookingController extends Controller
             $slipPath = $request->file('slip_pdf')->store('bank_slips', 'public');
         }
 
-        DB::transaction(function () use ($booking, $validated, $payNow, $slipPath, $request) {
-            BookingPayment::create([
-                'booking_id'   => $booking->id,
-                'method'       => $validated['payment_method'],
-                'option'       => $validated['payment_option'],
-                'amount_paid'  => $payNow,
-                'status'       => 'paid',
-                'slip_number'  => $validated['slip_number'] ?? null,
-                'slip_path'    => $slipPath,
-                'tx_reference' => null,
-            ]);
-
-            $rawPersonal = (array) $request->session()->pull('booking_personal', []);
-            if ($rawPersonal && !$booking->customer) {
-                $personal = Validator::make($rawPersonal, [
-                    'first_name'   => ['nullable', 'string', 'max:255'],
-                    'last_name'    => ['nullable', 'string', 'max:255'],
-                    'email'        => ['nullable', 'email', 'max:255'],
-                    'phone'        => ['nullable', 'regex:/^\+?\d{7,15}$/', 'max:20'],
-                    'country_code' => ['nullable', 'string', 'max:5'],
-                    'city'         => ['nullable', 'string', 'max:255'],
-                    'zip_code'     => ['nullable', 'string', 'max:20'],
-                    'age'          => ['nullable', 'integer', 'min:18', 'max:120'],
-                    'address'      => ['nullable', 'string', 'max:255'],
-                    'notes'        => ['nullable', 'string'],
-                ])->validate();
-
-                if (collect($personal)->filter(fn($v) => filled($v))->isNotEmpty()) {
-                    BookingCustomer::create(array_merge($personal, ['booking_id' => $booking->id]));
+        try {
+            DB::transaction(function () use ($booking, $validated, $payNow, $slipPath, $request, $wallets) {
+                // Wallet payments are debited inside the same transaction as the booking
+                // confirmation below, so an overlap conflict (or any other failure further
+                // down) rolls the debit back too instead of leaving the customer charged
+                // for a booking that never got confirmed.
+                if ($validated['payment_method'] === 'Wallet') {
+                    $wallets->debit(
+                        Auth::user(),
+                        (float) $payNow,
+                        'payment',
+                        'Vehicle booking #' . $booking->id,
+                        'VehicleBooking',
+                        $booking->id
+                    );
                 }
-            }
 
-            $booking->load('schedule');
-            $overlap = Booking::where('vehicle_id', $booking->vehicle_id)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->where('id', '!=', $booking->id)
-                ->whereHas('schedule', function ($q) use ($booking) {
-                    $q->where('pickup_at', '<', $booking->schedule->dropoff_at)
-                      ->where('dropoff_at', '>', $booking->schedule->pickup_at);
-                })
-                ->lockForUpdate()
-                ->exists();
-            if ($overlap) {
-                abort(422, 'Vehicle is no longer available for those dates.');
-            }
+                BookingPayment::create([
+                    'booking_id'   => $booking->id,
+                    'method'       => $validated['payment_method'],
+                    'option'       => $validated['payment_option'],
+                    'amount_paid'  => $payNow,
+                    'status'       => 'paid',
+                    'slip_number'  => $validated['slip_number'] ?? null,
+                    'slip_path'    => $slipPath,
+                    'tx_reference' => null,
+                ]);
 
-            $booking->update(['status' => 'confirmed']);
-            $request->session()->forget(['booking_trip']);
-        });
+                $rawPersonal = (array) $request->session()->pull('booking_personal', []);
+                if ($rawPersonal && !$booking->customer) {
+                    $personal = Validator::make($rawPersonal, [
+                        'first_name'   => ['nullable', 'string', 'max:255'],
+                        'last_name'    => ['nullable', 'string', 'max:255'],
+                        'email'        => ['nullable', 'email', 'max:255'],
+                        'phone'        => ['nullable', 'regex:/^\+?\d{7,15}$/', 'max:20'],
+                        'country_code' => ['nullable', 'string', 'max:5'],
+                        'city'         => ['nullable', 'string', 'max:255'],
+                        'zip_code'     => ['nullable', 'string', 'max:20'],
+                        'age'          => ['nullable', 'integer', 'min:18', 'max:120'],
+                        'address'      => ['nullable', 'string', 'max:255'],
+                        'notes'        => ['nullable', 'string'],
+                    ])->validate();
+
+                    if (collect($personal)->filter(fn($v) => filled($v))->isNotEmpty()) {
+                        BookingCustomer::create(array_merge($personal, ['booking_id' => $booking->id]));
+                    }
+                }
+
+                $booking->load('schedule');
+                $overlap = Booking::where('vehicle_id', $booking->vehicle_id)
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->where('id', '!=', $booking->id)
+                    ->whereHas('schedule', function ($q) use ($booking) {
+                        $q->where('pickup_at', '<', $booking->schedule->dropoff_at)
+                          ->where('dropoff_at', '>', $booking->schedule->pickup_at);
+                    })
+                    ->lockForUpdate()
+                    ->exists();
+                if ($overlap) {
+                    abort(422, 'Vehicle is no longer available for those dates.');
+                }
+
+                $booking->update(['status' => 'confirmed']);
+                $request->session()->forget(['booking_trip']);
+            });
+        } catch (InsufficientWalletBalanceException $e) {
+            return back()->withErrors(['wallet' => 'Insufficient wallet balance for this payment.'])->withInput();
+        }
 
         return redirect()->route('client.bookings.summary', $booking->id)
             ->with('success', 'Booking confirmed!');

@@ -183,8 +183,18 @@ class BookingReferenceGenerator
     }
 
     /**
+     * Generate reference for land vehicle bookings
+     *
+     * @return string Unique land vehicle booking reference
+     */
+    public static function forVehicle(): string
+    {
+        return self::generate('VEH', 'bookings');
+    }
+
+    /**
      * Generate reference for air vehicle bookings
-     * 
+     *
      * @return string Unique air vehicle booking reference
      */
     public static function forAirVehicle(): string
@@ -231,6 +241,7 @@ class BookingReferenceGenerator
             'BUS' => 'bus',
             'TRN' => 'train',
             'FLT' => 'flight',
+            'VEH' => 'vehicle',
             'AIR' => 'air_vehicle',
             'SEA' => 'sea_vehicle',
             default => null

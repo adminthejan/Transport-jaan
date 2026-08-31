@@ -108,6 +108,11 @@ class User extends Authenticatable
         return $this->hasMany(VendorUserMembership::class, 'vendor_user_id');
     }
 
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
     /**
      * Get approved service category slugs for this vendor.
      */

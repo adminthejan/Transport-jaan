@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
+import { Wallet as WalletIcon, AlertTriangle } from "lucide-react";
 import car from "../../assets/vehicleCheckout/car.svg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
 import icon2 from "../../assets/vehicleCheckout/icon2.svg";
@@ -50,6 +51,10 @@ const Payments = () => {
   const vehicle = booking?.vehicle || {};
   const schedule = booking?.schedule || {};
 
+  // Wallet balance (for the "Pay with Wallet" option)
+  const wallet = props?.wallet || { balance: 0, currency: "LKR" };
+  const walletBalance = Number(wallet.balance ?? 0);
+
   const total = n(booking.total_amount);
   const advance = n(booking.advance_amount);
 
@@ -59,6 +64,7 @@ const Payments = () => {
   const [slipPdf, setSlipPdf] = useState(null);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState({ slipNumber: "", slipPdf: "" });
+  const [walletError, setWalletError] = useState("");
   const slipNumberRegex = /^(\d+|[a-zA-Z]+\d+|[a-zA-Z]+-\d+)$/;
 
   // NEW: in-window popup instead of alert for T&C message
@@ -78,6 +84,16 @@ const Payments = () => {
       alert("Missing booking. Please go back.");
       return;
     }
+
+    // Wallet balance pre-check (server re-validates with a row lock regardless)
+    if (selectedPayment === "Wallet") {
+      const payNowAmount = paymentOption === "full" ? total : Math.min(advance, total);
+      if (walletBalance < payNowAmount) {
+        setWalletError("Insufficient wallet balance for this payment.");
+        return;
+      }
+    }
+    setWalletError("");
 
     // Only require slip number & PDF when user chooses Bank Transfer
     if (selectedPayment === "Bank Transfer") {
@@ -120,6 +136,9 @@ const Payments = () => {
     router.post(route("client.bookings.confirm", booking.id), formData, {
       forceFormData: true,
       preserveScroll: true,
+      onError: (errs) => {
+        if (errs?.wallet) setWalletError(errs.wallet);
+      },
     });
   };
 
@@ -246,22 +265,49 @@ const Payments = () => {
             <h1 className="text-[20px] font-[700]">Payment Methods</h1>
 
             <div className="flex flex-row flex-wrap items-center gap-10 text-[10px] font-[600] text-[#00000080] py-2">
-              {["Credit Card", "PayPal", "Bank Transfer"].map((m) => (
+              {["Credit Card", "PayPal", "Bank Transfer", "Wallet"].map((m) => (
                 <label key={m} className="flex flex-row justify-center items-center gap-3 cursor-pointer">
                   <input
                     type="radio"
                     name="paymentMethod"
                     value={m}
                     checked={selectedPayment === m}
-                    onChange={() => setSelectedPayment(m)}
+                    onChange={() => {
+                      setSelectedPayment(m);
+                      setWalletError("");
+                    }}
                     className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:outline-none focus:ring-transparent transition-colors cursor-pointer"
                   />
-                  <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
+                  <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600] flex items-center gap-1.5">
+                    {m === "Wallet" && <WalletIcon size={14} className="text-[#0955AC]" />}
                     {m}
                   </span>
                 </label>
               ))}
             </div>
+
+            {selectedPayment === "Wallet" && (
+              <div className="mt-4 rounded-[10px] bg-[#F1F5F9] px-5 py-4 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-[600] text-[#00000099]">Wallet Balance</span>
+                  <span className="text-[16px] font-[700] text-[#0955AC]">
+                    {wallet.currency} {walletBalance.toFixed(2)}
+                  </span>
+                </div>
+                {walletError && (
+                  <div className="flex items-center gap-2 text-red-600 text-[12px] font-[600]">
+                    <AlertTriangle size={14} />
+                    <span>{walletError}</span>
+                    <a
+                      href={route("client.wallet.dashboard")}
+                      className="ml-1 underline text-[#0955AC]"
+                    >
+                      Top up now
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
 
             {selectedPayment === "Bank Transfer" && (
               <div className="mt-4 grid lg:grid-cols-2 gap-4">

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { router, usePage, Link } from "@inertiajs/react";
 import { AnimatePresence } from "framer-motion";
+import axios from "axios";
+import { route } from "ziggy-js";
 import ActionModalTemplate from "../../components/SuperAdmin/Common/ActionModalTemplate";
 import proPic from "../../assets/header/profilePic.svg";
 import bell from "../../assets/header/bell.svg";
@@ -25,6 +27,7 @@ import {
     LogOut,
     LogIn,
     UserPlus,
+    Wallet,
 } from "lucide-react";
 import CompanyLogo from "../../components/CompanyLogo";
 import DashboardSearchModal from "@/Components/search/DashboardSearchModal";
@@ -105,6 +108,28 @@ const ClientHeader = () => {
     });
 
     const clientSearchItems = useMemo(() => buildClientDashboardSearchEntries(), []);
+
+    // ---------- Wallet balance ----------
+    const [walletBalance, setWalletBalance] = useState(null);
+    const [walletCurrency, setWalletCurrency] = useState("LKR");
+
+    useEffect(() => {
+        if (!auth?.user) return;
+        let cancelled = false;
+        axios
+            .get(route("client.wallet.summary"))
+            .then(({ data }) => {
+                if (cancelled) return;
+                setWalletBalance(Number(data?.balance ?? 0));
+                setWalletCurrency(data?.currency || "LKR");
+            })
+            .catch(() => {
+                if (!cancelled) setWalletBalance(null);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [auth?.user]);
 
     const toggleDropdown = (key) => {
         setOpenDropdown((prev) => ({
@@ -294,6 +319,25 @@ const ClientHeader = () => {
                         </div>
                     )}
                     <div className="hidden md:flex flex-row gap-4 justify-end items-center">
+                    {auth?.user && (
+                        <button
+                            type="button"
+                            onClick={() => router.visit(route("client.wallet.dashboard"))}
+                            className="h-[55px] px-4 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center gap-2"
+                            title="Wallet"
+                            aria-label="Wallet balance"
+                        >
+                            <Wallet className="w-[20px] h-[20px] text-[#0955AC]" />
+                            <span className="text-[13px] font-[700] text-[#0955AC] whitespace-nowrap">
+                                {walletBalance === null
+                                    ? "Wallet"
+                                    : `${walletCurrency} ${walletBalance.toLocaleString(undefined, {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                      })}`}
+                            </span>
+                        </button>
+                    )}
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
                             src={bell}
@@ -465,6 +509,7 @@ const ClientHeader = () => {
                                 <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=land" label="Land" onClick={toggleMenu} />
                                 <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=air" label="Air" onClick={toggleMenu} />
                                 <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=sea" label="Sea" onClick={toggleMenu} />
+                                <SidebarSubLink href="/track-vehicle-booking" label="Track Booking" onClick={toggleMenu} />
                             </SidebarAccordion>
 
                             <SidebarAccordion
@@ -477,6 +522,7 @@ const ClientHeader = () => {
                                 <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=flight" label="Flight" onClick={toggleMenu} />
                                 <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=train" label="Train" onClick={toggleMenu} />
                                 <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=bus" label="Bus" onClick={toggleMenu} />
+                                <SidebarSubLink href="/track-ticket-booking" label="Track Booking" onClick={toggleMenu} />
                             </SidebarAccordion>
 
                             <SidebarAccordion
@@ -510,6 +556,13 @@ const ClientHeader = () => {
                                 icon={ClipboardList}
                                 label="My Bookings"
                                 active={isActivePath("/clientAllBookings")}
+                                onClick={toggleMenu}
+                            />
+                            <SidebarLink
+                                href={route("client.wallet.dashboard")}
+                                icon={Wallet}
+                                label="Wallet"
+                                active={isActivePath("/client/wallet")}
                                 onClick={toggleMenu}
                             />
                             <SidebarLink

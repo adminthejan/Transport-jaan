@@ -16,6 +16,8 @@ const WarehouseList = () => {
     moveinDate: "",
     leaseDuration: "",
     dateMode: "flexible",
+    nearLat: "",
+    nearLng: "",
   });
 
   useEffect(() => {

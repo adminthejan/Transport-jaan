@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, usePage } from "@inertiajs/react";
-import { CheckCircle2, TrainFront, Clock, Printer, ArrowRight, Info } from "lucide-react";
+import { CheckCircle2, TrainFront, Clock, Printer, ArrowRight, Info, KeyRound } from "lucide-react";
 import Header from "../client/ClientHeader";
 import Footer from "../../layouts/Footer";
 import BookingReferenceDisplay from "../../../../Components/BookingReferenceDisplay";
@@ -71,6 +71,12 @@ const TrainBookingSuccess = () => {
                             showCopy={true}
                             showValidation={true}
                         />
+                        {booking.tracking_pin && (
+                            <div className="mt-3 inline-flex items-center gap-2 bg-white/15 rounded-full px-4 py-2 text-[13px] font-[700] text-white">
+                                <KeyRound className="h-4 w-4" />
+                                Tracking PIN: <span className="tracking-[0.2em]">{booking.tracking_pin}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="p-5 sm:p-7 space-y-7">

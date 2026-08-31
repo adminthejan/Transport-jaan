@@ -528,6 +528,7 @@ class TrainController extends Controller
     {
         return [
             'reference' => $booking->booking_reference,
+            'tracking_pin' => $booking->tracking_pin,
             'passenger_name' => $booking->passenger_name,
             'passenger_email' => $booking->passenger_email,
             'passenger_phone' => $booking->passenger_phone,

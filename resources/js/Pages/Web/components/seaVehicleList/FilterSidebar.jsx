@@ -3,14 +3,18 @@ import { router } from "@inertiajs/react";
 import { Anchor, Check, Fuel, Gauge, Ship, SlidersHorizontal, Tag, Users, X } from "lucide-react";
 
 const BODY_TYPES = [
-  { id: "jetSki", label: "Jet Ski" },
   { id: "speedboat", label: "Speedboat" },
   { id: "yacht", label: "Yacht" },
   { id: "catamaran", label: "Catamaran" },
-  { id: "sailboat", label: "Sail Boat" },
-  { id: "fishingboat", label: "Fishing Boat" },
-  { id: "cruiseShip", label: "Cruise Ship" },
-  { id: "houseBoat", label: "House Boat" },
+  { id: "sailboat", label: "Sailboat" },
+  { id: "fishing_boat", label: "Fishing Boat" },
+  { id: "cruise_ship", label: "Cruise Ship" },
+  { id: "ferry", label: "Ferry" },
+  { id: "houseboat", label: "Houseboat" },
+  { id: "jet_ski", label: "Jet Ski" },
+  { id: "tugboat", label: "Tugboat" },
+  { id: "cargo_vessel", label: "Cargo Vessel" },
+  { id: "other", label: "Other" },
 ];
 
 const BRANDS = [
@@ -26,20 +30,12 @@ const BRANDS = [
   { id: "masterCraft", label: "Master Craft" },
 ];
 
-const CAPACITIES = [
-  { id: "2person", label: "2 Person" },
-  { id: "4person", label: "4 Person" },
-  { id: "6person", label: "6 Person" },
-  { id: "8ormore", label: "8 or More" },
-];
+const SEATS_FLOOR = 1;
+const SEATS_CEILING = 20;
 
-const PRICES = [
-  { id: "0-50", label: "US$ 0 - US$ 50" },
-  { id: "50-100", label: "US$ 50 - US$ 100" },
-  { id: "100-150", label: "US$ 100 - US$ 150" },
-  { id: "150-200", label: "US$ 150 - US$ 200" },
-  { id: "200plus", label: "US$ 200+" },
-];
+const PRICE_FLOOR = 0;
+const PRICE_CEILING = 2000;
+const PRICE_STEP = 25;
 
 const MILEAGES = [
   { id: "limited", label: "Limited" },
@@ -85,12 +81,112 @@ const FilterSection = ({ icon, title, count, children }) => (
   </div>
 );
 
-const FilterSidebar = ({ searchParams }) => {
+const THUMB_STYLES =
+  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#0955AC] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer " +
+  "[&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#0955AC] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer";
+
+const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
+  const [localMin, setLocalMin] = useState(valueMin);
+  const [localMax, setLocalMax] = useState(valueMax);
+
+  useEffect(() => setLocalMin(valueMin), [valueMin]);
+  useEffect(() => setLocalMax(valueMax), [valueMax]);
+
+  const commit = () => onCommit(localMin, localMax);
+
+  const minPct = ((localMin - min) / (max - min)) * 100;
+  const maxPct = ((localMax - min) / (max - min)) * 100;
+  const minOnTop = localMin > min + (max - min) * 0.6;
+
+  return (
+    <div className="px-1 pt-1">
+      <div className="relative h-1.5 rounded-full bg-[#E2E8F0] mt-3 mb-4">
+        <div
+          className="absolute h-1.5 rounded-full bg-[#0955AC]"
+          style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={localMin}
+          onChange={(e) => setLocalMin(Math.min(Number(e.target.value), localMax - step))}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          onKeyUp={commit}
+          aria-label="Minimum price per day"
+          style={{ zIndex: minOnTop ? 5 : 3 }}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent pointer-events-none ${THUMB_STYLES}`}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={localMax}
+          onChange={(e) => setLocalMax(Math.max(Number(e.target.value), localMin + step))}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          onKeyUp={commit}
+          aria-label="Maximum price per day"
+          style={{ zIndex: minOnTop ? 3 : 5 }}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent pointer-events-none ${THUMB_STYLES}`}
+        />
+      </div>
+      <div className="flex items-center justify-between text-[12px] font-[700] text-[#334155]">
+        <span>US$ {localMin}</span>
+        <span>US$ {localMax}{localMax >= max ? "+" : ""}</span>
+      </div>
+    </div>
+  );
+};
+
+const MinValueSlider = ({ min, max, value, suffix, onCommit }) => {
+  const [local, setLocal] = useState(value);
+
+  useEffect(() => setLocal(value), [value]);
+
+  const pct = ((local - min) / (max - min)) * 100;
+
+  return (
+    <div className="px-1 pt-1">
+      <div className="relative h-1.5 rounded-full bg-[#E2E8F0] mt-3 mb-4">
+        <div className="absolute h-1.5 rounded-full bg-[#0955AC]" style={{ width: `${pct}%` }} />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={1}
+          value={local}
+          onChange={(e) => setLocal(Number(e.target.value))}
+          onMouseUp={() => onCommit(local)}
+          onTouchEnd={() => onCommit(local)}
+          onKeyUp={() => onCommit(local)}
+          aria-label={`Minimum ${suffix}`}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent cursor-pointer ${THUMB_STYLES}`}
+        />
+      </div>
+      <div className="text-[12px] font-[700] text-[#334155]">
+        At least {local} {suffix}{local >= max ? "+" : ""}
+      </div>
+    </div>
+  );
+};
+
+const FilterSidebar = ({ searchParams, onSearch }) => {
   const [selectedBodyType, setSelectedBodyType] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedCapacity, setSelectedCapacity] = useState("");
-  const [selectedPrice, setSelectedPrice] = useState("");
+  const [minSeats, setMinSeats] = useState(
+    searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR
+  );
+  const [priceMin, setPriceMin] = useState(
+    searchParams?.minPrice !== undefined && searchParams?.minPrice !== "" ? Number(searchParams.minPrice) : PRICE_FLOOR
+  );
+  const [priceMax, setPriceMax] = useState(
+    searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING
+  );
   const [selectedMileage, setSelectedMileage] = useState("");
   const [selectedFuel, setSelectedFuel] = useState("");
 
@@ -101,9 +197,16 @@ const FilterSidebar = ({ searchParams }) => {
     if (searchParams?.brand) {
       setSelectedBrand(searchParams.brand.toLowerCase());
     }
+    setPriceMin(searchParams?.minPrice !== undefined && searchParams?.minPrice !== "" ? Number(searchParams.minPrice) : PRICE_FLOOR);
+    setPriceMax(searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING);
+    setMinSeats(searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR);
   }, [searchParams]);
 
   const runSearch = (nextParams) => {
+    if (onSearch) {
+      onSearch(nextParams);
+      return;
+    }
     router.get('/seaVehicleList', nextParams, {
       preserveState: true,
       preserveScroll: true,
@@ -123,16 +226,19 @@ const FilterSidebar = ({ searchParams }) => {
     runSearch({ ...searchParams, brand: newVal });
   };
 
-  const handleCapacityChange = (capacity) => {
-    const newVal = selectedCapacity === capacity ? "" : capacity;
-    setSelectedCapacity(newVal);
-    runSearch({ ...searchParams, capacity: newVal });
+  const handleSeatsCommit = (val) => {
+    setMinSeats(val);
+    runSearch({ ...searchParams, minSeats: val > SEATS_FLOOR ? val : "" });
   };
 
-  const handlePriceChange = (priceRange) => {
-    const newVal = selectedPrice === priceRange ? "" : priceRange;
-    setSelectedPrice(newVal);
-    runSearch({ ...searchParams, price: newVal });
+  const handlePriceCommit = (min, max) => {
+    setPriceMin(min);
+    setPriceMax(max);
+    runSearch({
+      ...searchParams,
+      minPrice: min > PRICE_FLOOR ? min : "",
+      maxPrice: max < PRICE_CEILING ? max : "",
+    });
   };
 
   const handleMileageChange = (mileage) => {
@@ -152,24 +258,26 @@ const FilterSidebar = ({ searchParams }) => {
   const activeCount =
     (selectedBodyType ? 1 : 0) +
     (selectedBrand ? 1 : 0) +
-    (selectedCapacity ? 1 : 0) +
-    (selectedPrice ? 1 : 0) +
+    (minSeats > SEATS_FLOOR ? 1 : 0) +
+    (priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0) +
     (selectedMileage ? 1 : 0) +
     (selectedFuel ? 1 : 0);
 
   const clearAll = () => {
     setSelectedBodyType("");
     setSelectedBrand("");
-    setSelectedCapacity("");
-    setSelectedPrice("");
+    setMinSeats(SEATS_FLOOR);
+    setPriceMin(PRICE_FLOOR);
+    setPriceMax(PRICE_CEILING);
     setSelectedMileage("");
     setSelectedFuel("");
     runSearch({
       ...searchParams,
       bodyType: "",
       brand: "",
-      capacity: "",
-      price: "",
+      minSeats: "",
+      minPrice: "",
+      maxPrice: "",
       mileage: "",
       fuel: "",
     });
@@ -257,26 +365,16 @@ const FilterSidebar = ({ searchParams }) => {
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={selectedCapacity ? 1 : 0}>
-          {CAPACITIES.map((cap) => (
-            <FilterOption
-              key={cap.id}
-              label={cap.label}
-              active={selectedCapacity === cap.id}
-              onClick={() => handleCapacityChange(cap.id)}
-            />
-          ))}
+        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={minSeats > SEATS_FLOOR ? 1 : 0}>
+          <MinValueSlider min={SEATS_FLOOR} max={SEATS_CEILING} value={minSeats} suffix="Guests" onCommit={handleSeatsCommit} />
         </FilterSection>
 
-        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="PRICE PER DAY" count={selectedPrice ? 1 : 0}>
-          {PRICES.map((p) => (
-            <FilterOption
-              key={p.id}
-              label={p.label}
-              active={selectedPrice === p.id}
-              onClick={() => handlePriceChange(p.id)}
-            />
-          ))}
+        <FilterSection
+          icon={<Gauge className="w-4 h-4 text-[#0955AC]" />}
+          title="PRICE PER DAY"
+          count={priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0}
+        >
+          <PriceRangeSlider min={PRICE_FLOOR} max={PRICE_CEILING} step={PRICE_STEP} valueMin={priceMin} valueMax={priceMax} onCommit={handlePriceCommit} />
         </FilterSection>
 
         <FilterSection icon={<Anchor className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage ? 1 : 0}>
