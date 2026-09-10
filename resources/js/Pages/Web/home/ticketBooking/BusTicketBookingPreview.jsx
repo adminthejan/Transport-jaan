@@ -67,8 +67,15 @@ const legend = [
     { label: "Booked — Female", swatch: "bg-[#D6336C]" },
 ];
 
+const LUGGAGE_OPTIONS = [
+    { value: "none", label: "No bags — Free" },
+    { value: "1", label: "1 bag — Free" },
+    { value: "2", label: "2 bags — LKR 500" },
+    { value: "3", label: "3 bags — LKR 1,000" },
+];
+
 /** One leg's trip-info card + map + seat grid. Fully presentational. */
-function TripSeatPanel({ label, trip, seatLayout, bookedSeats, bookedSeatGenders, selected, onToggle, genders }) {
+function TripSeatPanel({ label, trip, seatLayout, bookedSeats, bookedSeatGenders, selected, onToggle, genders, requiredSeats }) {
     const { formatPrice } = useLocale();
     const seatMap = useMemo(
         () => buildSeatMap(seatLayout, bookedSeats, bookedSeatGenders),
@@ -77,11 +84,17 @@ function TripSeatPanel({ label, trip, seatLayout, bookedSeats, bookedSeatGenders
 
     if (!trip) return null;
 
+    const seatsSatisfied = selected.length === requiredSeats;
+
     return (
         <div className="rounded-2xl border border-[#EEF2F6] overflow-hidden bg-white shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
             <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-4 sm:px-5 py-3.5 flex items-center justify-between">
                 <span className="font-[800] text-white text-[16px] sm:text-lg">{label}</span>
                 <span className="text-white/90 text-sm font-[600]">{trip.day}</span>
+            </div>
+
+            <div className={`px-4 sm:px-5 py-2.5 text-center text-sm font-[700] ${seatsSatisfied ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                Select {requiredSeats} seat{requiredSeats === 1 ? "" : "s"} — {selected.length} of {requiredSeats} selected
             </div>
 
             <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm border-b border-[#F1F5F9]">
@@ -208,6 +221,10 @@ function GenderPromptModal({ seatId, onSelect, onCancel }) {
 const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedSeatGenders, seatLayout, returnTrip, returnBookedSeats, returnBookedSeatGenders, returnSeatLayout }) => {
     const { t, formatPrice } = useLocale();
     const isRoundTrip = !!returnTrip;
+    // How many seats the passenger picked on the search form — the seat map
+    // used to accept any number of seats regardless of what was searched for,
+    // so nothing told the passenger how many they were supposed to pick.
+    const requiredSeats = Math.max(1, parseInt(searchParams?.passengers, 10) || 1);
 
     const [selected, setSelected] = useState([]);
     const [returnSelected, setReturnSelected] = useState([]);
@@ -218,6 +235,9 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
     const [email, setEmail] = useState("");
     const [boarding, setBoarding] = useState("");
     const [destination, setDestination] = useState("");
+    // Additional services — shown by default (not an opt-in add-on you have
+    // to discover), defaulting to the free tier like Busbud's luggage picker.
+    const [luggage, setLuggage] = useState("none");
     const [submitting, setSubmitting] = useState(false);
     // Which seat is currently waiting on a gender pick: { leg: 'outbound'|'return', seatId }
     const [genderPrompt, setGenderPrompt] = useState(null);
@@ -245,6 +265,10 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
             });
             return;
         }
+        if (selected.length >= requiredSeats) {
+            alert(`You searched for ${requiredSeats} passenger${requiredSeats === 1 ? "" : "s"} — deselect a seat first to pick a different one.`);
+            return;
+        }
         setGenderPrompt({ leg: "outbound", seatId });
     };
 
@@ -257,6 +281,10 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                 delete next[seatId];
                 return next;
             });
+            return;
+        }
+        if (returnSelected.length >= requiredSeats) {
+            alert(`You searched for ${requiredSeats} passenger${requiredSeats === 1 ? "" : "s"} — deselect a seat first to pick a different one.`);
             return;
         }
         setGenderPrompt({ leg: "return", seatId });
@@ -284,9 +312,9 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
     const allSeatsHaveGender = (seatIds, genders) => seatIds.every((id) => genders[id]);
 
     const canContinue =
-        selected.length > 0 &&
+        selected.length === requiredSeats &&
         allSeatsHaveGender(selected, seatGenders) &&
-        (!isRoundTrip || (returnSelected.length > 0 && allSeatsHaveGender(returnSelected, returnSeatGenders))) &&
+        (!isRoundTrip || (returnSelected.length === requiredSeats && allSeatsHaveGender(returnSelected, returnSeatGenders))) &&
         passengerName.trim().length > 2 &&
         mobile.trim().length >= 9 &&
         boarding &&
@@ -308,6 +336,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
             passenger_email: email,
             boarding_point: boarding,
             destination_point: destination,
+            luggage,
             total_price: outboundTotal,
         };
 
@@ -410,6 +439,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                             selected={selected}
                             onToggle={toggleSeat}
                             genders={seatGenders}
+                            requiredSeats={requiredSeats}
                         />
                         {isRoundTrip && (
                             <TripSeatPanel
@@ -421,6 +451,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                 selected={returnSelected}
                                 onToggle={toggleReturnSeat}
                                 genders={returnSeatGenders}
+                                requiredSeats={requiredSeats}
                             />
                         )}
                     </div>
@@ -508,6 +539,19 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                         <option value="" disabled>Select your drop-off point</option>
                                         {destinationOptions.map((opt) => (
                                             <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-[12px] font-[700] text-[#64748B] tracking-wide">Additional Services — Luggage</label>
+                                    <select
+                                        value={luggage}
+                                        onChange={(e) => setLuggage(e.target.value)}
+                                        className="w-full rounded-[12px] border border-[#E2E8F0] px-3.5 py-3 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                                    >
+                                        {LUGGAGE_OPTIONS.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
                                         ))}
                                     </select>
                                 </div>

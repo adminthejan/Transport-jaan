@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import Header from "./client/ClientHeader";
+import { ModuleTabs, RentalSubTabs } from "../components/ModuleTabs";
 import FilterSidebar from "../components/vehicleList/FilterSidebar";
 import VehicleListContent from "../components/vehicleList/VehicleListContent";
 import SearchForm from "../components/vehicleList/SearchForm";
@@ -35,6 +36,13 @@ const VehicleList = () => {
   return (
     <div className="vehicle-list-page bg-[#F6F7F9] min-h-screen">
       <Header />
+
+      <div className="pt-6 sm:pt-8 px-5 md:px-10 max-w-[1800px] mx-auto">
+        <ModuleTabs active="rental" />
+        <div className="mt-4 sm:mt-6">
+          <RentalSubTabs active="land" />
+        </div>
+      </div>
 
       <SearchForm formData={formData} onFormChange={handleFormChange} />
 

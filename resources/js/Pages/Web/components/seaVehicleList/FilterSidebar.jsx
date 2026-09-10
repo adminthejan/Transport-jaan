@@ -174,9 +174,13 @@ const MinValueSlider = ({ min, max, value, suffix, onCommit }) => {
   );
 };
 
+// Splits a comma-separated query param into a lowercase array — every
+// multi-select filter section below uses this same shape.
+const toList = (val) => (val ? String(val).toLowerCase().split(',').filter(Boolean) : []);
+
 const FilterSidebar = ({ searchParams, onSearch }) => {
-  const [selectedBodyType, setSelectedBodyType] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedBodyType, setSelectedBodyType] = useState(() => toList(searchParams?.bodyType));
+  const [selectedBrand, setSelectedBrand] = useState(() => toList(searchParams?.brand));
   const [isOpen, setIsOpen] = useState(false);
   const [minSeats, setMinSeats] = useState(
     searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR
@@ -187,16 +191,14 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
   const [priceMax, setPriceMax] = useState(
     searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING
   );
-  const [selectedMileage, setSelectedMileage] = useState("");
-  const [selectedFuel, setSelectedFuel] = useState("");
+  const [selectedMileage, setSelectedMileage] = useState(() => toList(searchParams?.mileage));
+  const [selectedFuel, setSelectedFuel] = useState(() => toList(searchParams?.fuel));
 
   useEffect(() => {
-    if (searchParams?.bodyType) {
-      setSelectedBodyType(searchParams.bodyType.toLowerCase());
-    }
-    if (searchParams?.brand) {
-      setSelectedBrand(searchParams.brand.toLowerCase());
-    }
+    setSelectedBodyType(toList(searchParams?.bodyType));
+    setSelectedBrand(toList(searchParams?.brand));
+    setSelectedMileage(toList(searchParams?.mileage));
+    setSelectedFuel(toList(searchParams?.fuel));
     setPriceMin(searchParams?.minPrice !== undefined && searchParams?.minPrice !== "" ? Number(searchParams.minPrice) : PRICE_FLOOR);
     setPriceMax(searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING);
     setMinSeats(searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR);
@@ -214,17 +216,18 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
     });
   };
 
-  const handleBodyTypeChange = (bodyType) => {
-    const newVal = selectedBodyType === bodyType ? "" : bodyType;
-    setSelectedBodyType(newVal);
-    runSearch({ ...searchParams, bodyType: newVal });
+  // Every filter section below is a checkbox group, not radio buttons — more
+  // than one option per section (and across sections) can be active at once.
+  const toggleInList = (list, setList, paramKey) => (value) => {
+    const newVal = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+    setList(newVal);
+    runSearch({ ...searchParams, [paramKey]: newVal.join(',') });
   };
 
-  const handleBrandChange = (brand) => {
-    const newVal = selectedBrand === brand ? "" : brand;
-    setSelectedBrand(newVal);
-    runSearch({ ...searchParams, brand: newVal });
-  };
+  const handleBodyTypeChange = toggleInList(selectedBodyType, setSelectedBodyType, 'bodyType');
+  const handleBrandChange = toggleInList(selectedBrand, setSelectedBrand, 'brand');
+  const handleMileageChange = toggleInList(selectedMileage, setSelectedMileage, 'mileage');
+  const handleFuelChange = toggleInList(selectedFuel, setSelectedFuel, 'fuel');
 
   const handleSeatsCommit = (val) => {
     setMinSeats(val);
@@ -241,36 +244,24 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
     });
   };
 
-  const handleMileageChange = (mileage) => {
-    const newVal = selectedMileage === mileage ? "" : mileage;
-    setSelectedMileage(newVal);
-    runSearch({ ...searchParams, mileage: newVal });
-  };
-
-  const handleFuelChange = (fuel) => {
-    const newVal = selectedFuel === fuel ? "" : fuel;
-    setSelectedFuel(newVal);
-    runSearch({ ...searchParams, fuel: newVal });
-  };
-
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   const activeCount =
-    (selectedBodyType ? 1 : 0) +
-    (selectedBrand ? 1 : 0) +
+    selectedBodyType.length +
+    selectedBrand.length +
     (minSeats > SEATS_FLOOR ? 1 : 0) +
     (priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0) +
-    (selectedMileage ? 1 : 0) +
-    (selectedFuel ? 1 : 0);
+    selectedMileage.length +
+    selectedFuel.length;
 
   const clearAll = () => {
-    setSelectedBodyType("");
-    setSelectedBrand("");
+    setSelectedBodyType([]);
+    setSelectedBrand([]);
     setMinSeats(SEATS_FLOOR);
     setPriceMin(PRICE_FLOOR);
     setPriceMax(PRICE_CEILING);
-    setSelectedMileage("");
-    setSelectedFuel("");
+    setSelectedMileage([]);
+    setSelectedFuel([]);
     runSearch({
       ...searchParams,
       bodyType: "",
@@ -343,23 +334,23 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           )}
         </div>
 
-        <FilterSection icon={<Ship className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType ? 1 : 0}>
+        <FilterSection icon={<Ship className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType.length}>
           {BODY_TYPES.map((type) => (
             <FilterOption
               key={type.id}
               label={type.label}
-              active={selectedBodyType === type.id}
+              active={selectedBodyType.includes(type.id)}
               onClick={() => handleBodyTypeChange(type.id)}
             />
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand ? 1 : 0}>
+        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand.length}>
           {BRANDS.map((brand) => (
             <FilterOption
               key={brand.id}
               label={brand.label}
-              active={selectedBrand === brand.id}
+              active={selectedBrand.includes(brand.id)}
               onClick={() => handleBrandChange(brand.id)}
             />
           ))}
@@ -377,23 +368,23 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           <PriceRangeSlider min={PRICE_FLOOR} max={PRICE_CEILING} step={PRICE_STEP} valueMin={priceMin} valueMax={priceMax} onCommit={handlePriceCommit} />
         </FilterSection>
 
-        <FilterSection icon={<Anchor className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage ? 1 : 0}>
+        <FilterSection icon={<Anchor className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage.length}>
           {MILEAGES.map((m) => (
             <FilterOption
               key={m.id}
               label={m.label}
-              active={selectedMileage === m.id}
+              active={selectedMileage.includes(m.id)}
               onClick={() => handleMileageChange(m.id)}
             />
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel ? 1 : 0}>
+        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel.length}>
           {FUELS.map((f) => (
             <FilterOption
               key={f.id}
               label={f.label}
-              active={selectedFuel === f.id}
+              active={selectedFuel.includes(f.id)}
               onClick={() => handleFuelChange(f.id)}
             />
           ))}

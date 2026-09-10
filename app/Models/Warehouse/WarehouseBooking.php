@@ -29,18 +29,23 @@ class WarehouseBooking extends Model
         'storage_type',
         'fulfillment_service',
         'required_space',
+        'storage_unit',
         'goods_type',
         'goods_description',
+        'quantity',
         'estimated_weight',
+        'special_handling_required',
         'special_requirements',
         'amenities',
-        
+
         // Duration & Scheduling
         'start_date',
         'end_date',
         'duration_months',
         'access_hours',
         'special_instructions',
+        'delivery_pickup_required',
+        'delivery_pickup_address',
         
         // Pricing
         'monthly_rate',
@@ -80,6 +85,8 @@ class WarehouseBooking extends Model
         'terms_accepted' => 'boolean',
         'insurance_required' => 'boolean',
         'fulfillment_service' => 'boolean',
+        'special_handling_required' => 'boolean',
+        'delivery_pickup_required' => 'boolean',
         'required_space' => 'decimal:2',
         'estimated_weight' => 'decimal:2',
         'monthly_rate' => 'decimal:2',

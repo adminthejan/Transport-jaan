@@ -7,6 +7,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -123,9 +124,16 @@ class ClientVehicleController extends Controller
             }
         }
 
+        // Brand filter — comma-separated, so more than one manufacturer can
+        // be selected at once instead of overwriting the previous pick.
         if (!empty($filters['brand'])) {
-            $brand = mb_strtolower(trim($filters['brand']));
-            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map(
+                fn ($b) => mb_strtolower(trim($b)),
+                explode(',', (string) $filters['brand'])
+            ));
+            if (!empty($brands)) {
+                $query->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
 
         if (!empty($filters['model'])) {
@@ -135,24 +143,31 @@ class ClientVehicleController extends Controller
 
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
-            $bodyType = mb_strtolower(trim($rawBodyType));
-            // The frontend's filter id for "Family MBP" is "family", but the
-            // DB enum stores "familyMBP" — they never matched before.
-            if ($bodyType === 'family') {
-                $bodyType = 'familymbp';
-            }
             $allowed = ['suv','wagon','crossover','familymbp','sportcoupe','compact','coupe','truck','sedan','hatchback','van','bus','pickup','jeep','convertible','limousine','mpv','motorcycle','three_wheeler','special_purpose','other'];
-            if (in_array($bodyType, $allowed, true)) {
-                $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
+            // Comma-separated so more than one body type can be selected at
+            // once. The frontend's filter id for "Family MBP" is "family",
+            // but the DB enum stores "familyMBP" — they never matched before.
+            $bodyTypes = array_filter(array_map(function ($bt) {
+                $bt = mb_strtolower(trim($bt));
+                return $bt === 'family' ? 'familymbp' : $bt;
+            }, explode(',', $rawBodyType)));
+            $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
+            if (!empty($bodyTypes)) {
+                $query->whereHas('landSpec', fn($q) => $q->whereIn(DB::raw('LOWER(body_type)'), $bodyTypes));
             }
         }
 
-        // Use / Industry Category — a coarser grouping than body_type.
+        // Use / Industry Category — a coarser grouping than body_type,
+        // comma-separated so more than one category can be selected at once.
         if ($request->filled('industryCategory')) {
-            $industryCategory = mb_strtolower(trim((string) $request->input('industryCategory')));
             $allowedCategories = ['cars_suvs','vans_minibuses','buses','trucks','prime_movers_trailers','construction_equipment'];
-            if (in_array($industryCategory, $allowedCategories, true)) {
-                $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(industry_category) = ?', [$industryCategory]));
+            $industryCategories = array_filter(array_map(
+                fn ($c) => mb_strtolower(trim($c)),
+                explode(',', (string) $request->input('industryCategory'))
+            ));
+            $industryCategories = array_values(array_intersect($industryCategories, $allowedCategories));
+            if (!empty($industryCategories)) {
+                $query->whereHas('landSpec', fn($q) => $q->whereIn(DB::raw('LOWER(industry_category)'), $industryCategories));
             }
         }
 
@@ -307,8 +322,8 @@ class ClientVehicleController extends Controller
 
         $brandCollection = Vehicle::query()
             ->when(!empty($rawBodyType), function ($q) use ($rawBodyType) {
-                $bt = mb_strtolower(trim($rawBodyType));
-                $q->whereHas('landSpec', fn($qq) => $qq->whereRaw('LOWER(body_type) = ?', [$bt]));
+                $bts = array_filter(array_map('mb_strtolower', array_map('trim', explode(',', $rawBodyType))));
+                $q->whereHas('landSpec', fn($qq) => $qq->whereIn(DB::raw('LOWER(body_type)'), $bts));
             })
             ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
             ->whereNotNull('manufacturer')
@@ -319,8 +334,10 @@ class ClientVehicleController extends Controller
 
         $modelQuery = Vehicle::query();
         if (!empty($filters['brand'])) {
-            $brand = mb_strtolower(trim($filters['brand']));
-            $modelQuery->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map('mb_strtolower', array_map('trim', explode(',', (string) $filters['brand']))));
+            if (!empty($brands)) {
+                $modelQuery->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
         $modelCollection = $modelQuery
             ->whereNotNull('model')
@@ -384,8 +401,13 @@ class ClientVehicleController extends Controller
         }
 
         if ($request->filled('brand')) {
-            $brand = mb_strtolower(trim((string) $request->input('brand')));
-            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map(
+                fn ($b) => mb_strtolower(trim($b)),
+                explode(',', (string) $request->input('brand'))
+            ));
+            if (!empty($brands)) {
+                $query->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
 
         if ($request->filled('model')) {
@@ -395,10 +417,26 @@ class ClientVehicleController extends Controller
 
         $rawBodyType = $request->input('bodyType') ?? $request->input('body_type');
         if (!empty($rawBodyType)) {
-            $bodyType = mb_strtolower(trim($rawBodyType));
-            $allowed = ['suv','wagon','crossover','family','sportcoupe','compact','coupe','truck','othe'];
-            if (in_array($bodyType, $allowed, true)) {
-                $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
+            $allowed = ['suv','wagon','crossover','familymbp','sportcoupe','compact','coupe','truck','sedan','hatchback','van','bus','pickup','jeep','convertible','limousine','mpv','motorcycle','three_wheeler','special_purpose','other'];
+            $bodyTypes = array_filter(array_map(function ($bt) {
+                $bt = mb_strtolower(trim($bt));
+                return $bt === 'family' ? 'familymbp' : $bt;
+            }, explode(',', $rawBodyType)));
+            $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
+            if (!empty($bodyTypes)) {
+                $query->whereHas('landSpec', fn($q) => $q->whereIn(DB::raw('LOWER(body_type)'), $bodyTypes));
+            }
+        }
+
+        if ($request->filled('industryCategory')) {
+            $allowedCategories = ['cars_suvs','vans_minibuses','buses','trucks','prime_movers_trailers','construction_equipment'];
+            $industryCategories = array_filter(array_map(
+                fn ($c) => mb_strtolower(trim($c)),
+                explode(',', (string) $request->input('industryCategory'))
+            ));
+            $industryCategories = array_values(array_intersect($industryCategories, $allowedCategories));
+            if (!empty($industryCategories)) {
+                $query->whereHas('landSpec', fn($q) => $q->whereIn(DB::raw('LOWER(industry_category)'), $industryCategories));
             }
         }
 
@@ -548,8 +586,13 @@ class ClientVehicleController extends Controller
         }
 
         if ($request->filled('brand')) {
-            $brand = mb_strtolower(trim((string) $request->input('brand')));
-            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map(
+                fn ($b) => mb_strtolower(trim($b)),
+                explode(',', (string) $request->input('brand'))
+            ));
+            if (!empty($brands)) {
+                $query->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
 
         if ($request->filled('model')) {
@@ -559,10 +602,11 @@ class ClientVehicleController extends Controller
 
         $rawBodyType = $request->input('bodyType') ?? $request->input('body_type');
         if (!empty($rawBodyType)) {
-            $bodyType = mb_strtolower(trim($rawBodyType));
             $allowed = ['speedboat','yacht','catamaran','sailboat','fishing_boat','cruise_ship','ferry','houseboat','jet_ski','tugboat','cargo_vessel','boat','other'];
-            if (in_array($bodyType, $allowed, true)) {
-                $query->whereHas('seaSpec', fn($q) => $q->whereRaw('LOWER(vessel_type) = ?', [$bodyType]));
+            $bodyTypes = array_filter(array_map(fn ($bt) => mb_strtolower(trim($bt)), explode(',', $rawBodyType)));
+            $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
+            if (!empty($bodyTypes)) {
+                $query->whereHas('seaSpec', fn($q) => $q->whereIn(DB::raw('LOWER(vessel_type)'), $bodyTypes));
             }
         }
 
@@ -667,8 +711,13 @@ class ClientVehicleController extends Controller
         }
 
         if ($request->filled('brand')) {
-            $brand = mb_strtolower(trim((string) $request->input('brand')));
-            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map(
+                fn ($b) => mb_strtolower(trim($b)),
+                explode(',', (string) $request->input('brand'))
+            ));
+            if (!empty($brands)) {
+                $query->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
 
         if ($request->filled('model')) {
@@ -678,10 +727,11 @@ class ClientVehicleController extends Controller
 
         $rawBodyType = $request->input('bodyType') ?? $request->input('body_type');
         if (!empty($rawBodyType)) {
-            $bodyType = mb_strtolower(trim($rawBodyType));
             $allowed = ['private_jet','commercial_airliner','helicopter','charter_aircraft','light_aircraft','business_jet','turboprop_aircraft','glider','seaplane','cargo_aircraft','hot_air_balloon','fixed_wing','other'];
-            if (in_array($bodyType, $allowed, true)) {
-                $query->whereHas('airSpec', fn($q) => $q->whereRaw('LOWER(aircraft_type) = ?', [$bodyType]));
+            $bodyTypes = array_filter(array_map(fn ($bt) => mb_strtolower(trim($bt)), explode(',', $rawBodyType)));
+            $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
+            if (!empty($bodyTypes)) {
+                $query->whereHas('airSpec', fn($q) => $q->whereIn(DB::raw('LOWER(aircraft_type)'), $bodyTypes));
             }
         }
 
@@ -786,8 +836,13 @@ class ClientVehicleController extends Controller
         }
 
         if (!empty($filters['brand'])) {
-            $brand = mb_strtolower(trim($filters['brand']));
-            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map(
+                fn ($b) => mb_strtolower(trim($b)),
+                explode(',', (string) $filters['brand'])
+            ));
+            if (!empty($brands)) {
+                $query->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
 
         if (!empty($filters['model'])) {
@@ -798,12 +853,14 @@ class ClientVehicleController extends Controller
         // Vessel type - was incorrectly querying landSpec/land body types
         // (a copy-paste leftover), which meant selecting any vessel type
         // silently excluded every sea vehicle. Fixed to query seaSpec.
+        // Comma-separated so more than one vessel type can be selected at once.
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
-            $bodyType = mb_strtolower(trim($rawBodyType));
             $allowed = ['speedboat','yacht','catamaran','sailboat','fishing_boat','cruise_ship','ferry','houseboat','jet_ski','tugboat','cargo_vessel','boat','other'];
-            if (in_array($bodyType, $allowed, true)) {
-                $query->whereHas('seaSpec', fn($q) => $q->whereRaw('LOWER(vessel_type) = ?', [$bodyType]));
+            $bodyTypes = array_filter(array_map(fn ($bt) => mb_strtolower(trim($bt)), explode(',', $rawBodyType)));
+            $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
+            if (!empty($bodyTypes)) {
+                $query->whereHas('seaSpec', fn($q) => $q->whereIn(DB::raw('LOWER(vessel_type)'), $bodyTypes));
             }
         }
 
@@ -927,8 +984,8 @@ class ClientVehicleController extends Controller
 
         $brandCollection = Vehicle::query()
             ->when(!empty($rawBodyType), function ($q) use ($rawBodyType) {
-                $bt = mb_strtolower(trim($rawBodyType));
-                $q->whereHas('seaSpec', fn($qq) => $qq->whereRaw('LOWER(vessel_type) = ?', [$bt]));
+                $bts = array_filter(array_map('mb_strtolower', array_map('trim', explode(',', $rawBodyType))));
+                $q->whereHas('seaSpec', fn($qq) => $qq->whereIn(DB::raw('LOWER(vessel_type)'), $bts));
             })
             ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
             ->whereNotNull('manufacturer')
@@ -939,8 +996,10 @@ class ClientVehicleController extends Controller
 
         $modelQuery = Vehicle::query();
         if (!empty($filters['brand'])) {
-            $brand = mb_strtolower(trim($filters['brand']));
-            $modelQuery->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map('mb_strtolower', array_map('trim', explode(',', (string) $filters['brand']))));
+            if (!empty($brands)) {
+                $modelQuery->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
         $modelCollection = $modelQuery
             ->whereNotNull('model')
@@ -1003,8 +1062,13 @@ class ClientVehicleController extends Controller
         }
 
         if (!empty($filters['brand'])) {
-            $brand = mb_strtolower(trim($filters['brand']));
-            $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map(
+                fn ($b) => mb_strtolower(trim($b)),
+                explode(',', (string) $filters['brand'])
+            ));
+            if (!empty($brands)) {
+                $query->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
 
         if (!empty($filters['model'])) {
@@ -1015,12 +1079,14 @@ class ClientVehicleController extends Controller
         // Aircraft type - was incorrectly querying landSpec/land body types
         // (a copy-paste leftover), which meant selecting any aircraft type
         // silently excluded every air vehicle. Fixed to query airSpec.
+        // Comma-separated so more than one aircraft type can be selected at once.
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
-            $bodyType = mb_strtolower(trim($rawBodyType));
             $allowed = ['private_jet','commercial_airliner','helicopter','charter_aircraft','light_aircraft','business_jet','turboprop_aircraft','glider','seaplane','cargo_aircraft','hot_air_balloon','fixed_wing','other'];
-            if (in_array($bodyType, $allowed, true)) {
-                $query->whereHas('airSpec', fn($q) => $q->whereRaw('LOWER(aircraft_type) = ?', [$bodyType]));
+            $bodyTypes = array_filter(array_map(fn ($bt) => mb_strtolower(trim($bt)), explode(',', $rawBodyType)));
+            $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
+            if (!empty($bodyTypes)) {
+                $query->whereHas('airSpec', fn($q) => $q->whereIn(DB::raw('LOWER(aircraft_type)'), $bodyTypes));
             }
         }
 
@@ -1144,8 +1210,8 @@ class ClientVehicleController extends Controller
 
         $brandCollection = Vehicle::query()
             ->when(!empty($rawBodyType), function ($q) use ($rawBodyType) {
-                $bt = mb_strtolower(trim($rawBodyType));
-                $q->whereHas('airSpec', fn($qq) => $qq->whereRaw('LOWER(aircraft_type) = ?', [$bt]));
+                $bts = array_filter(array_map('mb_strtolower', array_map('trim', explode(',', $rawBodyType))));
+                $q->whereHas('airSpec', fn($qq) => $qq->whereIn(DB::raw('LOWER(aircraft_type)'), $bts));
             })
             ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
             ->whereNotNull('manufacturer')
@@ -1156,8 +1222,10 @@ class ClientVehicleController extends Controller
 
         $modelQuery = Vehicle::query();
         if (!empty($filters['brand'])) {
-            $brand = mb_strtolower(trim($filters['brand']));
-            $modelQuery->whereRaw('LOWER(manufacturer) = ?', [$brand]);
+            $brands = array_filter(array_map('mb_strtolower', array_map('trim', explode(',', (string) $filters['brand']))));
+            if (!empty($brands)) {
+                $modelQuery->whereIn(DB::raw('LOWER(manufacturer)'), $brands);
+            }
         }
         $modelCollection = $modelQuery
             ->whereNotNull('model')

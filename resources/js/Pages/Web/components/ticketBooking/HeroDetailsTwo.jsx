@@ -261,6 +261,7 @@ const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = 
             from: searchParams.from || '',
             to: searchParams.to || '',
             date: searchParams.date || '',
+            passengers: searchParams.passengers || 1,
         });
         if (selectedReturnId) {
             params.set('return_id', selectedReturnId);
@@ -287,7 +288,7 @@ const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = 
             {/* Nearby dates — browse a few extra days without re-searching.
                 Prices reflect the outbound leg's route. */}
             {nearbyDates.length > 0 && (!isRoundTrip || activeLeg === 'outbound') && (
-                <div className="mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                <div className="mb-6 flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 bg-white rounded-[14px] border border-[#EEF2F6] shadow-[0_2px_10px_rgba(15,23,42,0.05)] p-3">
                     {nearbyDates.map((d) => {
                         const dateObj = new Date(d.date + 'T00:00:00');
                         const isSelected = d.date === searchParams.date;
@@ -297,15 +298,15 @@ const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = 
                                 type="button"
                                 onClick={() => changeDate(d.date)}
                                 disabled={d.price == null}
-                                className={`flex-shrink-0 min-w-[84px] rounded-[12px] border px-3 py-2 text-center transition-colors ${
+                                className={`flex-shrink-0 min-w-[92px] rounded-[12px] border-2 px-3 py-2.5 text-center transition-colors ${
                                     isSelected
-                                        ? 'border-[#0955AC] bg-[#0955AC] text-white'
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-[0_4px_12px_rgba(9,85,172,0.25)]'
                                         : d.price == null
                                         ? 'border-[#E2E8F0] text-[#CBD5E1] cursor-not-allowed'
                                         : 'border-[#E2E8F0] text-[#334155] hover:border-[#0955AC]/50'
                                 }`}
                             >
-                                <div className={`text-[11px] font-[700] ${isSelected ? 'text-white' : 'text-[#64748B]'}`}>
+                                <div className={`text-[12px] font-[700] ${isSelected ? 'text-white' : 'text-[#64748B]'}`}>
                                     {dateObj.toLocaleDateString('en-GB', { weekday: 'short' })}
                                 </div>
                                 <div className="text-[15px] font-[800]">
@@ -408,7 +409,7 @@ const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = 
                             mode={isRoundTrip ? "select" : "link"}
                             selected={selectedOutboundId === trip.id}
                             onSelect={isRoundTrip ? selectOutbound : setSelectedOutboundId}
-                            href={`/busTicketBookingPreview?id=${trip.id}&from=${searchParams.from || 'Colombo'}&to=${searchParams.to || 'Negombo'}&date=${searchParams.date || '2025-09-24'}`}
+                            href={`/busTicketBookingPreview?id=${trip.id}&from=${searchParams.from || 'Colombo'}&to=${searchParams.to || 'Negombo'}&date=${searchParams.date || '2025-09-24'}&passengers=${searchParams.passengers || 1}`}
                         />
                     )) : (
                         <div className="text-center py-8 sm:py-12 bg-white rounded-[16px] border border-[#EEF2F6]">
@@ -441,9 +442,11 @@ const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = 
 
             </div>
 
-            {/* Side map: shows the searched route so you can see the distance at a glance */}
+            {/* Side map: shows the searched route so you can see the distance
+                at a glance. Nudged down a bit so it doesn't sit flush with
+                the date/sort toolbar on the left. */}
             {route && (
-                <div className="hidden lg:block lg:col-span-1 sticky top-24">
+                <div className="hidden lg:block lg:col-span-1 sticky top-24 mt-14">
                     <TripRouteMap route={route} className="h-[420px]" />
                 </div>
             )}

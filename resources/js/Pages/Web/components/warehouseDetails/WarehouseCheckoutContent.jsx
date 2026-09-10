@@ -660,7 +660,31 @@ const WarehouseCheckoutContent = () => {
                 newErrors.move_out_date = 'Must be after move-in date';
             }
         }
-        
+
+        // Validate warehouse type
+        if (!bookingData?.storage_type) {
+            newErrors.storage_type = 'Required';
+        }
+
+        // Validate cargo details
+        if (!bookingData?.goods_type) {
+            newErrors.goods_type = 'Required';
+        }
+        if (!bookingData?.goods_description?.trim()) {
+            newErrors.goods_description = 'Required';
+        }
+        if (!String(bookingData?.quantity ?? '').trim()) {
+            newErrors.quantity = 'Required';
+        }
+        if (bookingData?.estimated_weight === undefined || bookingData?.estimated_weight === null || bookingData?.estimated_weight === '') {
+            newErrors.estimated_weight = 'Required';
+        }
+
+        // Pickup/delivery address is only required when delivery/pickup was requested
+        if (bookingData?.delivery_pickup_required && !bookingData?.delivery_pickup_address?.trim()) {
+            newErrors.delivery_pickup_address = 'Required';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -1027,15 +1051,49 @@ const WarehouseCheckoutContent = () => {
                         <div className="grid lg:grid-cols-2 gap-5 poppins">
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Storage Type :
+                                    Warehouse Type <span className="text-red-500">*</span> :
                                 </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] bg-[#f8f9fa]">
-                                    <input
-                                        type="text"
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC] bg-transparent cursor-not-allowed"
-                                        value={bookingData?.storage_type ?? 'General Storage'}
-                                        readOnly
-                                    />
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.storage_type ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                    <select
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
+                                        value={bookingData?.storage_type ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({ ...(prev || {}), storage_type: value }));
+                                            if (errors.storage_type) {
+                                                setErrors((prev) => { const n = { ...prev }; delete n.storage_type; return n; });
+                                            }
+                                        }}
+                                    >
+                                        <option value="" disabled>Select warehouse type</option>
+                                        <option value="general_warehouse">General Warehouse</option>
+                                        <option value="bonded_warehouse">Bonded Warehouse</option>
+                                        <option value="cold_storage">Cold Storage</option>
+                                    </select>
+                                </div>
+                                {errors.storage_type && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.storage_type}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Storage Unit <span className="text-red-500">*</span> :
+                                </label>
+                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                    <select
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
+                                        value={bookingData?.storage_unit ?? 'sqft'}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({ ...(prev || {}), storage_unit: value }));
+                                        }}
+                                    >
+                                        <option value="sqft">Sq Ft</option>
+                                        <option value="sqm">m² (Square Metres)</option>
+                                        <option value="cbm">CBM (Cubic Metres)</option>
+                                        <option value="pallets">Pallets</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -1212,11 +1270,176 @@ const WarehouseCheckoutContent = () => {
                                 </div>
                             </div>
 
+                        </div>
+                    </div>
+
+                    <div
+                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-auto bg-[#FFFFFF] px-10 py-10"
+                        style={{
+                            borderLeftWidth: "0.2px",
+                            borderTopWidth: "0.2px",
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <h1 className="text-[20px] font-[700] mb-5">
+                            Cargo Details
+                        </h1>
+
+                        <div className="grid lg:grid-cols-2 gap-5 poppins">
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Cargo / Goods Type <span className="text-red-500">*</span> :
+                                </label>
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.goods_type ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                    <select
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
+                                        value={bookingData?.goods_type ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({ ...(prev || {}), goods_type: value }));
+                                            if (errors.goods_type) {
+                                                setErrors((prev) => { const n = { ...prev }; delete n.goods_type; return n; });
+                                            }
+                                        }}
+                                    >
+                                        <option value="" disabled>Select cargo type</option>
+                                        <option value="General Goods">General Goods</option>
+                                        <option value="Electronics">Electronics</option>
+                                        <option value="Furniture">Furniture</option>
+                                        <option value="Textiles / Garments">Textiles / Garments</option>
+                                        <option value="Food & Beverage">Food & Beverage</option>
+                                        <option value="Pharmaceuticals">Pharmaceuticals</option>
+                                        <option value="Machinery / Equipment">Machinery / Equipment</option>
+                                        <option value="Construction Materials">Construction Materials</option>
+                                        <option value="Hazardous Materials">Hazardous Materials</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                {errors.goods_type && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.goods_type}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Quantity <span className="text-red-500">*</span> :
+                                </label>
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.quantity ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                    <input
+                                        type="text"
+                                        value={bookingData?.quantity ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({ ...(prev || {}), quantity: value }));
+                                            if (errors.quantity) {
+                                                setErrors((prev) => { const n = { ...prev }; delete n.quantity; return n; });
+                                            }
+                                        }}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                        placeholder="e.g., 250 boxes, 40 pallets"
+                                    />
+                                </div>
+                                {errors.quantity && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.quantity}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Estimated Weight (kg) <span className="text-red-500">*</span> :
+                                </label>
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.estimated_weight ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        value={bookingData?.estimated_weight ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({ ...(prev || {}), estimated_weight: value }));
+                                            if (errors.estimated_weight) {
+                                                setErrors((prev) => { const n = { ...prev }; delete n.estimated_weight; return n; });
+                                            }
+                                        }}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                        placeholder="Enter estimated weight"
+                                    />
+                                </div>
+                                {errors.estimated_weight && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.estimated_weight}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600] block mb-1">
+                                    Special Handling Required :
+                                </label>
+                                <div className="flex gap-2">
+                                    {[["Yes", true], ["No", false]].map(([label, val]) => (
+                                        <button
+                                            key={label}
+                                            type="button"
+                                            onClick={() => setBookingData((prev) => ({ ...(prev || {}), special_handling_required: val }))}
+                                            className={`h-[40px] px-6 rounded-[5px] text-[12px] font-[600] border-[1px] transition-colors ${
+                                                (bookingData?.special_handling_required ?? false) === val
+                                                    ? 'bg-[#0955AC] text-white border-[#0955AC]'
+                                                    : 'bg-white text-[#000000CC] border-[#0000004D]'
+                                            }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {bookingData?.special_handling_required && (
+                                <div className="lg:col-span-2">
+                                    <label className="text-[10px]/[24px] font-[600]">
+                                        Special Handling Details :
+                                    </label>
+                                    <div className="w-full h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                        <input
+                                            type="text"
+                                            value={bookingData?.special_requirements ?? ''}
+                                            onChange={(e) => setBookingData((prev) => ({ ...(prev || {}), special_requirements: e.target.value }))}
+                                            className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                            placeholder="e.g., fragile, requires forklift, hazardous handling"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600] block mb-1">
+                                    Temperature-Controlled Storage :
+                                </label>
+                                <div className="flex gap-2">
+                                    {[["Yes", true], ["No", false]].map(([label, val]) => (
+                                        <button
+                                            key={label}
+                                            type="button"
+                                            onClick={() => {
+                                                const current = new Set(bookingData?.amenities || []);
+                                                if (val) current.add('temperature_controlled');
+                                                else current.delete('temperature_controlled');
+                                                setBookingData((prev) => ({ ...(prev || {}), amenities: Array.from(current) }));
+                                            }}
+                                            className={`h-[40px] px-6 rounded-[5px] text-[12px] font-[600] border-[1px] transition-colors ${
+                                                (bookingData?.amenities || []).includes('temperature_controlled') === val
+                                                    ? 'bg-[#0955AC] text-white border-[#0955AC]'
+                                                    : 'bg-white text-[#000000CC] border-[#0000004D]'
+                                            }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="lg:col-span-2">
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Goods Description :
+                                    Cargo Description <span className="text-red-500">*</span> :
                                 </label>
-                                <div className="w-full min-h-[98px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                <div className={`w-full min-h-[98px] border-[1px] ${errors.goods_description ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <textarea
                                         className="w-full h-full px-3 py-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] resize-none"
                                         placeholder="Describe the items you plan to store..."
@@ -1228,6 +1451,145 @@ const WarehouseCheckoutContent = () => {
                                                 ...(prev || {}),
                                                 goods_description: value
                                             }));
+                                            if (errors.goods_description) {
+                                                setErrors((prev) => { const n = { ...prev }; delete n.goods_description; return n; });
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                {errors.goods_description && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.goods_description}</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-auto bg-[#FFFFFF] px-10 py-10"
+                        style={{
+                            borderLeftWidth: "0.2px",
+                            borderTopWidth: "0.2px",
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <h1 className="text-[20px] font-[700] mb-2">
+                            Services Required
+                        </h1>
+                        <p className="text-[10px] text-gray-500 mb-5">Storage is always included. Pick any additional services you need.</p>
+
+                        <div className="grid sm:grid-cols-2 gap-3 poppins">
+                            {[
+                                { id: 'loading_unloading', label: 'Loading / Unloading' },
+                                { id: 'receiving', label: 'Receiving' },
+                                { id: 'packing_repacking', label: 'Packing / Repacking' },
+                                { id: 'inventory_management', label: 'Inventory Management' },
+                                { id: 'delivery_distribution', label: 'Delivery / Distribution' },
+                            ].map((service) => {
+                                const checked = (bookingData?.amenities || []).includes(service.id);
+                                return (
+                                    <label
+                                        key={service.id}
+                                        className={`flex items-center gap-2.5 px-4 h-[49px] rounded-[5px] border-[1px] cursor-pointer transition-colors ${
+                                            checked ? 'border-[#0955AC] bg-[#0955AC0D]' : 'border-[#0000004D]'
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => {
+                                                const current = new Set(bookingData?.amenities || []);
+                                                if (checked) current.delete(service.id);
+                                                else current.add(service.id);
+                                                setBookingData((prev) => ({ ...(prev || {}), amenities: Array.from(current) }));
+                                            }}
+                                            className="w-4 h-4 accent-[#0955AC]"
+                                        />
+                                        <span className="text-[12px] font-[500] text-[#000000CC]">{service.label}</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div
+                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-auto bg-[#FFFFFF] px-10 py-10"
+                        style={{
+                            borderLeftWidth: "0.2px",
+                            borderTopWidth: "0.2px",
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <h1 className="text-[20px] font-[700] mb-5">
+                            Delivery & Confirmation
+                        </h1>
+
+                        <div className="grid lg:grid-cols-2 gap-5 poppins">
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600] block mb-1">
+                                    Delivery / Pickup Required :
+                                </label>
+                                <div className="flex gap-2">
+                                    {[["Yes", true], ["No", false]].map(([label, val]) => (
+                                        <button
+                                            key={label}
+                                            type="button"
+                                            onClick={() => {
+                                                setBookingData((prev) => ({ ...(prev || {}), delivery_pickup_required: val }));
+                                                if (errors.delivery_pickup_address) {
+                                                    setErrors((prev) => { const n = { ...prev }; delete n.delivery_pickup_address; return n; });
+                                                }
+                                            }}
+                                            className={`h-[40px] px-6 rounded-[5px] text-[12px] font-[600] border-[1px] transition-colors ${
+                                                (bookingData?.delivery_pickup_required ?? false) === val
+                                                    ? 'bg-[#0955AC] text-white border-[#0955AC]'
+                                                    : 'bg-white text-[#000000CC] border-[#0000004D]'
+                                            }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {bookingData?.delivery_pickup_required && (
+                                <div>
+                                    <label className="text-[10px]/[24px] font-[600]">
+                                        Pickup / Delivery Address <span className="text-red-500">*</span> :
+                                    </label>
+                                    <div className={`w-full h-[49px] border-[1px] ${errors.delivery_pickup_address ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                        <input
+                                            type="text"
+                                            value={bookingData?.delivery_pickup_address ?? ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setBookingData((prev) => ({ ...(prev || {}), delivery_pickup_address: value }));
+                                                if (errors.delivery_pickup_address) {
+                                                    setErrors((prev) => { const n = { ...prev }; delete n.delivery_pickup_address; return n; });
+                                                }
+                                            }}
+                                            className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                            placeholder="Enter pickup/delivery address"
+                                        />
+                                    </div>
+                                    {errors.delivery_pickup_address && (
+                                        <p className="text-red-500 text-[10px] mt-1">{errors.delivery_pickup_address}</p>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="lg:col-span-2">
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Special Instructions (Optional) :
+                                </label>
+                                <div className="w-full min-h-[98px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                    <textarea
+                                        className="w-full h-full px-3 py-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] resize-none"
+                                        placeholder="Any other instructions for our team..."
+                                        rows="3"
+                                        value={bookingData?.special_instructions ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({ ...(prev || {}), special_instructions: value }));
                                         }}
                                     />
                                 </div>

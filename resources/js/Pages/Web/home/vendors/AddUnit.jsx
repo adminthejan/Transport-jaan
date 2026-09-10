@@ -75,7 +75,7 @@ const initialState = {
   category: "", vehicleType: "", model: "", manufacture: "", manufactureYear: "", registerYear: "", number: "", colour: "",
   condition: "", ownershipType: "", passengerCapacity: "", description: "", insuranceProvider: "",
   images: [], insuranceDocs: [],
-  mileage: "", bodyType: "", industryCategory: "", fuelType: "", transmissionType: "", gears: "", seats: "", doors: "", luggageCapacity: "", fuelTankCapacity: "",
+  mileage: "", bodyType: "", industryCategory: "", hasPortPass: false, fuelType: "", transmissionType: "", gears: "", seats: "", doors: "", luggageCapacity: "", fuelTankCapacity: "",
   aircraft_type: "", icao_type_designator: "", base_airport_iata: "", base_airport_icao: "", crew_required: "", range_km: "", mtow_kg: "", cruising_speed_kts: "", air_fuel_type: "", flight_hours_total: "",
   vessel_type: "", hull_material: "", length_m: "", beam_m: "", draft_m: "", engine_type: "", engine_power_hp: "", sea_fuel_type: "", cabins: "", berths: "", toilets: "", fuel_tank_l: "", water_tank_l: "",
   rentalPricePerDay: "", totalRentalPrice: "", deposit: "", advancePayment: "",
@@ -258,7 +258,7 @@ const AddUnit = () => {
       gps: mapYesNo(gps), childSeat: mapYesNo(childSeat), wifi: mapYesNo(wifi), insuranceCoverage: mapYesNo(insuranceCoverage),
       extra: vehicle.extra || "",
       mileage: vehicle.mileage ?? "",
-      bodyType: bodyTypeVal, industryCategory: vehicle.industryCategory ?? vehicle.industry_category ?? "", fuelType: fuelTypeVal, transmissionType: transmissionVal,
+      bodyType: bodyTypeVal, industryCategory: vehicle.industryCategory ?? vehicle.industry_category ?? "", hasPortPass: !!(vehicle.hasPortPass ?? vehicle.has_port_pass), fuelType: fuelTypeVal, transmissionType: transmissionVal,
       gears: vehicle.gears ?? "", seats: vehicle.seats ?? "", doors: vehicle.doors ?? "",
       luggageCapacity: vehicle.luggageCapacity ?? vehicle.luggage_capacity ?? "",
       fuelTankCapacity: vehicle.fuelTankCapacity ?? vehicle.fuel_tank_capacity ?? "",
@@ -677,6 +677,21 @@ const AddUnit = () => {
                         {INDUSTRY_CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                       </select>
                       {errors.industryCategory && <div className="text-red-500 text-xs mt-1">{errors.industryCategory}</div>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                        <input
+                          type="checkbox"
+                          id="hasPortPass"
+                          name="hasPortPass"
+                          checked={!!form.hasPortPass}
+                          onChange={handleChange}
+                          className="h-4 w-4 rounded border-gray-300 text-[#0955AC] focus:ring-[#0955AC]"
+                        />
+                        Has Port Pass
+                      </label>
+                      <p className="text-xs text-gray-500">Enable if this vehicle is cleared to enter port premises.</p>
                     </div>
 
                     <div className="space-y-2">

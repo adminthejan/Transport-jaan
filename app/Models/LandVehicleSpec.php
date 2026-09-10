@@ -13,6 +13,7 @@ class LandVehicleSpec extends Model
         'vehicle_id',
         'body_type',
         'industry_category',
+        'has_port_pass',
         'fuel_type',
         'transmission_type',
         'gears',
@@ -25,6 +26,7 @@ class LandVehicleSpec extends Model
     protected $casts = [
         'body_type'           => 'string',
         'industry_category'   => 'string',
+        'has_port_pass'       => 'boolean',
         'fuel_type'           => 'string',
         'transmission_type'   => 'string',
         'gears'               => 'integer',

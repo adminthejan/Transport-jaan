@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import Header from "./client/ClientHeader";
+import { ModuleTabs, RentalSubTabs } from "../components/ModuleTabs";
 import FilterSidebar from "../components/airVehicleList/FilterSidebar";
 import AirVehicleListContent from "../components/airVehicleList/AirVehicleListContent";
 import SearchForm from "../components/airVehicleList/SearchForm";
@@ -38,6 +39,13 @@ const airVehicleList = () => {
   return (
     <div className="vehicle-list-page bg-[#F6F7F9] min-h-screen">
       <Header />
+
+      <div className="pt-6 sm:pt-8 px-5 md:px-10 max-w-[1800px] mx-auto">
+        <ModuleTabs active="rental" />
+        <div className="mt-4 sm:mt-6">
+          <RentalSubTabs active="air" />
+        </div>
+      </div>
 
       {/* Charter Flight / Scheduled Flight tabs */}
       <div className="px-4 sm:px-6 lg:px-10 2xl:px-16 pt-6 sm:pt-10">

@@ -1,10 +1,42 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { Clock, Users, TrainFront, ArrowUpDown } from "lucide-react";
+import { Clock, Users, TrainFront, ArrowUpDown, Snowflake, Droplet, Tv, Usb, Camera, Wifi, HelpCircle } from "lucide-react";
 import TrainCard from "./TrainCard";
 import LocaleSelector from "./LocaleSelector";
 import TripRouteMap from "./TripRouteMap";
 import { LocaleProvider, useLocale } from "../../context/LocaleContext";
+
+// Trains store facilities as short codes (see trains.facilities migration
+// comment: ["AC","W","TV","USB","CCTV","WIFI"]) — shown as bare text before,
+// which meant nobody could tell what "W" or "CCTV" meant at a glance.
+const FACILITY_META = {
+    AC: { label: "Air Conditioning", icon: Snowflake },
+    W: { label: "Drinking Water", icon: Droplet },
+    TV: { label: "TV", icon: Tv },
+    USB: { label: "USB Charging", icon: Usb },
+    CCTV: { label: "CCTV Security", icon: Camera },
+    WIFI: { label: "WiFi", icon: Wifi },
+};
+
+// Quick departure-time filters (Busbud/Omio-style "Departure time" sidebar
+// group) — buckets a "7:45 AM" style string into a 24h hour for comparison.
+const DEPARTURE_TIME_BUCKETS = [
+    { key: "night", label: "Nighttime", hint: "Before 6am", test: (h) => h < 6 },
+    { key: "early", label: "Early", hint: "6am – 11am", test: (h) => h >= 6 && h < 11 },
+    { key: "midday", label: "Midday", hint: "11am – 5pm", test: (h) => h >= 11 && h < 17 },
+    { key: "late", label: "Late", hint: "After 5pm", test: (h) => h >= 17 },
+];
+
+function parseDepartureHour(depart) {
+    if (!depart) return null;
+    const match = String(depart).trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (!match) return null;
+    let hour = parseInt(match[1], 10);
+    const meridiem = (match[3] || "").toUpperCase();
+    if (meridiem === "PM" && hour !== 12) hour += 12;
+    if (meridiem === "AM" && hour === 12) hour = 0;
+    return hour;
+}
 
 /** Parses durations like "8h 0m" or "45m" into total minutes for sorting. */
 function parseDurationMinutes(duration) {
@@ -43,15 +75,19 @@ function TripResultCard({ trip, mode, selected, onSelect, href }) {
                     </div>
                     {trip.facilities && trip.facilities.length > 0 && (
                         <div className="hidden gap-2 sm:flex">
-                            {trip.facilities.map((facility, index) => (
-                                <span
-                                    key={index}
-                                    title={facility}
-                                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9] text-[12px] font-bold text-[#0955AC]"
-                                >
-                                    {facility}
-                                </span>
-                            ))}
+                            {trip.facilities.map((facility, index) => {
+                                const meta = FACILITY_META[facility] || { label: facility, icon: HelpCircle };
+                                const Icon = meta.icon;
+                                return (
+                                    <span
+                                        key={index}
+                                        title={meta.label}
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9] text-[#0955AC]"
+                                    >
+                                        <Icon className="w-4 h-4" strokeWidth={2} />
+                                    </span>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -158,6 +194,16 @@ function HeroDetailsInner({
     const isRoundTrip = searchParams.tripType === 'roundtrip';
 
     const [sortBy, setSortBy] = useState('fare');
+    const [departureTimeFilters, setDepartureTimeFilters] = useState([]);
+    const toggleDepartureTimeFilter = (key) => {
+        setDepartureTimeFilters((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+    };
+    const matchesDepartureTimeFilter = (trip) => {
+        if (departureTimeFilters.length === 0) return true;
+        const hour = parseDepartureHour(trip.depart);
+        if (hour === null) return true;
+        return DEPARTURE_TIME_BUCKETS.some((b) => departureTimeFilters.includes(b.key) && b.test(hour));
+    };
     const [selectedOutboundId, setSelectedOutboundId] = useState(null);
     const [selectedReturnId, setSelectedReturnId] = useState(null);
     // Round trips use tabs instead of a long stacked page, matching the
@@ -186,8 +232,18 @@ function HeroDetailsInner({
         });
     };
 
-    const sortedOutboundSchedules = sortSchedules(outboundSchedules, sortBy);
-    const sortedReturnSchedules = sortSchedules(returnSchedules, sortBy);
+    const sortedOutboundSchedules = sortSchedules(outboundSchedules.filter(matchesDepartureTimeFilter), sortBy);
+    const sortedReturnSchedules = sortSchedules(returnSchedules.filter(matchesDepartureTimeFilter), sortBy);
+
+    // Which facility icons actually show up in this result set, so the
+    // legend only explains icons the passenger is actually seeing.
+    const facilitiesInView = useMemo(() => {
+        const codes = new Set();
+        [...outboundSchedules, ...returnSchedules].forEach((trip) => {
+            (trip.facilities || []).forEach((f) => codes.add(f));
+        });
+        return Array.from(codes);
+    }, [outboundSchedules, returnSchedules]);
 
     // Falls back explicitly — this page is also embedded inside the
     // multimodal journey planner, which doesn't always pass passenger counts
@@ -302,7 +358,42 @@ function HeroDetailsInner({
                 </div>
             )}
 
-            <div className={`grid grid-cols-1 gap-6 items-start ${route ? 'lg:grid-cols-3' : ''}`}>
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* Quick filters — departure time buckets, sits to the side of
+                the results like Busbud/Omio's filter panel. */}
+            <div className="hidden lg:block lg:w-[220px] lg:shrink-0 lg:sticky lg:top-24">
+                <div className="rounded-[16px] border border-[#EEF2F6] bg-white p-4 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
+                    <h3 className="text-[13px] font-[800] text-[#0F172A] mb-3">Quick Filters</h3>
+                    <p className="text-[11px] font-[700] text-[#64748B] tracking-wide uppercase mb-2">Departure Time</p>
+                    <div className="space-y-2">
+                        {DEPARTURE_TIME_BUCKETS.map((bucket) => (
+                            <label key={bucket.key} className="flex items-center justify-between gap-2 cursor-pointer text-[13px] text-[#334155]">
+                                <span className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={departureTimeFilters.includes(bucket.key)}
+                                        onChange={() => toggleDepartureTimeFilter(bucket.key)}
+                                        className="w-4 h-4 accent-[#0955AC]"
+                                    />
+                                    {bucket.label}
+                                </span>
+                                <span className="text-[11px] text-[#94A3B8]">{bucket.hint}</span>
+                            </label>
+                        ))}
+                    </div>
+                    {departureTimeFilters.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setDepartureTimeFilters([])}
+                            className="mt-3 text-[11px] font-[700] text-[#0955AC] hover:underline"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className={`grid grid-cols-1 gap-6 items-start flex-1 min-w-0 ${route ? 'lg:grid-cols-3' : ''}`}>
             <div className={`min-w-0 ${route ? 'lg:col-span-2' : ''}`}>
 
             {/* Nearby dates — browse a few extra days without re-searching. */}
@@ -412,6 +503,22 @@ function HeroDetailsInner({
                 </div>
             </div>
 
+            {/* Amenities legend — explains the icons shown on each result card */}
+            {facilitiesInView.length > 0 && (
+                <div className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[14px] border border-[#EEF2F6] bg-white px-4 py-3 text-[12px] text-[#64748B]">
+                    <span className="font-[700] text-[#0F172A]">Amenities:</span>
+                    {facilitiesInView.map((code) => {
+                        const meta = FACILITY_META[code] || { label: code, icon: HelpCircle };
+                        const Icon = meta.icon;
+                        return (
+                            <span key={code} className="inline-flex items-center gap-1.5">
+                                <Icon className="w-3.5 h-3.5 text-[#0955AC]" /> {meta.label}
+                            </span>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* Results list — round trips show only the active tab's leg */}
             {(!isRoundTrip || activeLeg === 'outbound') && (
                 <div className="space-y-5">
@@ -465,6 +572,7 @@ function HeroDetailsInner({
                 </div>
             )}
 
+            </div>
             </div>
 
             {/* Sticky continue bar for round trips */}

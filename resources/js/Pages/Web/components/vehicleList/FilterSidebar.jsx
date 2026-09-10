@@ -217,39 +217,39 @@ const MinValueSlider = ({ min, max, value, suffix, onCommit }) => {
   );
 };
 
+// Splits a comma-separated query param into a lowercase array — every
+// multi-select filter section below uses this same shape.
+const toList = (val) => (val ? String(val).toLowerCase().split(',').filter(Boolean) : []);
+
 const FilterSidebar = ({ searchParams, onSearch }) => {
-  const [selectedBodyType, setSelectedBodyType] = useState("");
-  const [selectedIndustryCategory, setSelectedIndustryCategory] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedBodyType, setSelectedBodyType] = useState(() => toList(searchParams?.bodyType));
+  const [selectedIndustryCategory, setSelectedIndustryCategory] = useState(() => toList(searchParams?.industryCategory));
+  const [selectedBrand, setSelectedBrand] = useState(() => toList(searchParams?.brand));
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedExtras, setSelectedExtras] = useState([]);
+  const [selectedExtras, setSelectedExtras] = useState(() => toList(searchParams?.extras));
   const [minSeats, setMinSeats] = useState(
     searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR
   );
-  const [selectedLuggage, setSelectedLuggage] = useState("");
+  const [selectedLuggage, setSelectedLuggage] = useState(() => toList(searchParams?.luggage));
   const [priceMin, setPriceMin] = useState(
     searchParams?.minPrice !== undefined && searchParams?.minPrice !== "" ? Number(searchParams.minPrice) : PRICE_FLOOR
   );
   const [priceMax, setPriceMax] = useState(
     searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING
   );
-  const [selectedMileage, setSelectedMileage] = useState("");
-  const [selectedTransmission, setSelectedTransmission] = useState("");
-  const [selectedFuel, setSelectedFuel] = useState("");
+  const [selectedMileage, setSelectedMileage] = useState(() => toList(searchParams?.mileage));
+  const [selectedTransmission, setSelectedTransmission] = useState(() => toList(searchParams?.transmission));
+  const [selectedFuel, setSelectedFuel] = useState(() => toList(searchParams?.fuel));
 
   useEffect(() => {
-    if (searchParams?.bodyType) {
-      setSelectedBodyType(searchParams.bodyType.toLowerCase());
-    }
-    if (searchParams?.brand) {
-      setSelectedBrand(searchParams.brand.toLowerCase());
-    }
-    if (searchParams?.industryCategory) {
-      setSelectedIndustryCategory(searchParams.industryCategory.toLowerCase());
-    }
-    if (searchParams?.extras) {
-      setSelectedExtras(String(searchParams.extras).split(',').filter(Boolean));
-    }
+    setSelectedBodyType(toList(searchParams?.bodyType));
+    setSelectedBrand(toList(searchParams?.brand));
+    setSelectedIndustryCategory(toList(searchParams?.industryCategory));
+    setSelectedExtras(toList(searchParams?.extras));
+    setSelectedLuggage(toList(searchParams?.luggage));
+    setSelectedMileage(toList(searchParams?.mileage));
+    setSelectedTransmission(toList(searchParams?.transmission));
+    setSelectedFuel(toList(searchParams?.fuel));
     setPriceMin(searchParams?.minPrice !== undefined && searchParams?.minPrice !== "" ? Number(searchParams.minPrice) : PRICE_FLOOR);
     setPriceMax(searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING);
     setMinSeats(searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR);
@@ -270,41 +270,23 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
     });
   };
 
-  const handleBodyTypeChange = (bodyType) => {
-    const newVal = selectedBodyType === bodyType ? "" : bodyType;
-    setSelectedBodyType(newVal);
-    runSearch({ ...searchParams, bodyType: newVal });
+  // Every filter section below is a checkbox group, not radio buttons — more
+  // than one option per section (and across sections) can be active at once.
+  const toggleInList = (list, setList, paramKey) => (value) => {
+    const newVal = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+    setList(newVal);
+    runSearch({ ...searchParams, [paramKey]: newVal.join(',') });
   };
 
-  const handleBrandChange = (brand) => {
-    const newVal = selectedBrand === brand ? "" : brand;
-    setSelectedBrand(newVal);
-    runSearch({ ...searchParams, brand: newVal });
-  };
-
-  const handleIndustryCategoryChange = (category) => {
-    const newVal = selectedIndustryCategory === category ? "" : category;
-    setSelectedIndustryCategory(newVal);
-    runSearch({ ...searchParams, industryCategory: newVal });
-  };
-
-  const handleExtraToggle = (extra) => {
-    const newVal = selectedExtras.includes(extra)
-      ? selectedExtras.filter((e) => e !== extra)
-      : [...selectedExtras, extra];
-    setSelectedExtras(newVal);
-    runSearch({ ...searchParams, extras: newVal.join(',') });
-  };
+  const handleBodyTypeChange = toggleInList(selectedBodyType, setSelectedBodyType, 'bodyType');
+  const handleBrandChange = toggleInList(selectedBrand, setSelectedBrand, 'brand');
+  const handleIndustryCategoryChange = toggleInList(selectedIndustryCategory, setSelectedIndustryCategory, 'industryCategory');
+  const handleExtraToggle = toggleInList(selectedExtras, setSelectedExtras, 'extras');
+  const handleLuggageChange = toggleInList(selectedLuggage, setSelectedLuggage, 'luggage');
 
   const handleSeatsCommit = (val) => {
     setMinSeats(val);
     runSearch({ ...searchParams, minSeats: val > SEATS_FLOOR ? val : "" });
-  };
-
-  const handleLuggageChange = (luggage) => {
-    const newVal = selectedLuggage === luggage ? "" : luggage;
-    setSelectedLuggage(newVal);
-    runSearch({ ...searchParams, luggage: newVal });
   };
 
   const handlePriceCommit = (min, max) => {
@@ -320,50 +302,36 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
     });
   };
 
-  const handleMileageChange = (mileage) => {
-    const newVal = selectedMileage === mileage ? "" : mileage;
-    setSelectedMileage(newVal);
-    runSearch({ ...searchParams, mileage: newVal });
-  };
-
-  const handleTransmissionChange = (transmission) => {
-    const newVal = selectedTransmission === transmission ? "" : transmission;
-    setSelectedTransmission(newVal);
-    runSearch({ ...searchParams, transmission: newVal });
-  };
-
-  const handleFuelChange = (fuel) => {
-    const newVal = selectedFuel === fuel ? "" : fuel;
-    setSelectedFuel(newVal);
-    runSearch({ ...searchParams, fuel: newVal });
-  };
+  const handleMileageChange = toggleInList(selectedMileage, setSelectedMileage, 'mileage');
+  const handleTransmissionChange = toggleInList(selectedTransmission, setSelectedTransmission, 'transmission');
+  const handleFuelChange = toggleInList(selectedFuel, setSelectedFuel, 'fuel');
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   const activeCount =
-    (selectedBodyType ? 1 : 0) +
-    (selectedIndustryCategory ? 1 : 0) +
-    (selectedBrand ? 1 : 0) +
+    selectedBodyType.length +
+    selectedIndustryCategory.length +
+    selectedBrand.length +
     (minSeats > SEATS_FLOOR ? 1 : 0) +
-    (selectedLuggage ? 1 : 0) +
+    selectedLuggage.length +
     (priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0) +
-    (selectedExtras.length > 0 ? 1 : 0) +
-    (selectedMileage ? 1 : 0) +
-    (selectedTransmission ? 1 : 0) +
-    (selectedFuel ? 1 : 0);
+    selectedExtras.length +
+    selectedMileage.length +
+    selectedTransmission.length +
+    selectedFuel.length;
 
   const clearAll = () => {
-    setSelectedBodyType("");
-    setSelectedIndustryCategory("");
-    setSelectedBrand("");
+    setSelectedBodyType([]);
+    setSelectedIndustryCategory([]);
+    setSelectedBrand([]);
     setMinSeats(SEATS_FLOOR);
-    setSelectedLuggage("");
+    setSelectedLuggage([]);
     setPriceMin(PRICE_FLOOR);
     setPriceMax(PRICE_CEILING);
     setSelectedExtras([]);
-    setSelectedMileage("");
-    setSelectedTransmission("");
-    setSelectedFuel("");
+    setSelectedMileage([]);
+    setSelectedTransmission([]);
+    setSelectedFuel([]);
     runSearch({
       ...searchParams,
       bodyType: "",
@@ -440,34 +408,34 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           )}
         </div>
 
-        <FilterSection icon={<LayoutGrid className="w-4 h-4 text-[#0955AC]" />} title="USE / INDUSTRY CATEGORY" count={selectedIndustryCategory ? 1 : 0}>
+        <FilterSection icon={<LayoutGrid className="w-4 h-4 text-[#0955AC]" />} title="USE / INDUSTRY CATEGORY" count={selectedIndustryCategory.length}>
           {INDUSTRY_CATEGORIES.map((cat) => (
             <FilterOption
               key={cat.id}
               label={cat.label}
-              active={selectedIndustryCategory === cat.id}
+              active={selectedIndustryCategory.includes(cat.id)}
               onClick={() => handleIndustryCategoryChange(cat.id)}
             />
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Car className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType ? 1 : 0}>
+        <FilterSection icon={<Car className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType.length}>
           {BODY_TYPES.map((type) => (
             <FilterOption
               key={type.id}
               label={type.label}
-              active={selectedBodyType === type.id}
+              active={selectedBodyType.includes(type.id)}
               onClick={() => handleBodyTypeChange(type.id)}
             />
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand ? 1 : 0}>
+        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand.length}>
           {BRANDS.map((brand) => (
             <FilterOption
               key={brand.id}
               label={brand.label}
-              active={selectedBrand === brand.id}
+              active={selectedBrand.includes(brand.id)}
               onClick={() => handleBrandChange(brand.id)}
             />
           ))}
@@ -483,12 +451,12 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           />
         </FilterSection>
 
-        <FilterSection icon={<Briefcase className="w-4 h-4 text-[#0955AC]" />} title="LUGGAGE CAPACITY" count={selectedLuggage ? 1 : 0}>
+        <FilterSection icon={<Briefcase className="w-4 h-4 text-[#0955AC]" />} title="LUGGAGE CAPACITY" count={selectedLuggage.length}>
           {LUGGAGE_CAPACITIES.map((l) => (
             <FilterOption
               key={l.id}
               label={l.label}
-              active={selectedLuggage === l.id}
+              active={selectedLuggage.includes(l.id)}
               onClick={() => handleLuggageChange(l.id)}
             />
           ))}
@@ -520,34 +488,34 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           />
         </FilterSection>
 
-        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage ? 1 : 0}>
+        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage.length}>
           {MILEAGES.map((m) => (
             <FilterOption
               key={m.id}
               label={m.label}
-              active={selectedMileage === m.id}
+              active={selectedMileage.includes(m.id)}
               onClick={() => handleMileageChange(m.id)}
             />
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Cog className="w-4 h-4 text-[#0955AC]" />} title="TRANSMISSION" count={selectedTransmission ? 1 : 0}>
+        <FilterSection icon={<Cog className="w-4 h-4 text-[#0955AC]" />} title="TRANSMISSION" count={selectedTransmission.length}>
           {TRANSMISSIONS.map((t) => (
             <FilterOption
               key={t.id}
               label={t.label}
-              active={selectedTransmission === t.id}
+              active={selectedTransmission.includes(t.id)}
               onClick={() => handleTransmissionChange(t.id)}
             />
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel ? 1 : 0}>
+        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel.length}>
           {FUELS.map((f) => (
             <FilterOption
               key={f.id}
               label={f.label}
-              active={selectedFuel === f.id}
+              active={selectedFuel.includes(f.id)}
               onClick={() => handleFuelChange(f.id)}
             />
           ))}

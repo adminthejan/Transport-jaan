@@ -43,12 +43,6 @@ function JourneyCard({ label, schedule }) {
                     Train {schedule.train_number} · {schedule.train_name}
                 </div>
             </div>
-
-            {schedule.route && (
-                <div className="p-4">
-                    <TripRouteMap route={schedule.route} className="h-[200px]" />
-                </div>
-            )}
         </div>
     );
 }
@@ -77,6 +71,7 @@ const TrainTicketBookingPreviewInner = () => {
         adults: passengers.adults || 1,
         children: passengers.children || 0,
         infants: passengers.infants || 0,
+        luggage: 'none',
     });
 
     const handleSubmit = (e) => {
@@ -114,11 +109,8 @@ const TrainTicketBookingPreviewInner = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                    {/* Left: Itineraries */}
+                    {/* Left: customer details up top, itineraries below */}
                     <div className="lg:col-span-2 space-y-5">
-                        <JourneyCard label="Outbound" schedule={outboundSchedule} />
-                        <JourneyCard label="Return" schedule={returnSchedule} />
-
                         {/* Passenger Details Form */}
                         <div className="rounded-2xl border border-[#EEF2F6] bg-white overflow-hidden shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
                             <div className="px-5 py-4 border-b border-[#F1F5F9]">
@@ -179,6 +171,23 @@ const TrainTicketBookingPreviewInner = () => {
                                     {errors.passenger_phone && <p className="text-red-500 text-xs mt-1">{errors.passenger_phone}</p>}
                                 </div>
 
+                                <div>
+                                    <label htmlFor="luggage" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
+                                        ADDITIONAL SERVICES — LUGGAGE
+                                    </label>
+                                    <select
+                                        id="luggage"
+                                        value={data.luggage}
+                                        onChange={(e) => setData('luggage', e.target.value)}
+                                        className="w-full h-[48px] rounded-[10px] border border-[#E2E8F0] px-4 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                                    >
+                                        <option value="none">No bags — Free</option>
+                                        <option value="1">1 bag — Free</option>
+                                        <option value="2">2 bags — LKR 500</option>
+                                        <option value="3">3 bags — LKR 1,000</option>
+                                    </select>
+                                </div>
+
                                 <button
                                     type="submit"
                                     disabled={processing}
@@ -192,6 +201,9 @@ const TrainTicketBookingPreviewInner = () => {
                                 </button>
                             </form>
                         </div>
+
+                        <JourneyCard label="Outbound" schedule={outboundSchedule} />
+                        <JourneyCard label="Return" schedule={returnSchedule} />
 
                         {/* Important Information */}
                         <div className="rounded-2xl border border-[#EEF2F6] bg-white p-5 sm:p-6">
@@ -219,8 +231,11 @@ const TrainTicketBookingPreviewInner = () => {
                         </div>
                     </div>
 
-                    {/* Right: Fare breakdown */}
-                    <div className="lg:sticky lg:top-24">
+                    {/* Right: route map + fare breakdown */}
+                    <div className="lg:sticky lg:top-24 space-y-5">
+                        {(outboundSchedule?.route || returnSchedule?.route) && (
+                            <TripRouteMap route={outboundSchedule?.route || returnSchedule?.route} className="h-[260px]" />
+                        )}
                         <div className="rounded-2xl border border-[#EEF2F6] bg-white overflow-hidden shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
                             <div className="px-5 py-4 border-b border-[#F1F5F9] flex items-center gap-2">
                                 <ShieldCheck className="w-4 h-4 text-[#0955AC]" />

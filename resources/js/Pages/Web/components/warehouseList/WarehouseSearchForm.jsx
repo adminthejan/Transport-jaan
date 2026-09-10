@@ -162,23 +162,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
           <div className="flex flex-col sm:flex-row flex-grow gap-4 w-full">
             {/* Warehouse Location */}
             <div className="w-full sm:flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="warehouseLocation">Warehouse Location</label>
-                <button
-                  type="button"
-                  onClick={handleUseMyLocation}
-                  disabled={locating}
-                  className="inline-flex items-center gap-1 text-[10px] font-[700] text-[#0955AC] hover:underline disabled:opacity-60"
-                  title="Use my current location"
-                >
-                  {locating ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <LocateFixed className="w-3 h-3" />
-                  )}
-                  Nearby
-                </button>
-              </div>
+              <label htmlFor="warehouseLocation" className="block mb-1">Warehouse Location</label>
               <div className="relative flex items-center">
                 {/* Location Icon Placeholder */}
                 <img src={locationBlue} className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none" alt="location" />
@@ -188,8 +172,25 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                   placeholder="Search a location"
                   value={formData.warehouseLocation}
                   onChange={handleInputChange}
-                  className="shadow-sm appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline pl-12 placeholder:text-[#286BB6]"
+                  className="shadow-sm appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline pl-12 pr-[100px] placeholder:text-[#286BB6]"
                 />
+                {/* Made into a clearly-visible pill button (was an easy-to-miss
+                    10px text link) so people actually notice they can use
+                    their current location instead of typing one. */}
+                <button
+                  type="button"
+                  onClick={handleUseMyLocation}
+                  disabled={locating}
+                  title="Use my current location"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 rounded-full bg-[#0955AC] text-white px-3 py-2 text-[11px] font-[700] shadow-sm hover:bg-[#073E82] transition-colors disabled:opacity-60"
+                >
+                  {locating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <LocateFixed className="w-3.5 h-3.5" />
+                  )}
+                  Nearby
+                </button>
               </div>
               {locateError && <p className="text-[10px] text-red-500 mt-1">{locateError}</p>}
             </div>

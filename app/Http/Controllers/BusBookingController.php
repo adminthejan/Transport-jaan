@@ -53,6 +53,15 @@ class BusBookingController extends Controller
             }
         }
 
+        // The search form collects a passenger breakdown (adults/youth/seniors
+        // + student/wheelchair flags), but it used to be dropped here and
+        // never reached the results or seat-selection pages — passengers had
+        // no way to know how many seats they were supposed to pick.
+        $adults = max(1, (int) $request->input('adults', 1));
+        $youth = max(0, (int) $request->input('youth', 0));
+        $seniors = max(0, (int) $request->input('seniors', 0));
+        $passengerCount = $adults + $youth + $seniors;
+
         return Inertia::render('Web/home/ticketBooking/BusTicketBookingDetails', [
             'stations' => $stations,
             'schedules' => $schedules,
@@ -65,6 +74,12 @@ class BusBookingController extends Controller
                 'date' => $date,
                 'returnDate' => $returnDate,
                 'tripType' => $tripType,
+                'passengers' => $passengerCount,
+                'adults' => $adults,
+                'youth' => $youth,
+                'seniors' => $seniors,
+                'student' => $request->boolean('student'),
+                'wheelchair' => $request->boolean('wheelchair'),
             ]
         ]);
     }
@@ -193,7 +208,7 @@ class BusBookingController extends Controller
             'from' => $request->get('from'),
             'to' => $request->get('to'),
             'date' => $request->get('date'),
-            'passengers' => $request->get('passengers', 1),
+            'passengers' => max(1, (int) $request->get('passengers', 1)),
             'tripType' => $returnScheduleId ? 'roundtrip' : 'oneway',
         ];
 

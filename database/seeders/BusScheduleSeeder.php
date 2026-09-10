@@ -113,7 +113,9 @@ class BusScheduleSeeder extends Seeder
                 'status' => 'active'
             ];
 
-            // Return journeys
+            // Return journeys — every outbound route above needs a reverse
+            // leg too, otherwise a round-trip search always comes back empty
+            // for anything except Negombo (the only route that had one).
             // Negombo to Colombo
             $schedules[] = [
                 'bus_id' => $buses->where('bus_number', 'NB-1234')->first()->id,
@@ -125,6 +127,51 @@ class BusScheduleSeeder extends Seeder
                 'date' => $date,
                 'price' => 1800.00,
                 'available_seats' => 40,
+                'is_expressway' => false,
+                'status' => 'active'
+            ];
+
+            // Galle to Colombo (Highway)
+            $schedules[] = [
+                'bus_id' => $buses->where('bus_number', 'NC-4567')->first()->id,
+                'departure_station_id' => $galle->id,
+                'arrival_station_id' => $colombo->id,
+                'departure_time' => '06:30:00',
+                'arrival_time' => '11:30:00',
+                'duration_minutes' => 300,
+                'date' => $date,
+                'price' => 1635.00,
+                'available_seats' => 45,
+                'is_expressway' => true,
+                'status' => 'active'
+            ];
+
+            // Kandy to Colombo
+            $schedules[] = [
+                'bus_id' => $buses->where('bus_number', 'NA-9912')->first()->id,
+                'departure_station_id' => $kandy->id,
+                'arrival_station_id' => $colombo->id,
+                'departure_time' => '07:00:00',
+                'arrival_time' => '10:02:00',
+                'duration_minutes' => 182,
+                'date' => $date,
+                'price' => 1900.00,
+                'available_seats' => 30,
+                'is_expressway' => false,
+                'status' => 'active'
+            ];
+
+            // Matara to Colombo
+            $schedules[] = [
+                'bus_id' => $buses->where('bus_number', 'NC-2211')->first()->id,
+                'departure_station_id' => $matara->id,
+                'arrival_station_id' => $colombo->id,
+                'departure_time' => '05:15:00',
+                'arrival_time' => '14:15:00',
+                'duration_minutes' => 540,
+                'date' => $date,
+                'price' => 1900.00,
+                'available_seats' => 28,
                 'is_expressway' => false,
                 'status' => 'active'
             ];

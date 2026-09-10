@@ -549,9 +549,12 @@ class WarehouseBookingController extends Controller
                 'storage_type' => 'required|string|max:100',
                 'fulfillment_service' => 'nullable|boolean',
                 'required_space' => 'required|numeric|min:0.01',
-                'goods_type' => 'nullable|string|max:100',
+                'storage_unit' => 'nullable|string|in:sqft,sqm,cbm,pallets',
+                'goods_type' => 'required|string|max:100',
                 'goods_description' => 'required|string|max:1000',
-                'estimated_weight' => 'nullable|numeric|min:0',
+                'quantity' => 'required|string|max:100',
+                'estimated_weight' => 'required|numeric|min:0',
+                'special_handling_required' => 'nullable|boolean',
                 'special_requirements' => 'nullable|string|max:1000',
                 'amenities' => 'nullable|array',
                 'amenities.*' => 'string',
@@ -560,6 +563,8 @@ class WarehouseBookingController extends Controller
                 'duration_months' => 'nullable|integer|min:1|max:120',
                 'access_hours' => 'nullable|string|max:50',
                 'special_instructions' => 'nullable|string|max:1000',
+                'delivery_pickup_required' => 'nullable|boolean',
+                'delivery_pickup_address' => 'required_if:delivery_pickup_required,1,true|nullable|string|max:500',
                 'monthly_rate' => 'required|numeric|min:0',
                 'security_deposit' => 'nullable|numeric|min:0',
                 'setup_fee' => 'nullable|numeric|min:0',
@@ -579,10 +584,14 @@ class WarehouseBookingController extends Controller
                 'contact_person.required' => 'Contact person name is required.',
                 'email.required' => 'Email address is required.',
                 'phone.required' => 'Phone number is required.',
-                'storage_type.required' => 'Storage type is required.',
+                'storage_type.required' => 'Warehouse type is required.',
                 'required_space.required' => 'Required space is required.',
-                'goods_description.required' => 'Goods description is required.',
-                'start_date.required' => 'Start date is required.',
+                'goods_type.required' => 'Cargo/goods type is required.',
+                'goods_description.required' => 'Cargo description is required.',
+                'quantity.required' => 'Quantity is required.',
+                'estimated_weight.required' => 'Estimated weight is required.',
+                'start_date.required' => 'Booking start date is required.',
+                'delivery_pickup_address.required_if' => 'Please provide a pickup/delivery address.',
                 'terms_accepted.accepted' => 'You must accept the terms and conditions.',
             ])->validate();
 
@@ -636,20 +645,29 @@ class WarehouseBookingController extends Controller
                 'storage_type' => $validated['storage_type'],
                 'fulfillment_service' => $validated['fulfillment_service'] ?? false,
                 'required_space' => $validated['required_space'],
+                'storage_unit' => $validated['storage_unit'] ?? 'sqft',
                 'goods_type' => $validated['goods_type'] ?? 'General',
                 'goods_description' => $validated['goods_description'],
+                'quantity' => $validated['quantity'] ?? null,
                 'estimated_weight' => $validated['estimated_weight'] ?? null,
-                'special_requirements' => !empty($validated['special_requirements']) ? 
-                    json_encode(['notes' => $validated['special_requirements']]) : null,
-                'amenities' => !empty($validated['amenities']) ? 
-                    json_encode($validated['amenities']) : null,
-                
+                'special_handling_required' => $validated['special_handling_required'] ?? false,
+                // These two columns are cast to 'json' on the model, which
+                // json_encode()s whatever it's given on save — passing an
+                // already-encoded string here would double-encode it and
+                // come back as a string (not an array) everywhere it's read,
+                // e.g. WarehouseReservationController's is_array() check.
+                'special_requirements' => !empty($validated['special_requirements']) ?
+                    ['notes' => $validated['special_requirements']] : null,
+                'amenities' => $validated['amenities'] ?? null,
+
                 // Duration & Scheduling
                 'start_date' => $validated['start_date'],
                 'end_date' => $endDate,
                 'duration_months' => $durationMonths,
                 'access_hours' => $validated['access_hours'] ?? '24/7',
                 'special_instructions' => $validated['special_instructions'] ?? null,
+                'delivery_pickup_required' => $validated['delivery_pickup_required'] ?? false,
+                'delivery_pickup_address' => $validated['delivery_pickup_address'] ?? null,
                 
                 // Pricing
                 'monthly_rate' => $validated['monthly_rate'],

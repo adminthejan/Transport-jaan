@@ -1,6 +1,7 @@
 import React from "react";
 import { Head, usePage } from "@inertiajs/react";
 import Header from "../client/ClientHeader";
+import { ModuleTabs, TicketSubTabs } from "../../components/ModuleTabs";
 import FlightForm from "../../components/ticketBooking/FlightForm";
 import { CheckCircle2, AlertCircle, PlaneTakeoff } from "lucide-react";
 
@@ -11,6 +12,13 @@ const FlightBooking = () => {
         <div className="bg-[#F6F7F9] min-h-screen">
             <Head title="Charter Flight Quote Request - Transport Jaan" />
             <Header />
+
+            <div className="pt-6 sm:pt-8 px-5 md:px-10 max-w-[1800px] mx-auto">
+                <ModuleTabs active="ticket" />
+                <div className="mt-4 sm:mt-6">
+                    <TicketSubTabs active="flight" />
+                </div>
+            </div>
 
             {/* Page header */}
             <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82]">

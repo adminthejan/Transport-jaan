@@ -373,6 +373,7 @@ class VehicleController extends Controller
             // land
             'bodyType'           => $v->landSpec?->body_type,
             'industryCategory'   => $v->landSpec?->industry_category,
+            'hasPortPass'        => (bool) $v->landSpec?->has_port_pass,
             'fuelType'           => $v->landSpec?->fuel_type,
             'transmissionType'   => $v->landSpec?->transmission_type,
             'gears'              => $v->landSpec?->gears,
@@ -483,6 +484,7 @@ class VehicleController extends Controller
             // (see database/migrations/2025_08_18_000200_create_land_vehicle_specs_table.php)
             'bodyType'           => ['nullable', Rule::in(['sedan','hatchback','suv','van','bus','pickup','jeep','other','coupe','truck','convertible','limousine','crossover','wagon','familyMBP','sportcoupe','compact','mpv','motorcycle','three_wheeler','special_purpose'])],
             'industryCategory'   => ['nullable', Rule::in(['cars_suvs','vans_minibuses','buses','trucks','prime_movers_trailers','construction_equipment'])],
+            'hasPortPass'        => ['nullable', 'boolean'],
             'fuelType'           => ['nullable', Rule::in(['petrol','diesel','hybrid','electric','cng','lpg','other'])],
             'transmissionType'   => ['nullable', Rule::in(['manual','automatic','amt','cvt','dct'])],
             'gears'              => ['nullable','integer','min:0'],
@@ -671,6 +673,7 @@ class VehicleController extends Controller
                         [
                             'body_type'            => $request->input('bodyType'),
                             'industry_category'    => $request->input('industryCategory'),
+                            'has_port_pass'        => $request->boolean('hasPortPass'),
                             'fuel_type'            => $request->input('fuelType'),
                             'transmission_type'    => $request->input('transmissionType'),
                             'gears'                => $request->integer('gears') ?: null,
