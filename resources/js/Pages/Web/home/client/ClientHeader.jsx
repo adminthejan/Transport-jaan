@@ -29,6 +29,7 @@ import {
     LogIn,
     UserPlus,
     Wallet,
+    PackageSearch,
 } from "lucide-react";
 import CompanyLogo from "../../components/CompanyLogo";
 import DashboardSearchModal from "@/Components/search/DashboardSearchModal";
@@ -319,6 +320,14 @@ const ClientHeader = () => {
 
                     {/* Desktop-only action items */}
                     <div className="hidden md:flex items-center gap-3">
+                        <Link
+                            href="/track"
+                            className="h-[48px] px-4 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center gap-2"
+                            title="Track any order"
+                        >
+                            <PackageSearch className="w-[18px] h-[18px] text-[#0955AC]" />
+                            <span className="text-[13px] font-[700] text-[#0955AC] whitespace-nowrap">Track</span>
+                        </Link>
                         {auth?.user && (
                             <button
                                 type="button"
@@ -499,6 +508,13 @@ const ClientHeader = () => {
 
                         {/* Navigation */}
                         <nav className="flex-1 overflow-y-auto scrollbar-hide px-5 pt-5 pb-3 flex flex-col gap-1">
+                            <SidebarLink
+                                href="/track"
+                                icon={SearchIcon}
+                                label="Track Any Order"
+                                onClick={toggleMenu}
+                            />
+
                             <SidebarAccordion
                                 icon={Car}
                                 label="Vehicle Rental"
