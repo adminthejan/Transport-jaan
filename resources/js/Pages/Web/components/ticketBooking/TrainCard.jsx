@@ -144,7 +144,7 @@ const TrainCard = () => {
     };
 
     return (
-        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5 overflow-hidden">
+        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5">
             <CardHeader icon={TrainFront} title={t("find_your_trains", "Find Your Trains")} subtitle="Scenic and intercity routes, seat reserved instantly." />
 
             <form onSubmit={onSubmitTrain} className="p-6 sm:p-8">

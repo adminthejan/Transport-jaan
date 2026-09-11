@@ -4,7 +4,7 @@ import React from "react";
 // badge, title, and optional subtitle over a soft multi-stop gradient with
 // blurred decorative circles, replacing the old flat single-color banner.
 const CardHeader = ({ icon: Icon, title, subtitle }) => (
-  <div className="relative bg-gradient-to-br from-[#0B63C4] via-[#0955AC] to-[#073E82] px-6 sm:px-8 py-6 sm:py-7 overflow-hidden">
+  <div className="relative rounded-t-[22px] bg-gradient-to-br from-[#0B63C4] via-[#0955AC] to-[#073E82] px-6 sm:px-8 py-6 sm:py-7 overflow-hidden">
     <div className="absolute -right-10 -top-12 w-40 h-40 rounded-full bg-white/10 blur-2xl pointer-events-none" />
     <div className="absolute right-20 -bottom-14 w-28 h-28 rounded-full bg-white/5 blur-xl pointer-events-none" />
     <div className="relative flex items-center gap-3.5">

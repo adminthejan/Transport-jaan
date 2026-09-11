@@ -80,7 +80,7 @@ const BusCard = () => {
     };
 
     return (
-        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5 overflow-hidden">
+        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5">
             <CardHeader icon={BusIcon} title={t("find_your_buses", "Find Your Buses")} subtitle="Every route, every operator — one search." />
 
             <form onSubmit={onSubmitBus} className="p-6 sm:p-8">

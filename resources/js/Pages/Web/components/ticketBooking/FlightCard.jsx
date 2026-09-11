@@ -110,7 +110,7 @@ const FlightCard = () => {
     };
 
     return (
-        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5 overflow-hidden">
+        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5">
             <CardHeader icon={Plane} title="Request a Flight Quote" subtitle="Tell us your route — we'll follow up with pricing and availability." />
 
             <form onSubmit={handleStartClick} className="p-6 sm:p-8">
