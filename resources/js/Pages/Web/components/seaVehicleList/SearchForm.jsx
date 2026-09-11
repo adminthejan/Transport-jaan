@@ -59,46 +59,46 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
   return (
     <div className="px-4 sm:px-6 lg:px-10 2xl:px-16 py-4 sm:py-6 md:py-10">
       {/* Search Form */}
-      <div className="figtree bg-white p-4 sm:p-6 rounded-[15px] shadow-2xl shadow-[#00000040] w-full min-h-[132px] text-[#286BB6] text-[13px] font-[400]">
+      <div className="figtree bg-white p-4 sm:p-6 rounded-[20px] border border-black/5 shadow-[0_16px_40px_rgba(9,85,172,0.12)] w-full min-h-[132px] text-[#286BB6] text-[13px] font-[400]">
         {/* Combined Inputs and Button */}
         <div className="flex flex-col sm:flex-row items-end gap-4">
           {/* Input Fields Container */}
           <div className="flex flex-col sm:flex-row flex-grow gap-4 w-full">
             {/* Pick-up Location */}
             <div className="w-full sm:flex-1">
-              <label htmlFor="pickupLocation" className="block mb-1">
+              <label htmlFor="pickupLocation" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
                 Pick-up Location
               </label>
-              <div className="relative flex items-center">
-                <img src={locationBlue} className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none" alt="location" />
+              <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
+                <img src={locationBlue} className="w-[18px] h-[18px] flex-shrink-0" alt="location" />
                 <input
                   type="text"
                   id="pickupLocation"
                   placeholder="Search a location"
                   value={formData.pickupLocation}
                   onChange={handleInputChange}
-                  className="shadow-sm appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline pl-12 placeholder:text-[#286BB6]"
+                  className="appearance-none w-full py-[14px] leading-tight focus:outline-none placeholder:text-[#286BB6] bg-transparent"
                 />
               </div>
             </div>
 
             {/* Pick-up Date */}
             <div className="w-full sm:flex-1">
-              <label htmlFor="pickupDate" className="block mb-1">
+              <label htmlFor="pickupDate" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
                 Pick-up Date
               </label>
-              <div className="relative flex items-center">
+              <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
                 <input
                   type="date"
                   id="pickupDate"
                   placeholder="12/12/2023"
                   value={formData.pickupDate}
                   onChange={handleInputChange}
-                  className="shadow-sm w-full border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline pr-12 [&::-webkit-calendar-picker-indicator]:hidden"
+                  className="w-full py-[14px] leading-tight focus:outline-none bg-transparent [&::-webkit-calendar-picker-indicator]:hidden"
                 />
                 <img
                   src={calendarBlue}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] cursor-pointer"
+                  className="w-[18px] h-[18px] cursor-pointer flex-shrink-0"
                   alt="calendar"
                   onClick={() => document.getElementById('pickupDate').showPicker()}
                 />
@@ -107,39 +107,39 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
 
             {/* Drop-off Location */}
             <div className="w-full sm:flex-1">
-              <label htmlFor="dropoffLocation" className="block mb-1">
+              <label htmlFor="dropoffLocation" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
                 Drop-off Location
               </label>
-              <div className="relative flex items-center">
-                <img src={locationBlue} className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none" alt="location" />
+              <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
+                <img src={locationBlue} className="w-[18px] h-[18px] flex-shrink-0" alt="location" />
                 <input
                   type="text"
                   id="dropoffLocation"
                   placeholder="Search a location"
                   value={formData.dropoffLocation}
                   onChange={handleInputChange}
-                  className="shadow-sm w-full border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline pl-12 placeholder:text-[#286BB6]"
+                  className="w-full py-[14px] leading-tight focus:outline-none placeholder:text-[#286BB6] bg-transparent"
                 />
               </div>
             </div>
 
             {/* Drop-off Date */}
             <div className="w-full sm:flex-1">
-              <label htmlFor="dropoffDate" className="block mb-1">
+              <label htmlFor="dropoffDate" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
                 Drop-off Date
               </label>
-              <div className="relative flex items-center">
+              <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
                 <input
                   type="date"
                   id="dropoffDate"
                   placeholder="12/12/2023"
                   value={formData.dropoffDate}
                   onChange={handleInputChange}
-                  className="shadow-sm border-[#0000001A] rounded-[8px] p-[16px] w-full leading-tight focus:outline-none focus:shadow-outline pr-12 [&::-webkit-calendar-picker-indicator]:hidden"
+                  className="w-full py-[14px] leading-tight focus:outline-none bg-transparent [&::-webkit-calendar-picker-indicator]:hidden"
                 />
                 <img
                   src={calendarBlue}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] cursor-pointer"
+                  className="w-[18px] h-[18px] cursor-pointer flex-shrink-0"
                   alt="calendar"
                   onClick={() => document.getElementById('dropoffDate').showPicker()}
                 />
@@ -149,8 +149,8 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
 
           {/* Skipper preference */}
           <div className="w-full sm:w-auto shrink-0">
-            <label className="block mb-1">Skipper</label>
-            <div className="inline-flex w-full sm:w-auto rounded-[8px] border border-[#0000001A] bg-[#F1F5F9] p-1">
+            <label className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">Skipper</label>
+            <div className="inline-flex w-full sm:w-auto rounded-[10px] border border-[#0000001A] bg-[#F1F5F9] p-1">
               {[
                 { value: false, label: "Without Skipper" },
                 { value: true, label: "With Skipper" },
@@ -159,7 +159,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   type="button"
                   key={String(opt.value)}
                   onClick={() => onFormChange({ ...formData, withSkipper: opt.value })}
-                  className={`flex-1 sm:flex-none whitespace-nowrap rounded-[6px] px-3 sm:px-4 h-[46px] text-[12px] font-[700] transition-colors ${
+                  className={`flex-1 sm:flex-none whitespace-nowrap rounded-[8px] px-3 sm:px-4 h-[46px] text-[12px] font-[700] transition-colors cursor-pointer ${
                     Boolean(formData.withSkipper) === opt.value
                       ? "bg-[#0955AC] text-white shadow-sm"
                       : "text-[#475569] hover:text-[#0955AC]"
@@ -174,7 +174,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
           {/* Find a Vehicle Button */}
           <button
             onClick={handleSearch}
-            className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0 hover:bg-[#074494] transition-colors"
+            className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[10px] focus:outline-none cursor-pointer mt-4 sm:mt-0 hover:bg-[#074494] transition-colors shadow-[0_10px_20px_rgba(9,85,172,0.25)]"
           >
             →
           </button>

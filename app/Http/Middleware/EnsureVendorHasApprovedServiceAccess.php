@@ -101,8 +101,13 @@ class EnsureVendorHasApprovedServiceAccess
     {
         $path = ltrim($path, '/');
 
-        // Legacy vendor route names
-        if (str_starts_with($routeName, 'ticketBooking.')) {
+        // Legacy vendor route names.
+        // Excludes 'ticketBooking.ticketBooking' — the public, client-facing
+        // ticket booking page (bus/train/flight search) — which happens to
+        // share this name prefix with the vendor dashboard routes below
+        // (ticketBooking.dashboard, .bookings, .units, etc.) but must stay
+        // open to guests and non-vendor clients.
+        if (str_starts_with($routeName, 'ticketBooking.') && $routeName !== 'ticketBooking.ticketBooking') {
             return ['aviation-service', 'railway-service'];
         }
 
@@ -110,7 +115,10 @@ class EnsureVendorHasApprovedServiceAccess
             return ['courier-services'];
         }
 
-        if (str_starts_with($routeName, 'freight.')) {
+        // Excludes the public freight marketing/booking-request pages, which
+        // share this name prefix with the vendor dashboard routes below
+        // (freight.dashboard, .bookings, .units, etc.).
+        if (str_starts_with($routeName, 'freight.') && !in_array($routeName, ['freight.home', 'freight.booking.create'], true)) {
             return ['waterborne-transport'];
         }
 

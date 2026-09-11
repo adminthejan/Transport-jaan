@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { router, usePage, Link } from "@inertiajs/react";
 import { AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -267,160 +268,159 @@ const ClientHeader = () => {
     }, []);
 
     return (
-        <header className="relative z-50 w-full h-auto py-[5px]">
-            <div className="poppins font-[500] px-3 sm:px-4 md:px-6 lg:px-10 min-h-[60px] sm:min-h-[80px] md:min-h-[110px] flex items-center justify-between relative">
-                {/* Logo */}
+        <header className="relative z-50 w-full h-auto py-2 bg-white border-b border-black/[0.04]">
+            <div className="poppins font-[500] px-4 sm:px-6 md:px-8 lg:px-10 min-h-[56px] sm:min-h-[68px] md:min-h-[80px] flex items-center justify-between">
+                {/* Logo - cleanly aligned to the left */}
                 <div
                     onClick={() => router.visit("/")}
-                    className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center cursor-pointer transition-colors"
-                    style={{ minWidth: "120px" }}
+                    className="flex items-center cursor-pointer transition-transform hover:scale-[1.02] shrink-0"
                 >
-                    <CompanyLogo className="h-[44px] sm:h-[60px] md:h-[80px] lg:h-[100px] object-contain" fallbackClassName="text-[16px] sm:text-[20px] md:text-[25px] lg:text-[30px] font-[700] text-black" />
+                    <CompanyLogo className="h-[38px] sm:h-[48px] md:h-[60px] lg:h-[70px] object-contain" fallbackClassName="text-[18px] sm:text-[22px] md:text-[26px] font-[700] text-black" />
                 </div>
 
-                {/* Desktop icons */}
-                <button
-                    onClick={() => setIsSearchOpen(true)}
-                    className="absolute right-[195px] top-1/2 -translate-y-1/2 size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex justify-center items-center md:flex hidden"
-                    title="Search dashboard (Cmd+K)"
-                    aria-label="Search client dashboard"
-                >
-                    <img
-                        src={search}
-                        className="size-[18px] md:w-[24px] md:h-[23px]"
-                        alt="Search"
-                    />
-                </button>
-                {/* Hamburger — grouped with the other header shortcuts on the
-                    right instead of sitting alone on the opposite side, and
-                    on the same side the sidebar itself slides in from. */}
-                <div className="absolute right-3 sm:right-4 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 flex flex-row gap-4 justify-end items-center">
-                    {!isMenuOpen && (
-                        <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
-                            <button
-                                onClick={toggleMenu}
-                                className="text-[#000000] hover:text-[#0955AC] focus:outline-none z-30 flex items-center justify-center"
-                                aria-label="Open menu"
-                            >
-                                <svg
-                                    className="w-4 h-4 md:w-7 md:h-7"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-                    )}
-                    <div className="hidden md:flex flex-row gap-4 justify-end items-center">
-                    {auth?.user && (
-                        <button
-                            type="button"
-                            onClick={() => router.visit(route("client.wallet.dashboard"))}
-                            className="h-[55px] px-4 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center gap-2"
-                            title="Wallet"
-                            aria-label="Wallet balance"
-                        >
-                            <Wallet className="w-[20px] h-[20px] text-[#0955AC]" />
-                            <span className="text-[13px] font-[700] text-[#0955AC] whitespace-nowrap">
-                                {walletBalance === null
-                                    ? "Wallet"
-                                    : `${walletCurrency} ${walletBalance.toLocaleString(undefined, {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                      })}`}
-                            </span>
-                        </button>
-                    )}
-                    <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
+                {/* Header Action Items */}
+                <div className="flex items-center gap-2.5 sm:gap-3 md:gap-3.5 shrink-0">
+                    {/* Search button */}
+                    <button
+                        onClick={() => setIsSearchOpen(true)}
+                        className="size-[34px] sm:size-[42px] md:size-[48px] rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex justify-center items-center"
+                        title="Search dashboard (Cmd+K)"
+                        aria-label="Search client dashboard"
+                    >
                         <img
-                            src={bell}
-                            className="size-[18px] md:w-[24px] md:h-[23px]"
-                            alt="Notifications"
+                            src={search}
+                            className="size-[15px] sm:size-[18px] md:size-[20px]"
+                            alt="Search"
                         />
-                    </div>
-                    <div className="relative">
-                        <button
-                            onClick={() => setIsProfileOpen((prev) => !prev)}
-                            className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center focus:outline-none"
-                        >
-                            {auth?.user?.image ? (
-                                <img
-                                    src={auth.user.image}
-                                    className="size-[27px] md:size-[55px] object-cover"
-                                    alt="Profile"
-                                />
-                            ) : (
-                                <img
-                                    src={proPic}
-                                    className="size-[18px] md:size-[30px]"
-                                    alt="Profile"
-                                />
-                            )}
-                        </button>
+                    </button>
 
-                        {isProfileOpen && (
-                            <>
-                                {/* backdrop */}
-                                <div
-                                    className="fixed inset-0 z-40"
-                                    onClick={() => setIsProfileOpen(false)}
+                    {/* Hamburger menu */}
+                    {!isMenuOpen && (
+                        <button
+                            onClick={toggleMenu}
+                            className="size-[34px] sm:size-[42px] md:size-[48px] rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] text-[#000000] hover:text-[#0955AC] focus:outline-none flex justify-center items-center transition"
+                            aria-label="Open menu"
+                        >
+                            <svg
+                                className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 6h16M4 12h16M4 18h16"
                                 />
-                                <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
-                                    {auth?.user && (
-                                        <div className="px-4 py-3 border-b border-gray-100">
-                                            <p className="text-sm font-semibold text-gray-800 truncate">{auth.user.name}</p>
-                                            <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
-                                        </div>
-                                    )}
-                                    {window.location.pathname === "/clientDashboardSettings" ? (
-                                        <Link
-                                            href={route("clientAllBookings")}
-                                            onClick={() => setIsProfileOpen(false)}
-                                            className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
-                                        >
-                                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                            </svg>
-                                            Dashboard
-                                        </Link>
-                                    ) : (
-                                        <Link
-                                            href="/clientDashboardSettings"
-                                            onClick={() => setIsProfileOpen(false)}
-                                            className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                        >
-                                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                            My Profile
-                                        </Link>
-                                    )}
-                                    <button
-                                        onClick={handleOpenLogoutModal}
-                                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                        </svg>
-                                        Logout
-                                    </button>
-                                </div>
-                            </>
+                            </svg>
+                        </button>
+                    )}
+
+                    {/* Desktop-only action items */}
+                    <div className="hidden md:flex items-center gap-3">
+                        {auth?.user && (
+                            <button
+                                type="button"
+                                onClick={() => router.visit(route("client.wallet.dashboard"))}
+                                className="h-[48px] px-4 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center gap-2"
+                                title="Wallet"
+                                aria-label="Wallet balance"
+                            >
+                                <Wallet className="w-[18px] h-[18px] text-[#0955AC]" />
+                                <span className="text-[13px] font-[700] text-[#0955AC] whitespace-nowrap">
+                                    {walletBalance === null
+                                        ? "Wallet"
+                                        : `${walletCurrency} ${walletBalance.toLocaleString(undefined, {
+                                              minimumFractionDigits: 2,
+                                              maximumFractionDigits: 2,
+                                          })}`}
+                                </span>
+                            </button>
                         )}
-                    </div>
+                        <div className="size-[48px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
+                            <img
+                                src={bell}
+                                className="size-[20px]"
+                                alt="Notifications"
+                            />
+                        </div>
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsProfileOpen((prev) => !prev)}
+                                className="size-[48px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center focus:outline-none"
+                            >
+                                {auth?.user?.image ? (
+                                    <img
+                                        src={auth.user.image}
+                                        className="size-[48px] object-cover"
+                                        alt="Profile"
+                                    />
+                                ) : (
+                                    <img
+                                        src={proPic}
+                                        className="size-[24px]"
+                                        alt="Profile"
+                                    />
+                                )}
+                            </button>
+
+                            {isProfileOpen && (
+                                <>
+                                    {/* backdrop */}
+                                    <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={() => setIsProfileOpen(false)}
+                                    />
+                                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+                                        {auth?.user && (
+                                            <div className="px-4 py-3 border-b border-gray-100">
+                                                <p className="text-sm font-semibold text-gray-800 truncate">{auth.user.name}</p>
+                                                <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
+                                            </div>
+                                        )}
+                                        {window.location.pathname === "/clientDashboardSettings" ? (
+                                            <Link
+                                                href={route("clientAllBookings")}
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                                            >
+                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                                </svg>
+                                                Dashboard
+                                            </Link>
+                                        ) : (
+                                            <Link
+                                                href="/clientDashboardSettings"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                                My Profile
+                                            </Link>
+                                        )}
+                                        <button
+                                            onClick={handleOpenLogoutModal}
+                                            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                            </svg>
+                                            Logout
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Client dashboard sidebar */}
-            {isMenuOpen && (
+            {isMenuOpen && typeof document !== "undefined" && createPortal(
                 <div className="fixed inset-0 z-[60] flex justify-end">
                     <div
                         className="absolute inset-0 bg-black/50 backdrop-blur-[2px] client-sidebar-backdrop"
@@ -651,7 +651,8 @@ const ClientHeader = () => {
                             )}
                         </div>
                     </aside>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Logout Confirmation Modal */}

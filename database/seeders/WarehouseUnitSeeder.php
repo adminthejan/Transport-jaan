@@ -34,7 +34,7 @@ class WarehouseUnitSeeder extends Seeder
             })->all();
         }
 
-        $types = ['cold_storage', 'dry', 'bonded', 'open_yard', 'climate_controlled', 'hazmat'];
+        $types = ['general_warehouse', 'bonded_warehouse', 'cold_storage', 'distribution_center', 'fulfillment_center', 'smart_warehouse'];
         $pricingModels = ['hourly', 'daily', 'monthly', 'yearly'];
         $capacityUnits = ['sq_ft', 'sq_m', 'cubic_ft', 'cubic_m'];
 
@@ -91,8 +91,7 @@ class WarehouseUnitSeeder extends Seeder
             })->values()->all();
 
             $unit = WarehouseUnit::create([
-                'user_id' => 21,
-                // 'user_id' => Arr::random($vendorIds),
+                'user_id' => Arr::random($vendorIds),
                 'name' => sprintf('%s Logistics Hub', Str::title($faker->words(2, true))),
                 'description' => $faker->paragraphs(3, true),
                 'address' => $faker->address(),

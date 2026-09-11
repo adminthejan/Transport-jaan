@@ -25,48 +25,62 @@ const RENTAL_SUB_TABS = [
 const TICKET_SUB_TABS = [
     { key: "bus", label: "Bus", href: "/busTicketBookingDetails", icon: BusIcon },
     { key: "train", label: "Train", href: "/trainTicketBookingDetails", icon: TrainIcon },
-    { key: "flight", label: "Flight", href: "/flightBooking", icon: PlaneIcon },
+    { key: "flight", label: "Flight", icon: PlaneIcon, href: "/ticketBooking?type=flight" },
 ];
 
-const Pill = ({ active, label, href, icon: Icon, large }) => (
-    <Link
-        href={href}
-        className={`flex items-center justify-center gap-1.5 ${large ? "px-3 sm:px-6 py-2 sm:py-2.5 text-[11px] sm:text-[14px] gap-2" : "px-3 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-[13px]"} rounded-full font-[600] poppins transition-all ${
-            active
-                ? "bg-[#0955AC] text-white shadow-md"
-                : "text-[#475569] hover:text-[#0955AC] hover:bg-white/70"
-        }`}
-    >
-        <Icon className={large ? "w-4 h-4 shrink-0" : "w-3.5 h-3.5 shrink-0"} />
-        {label}
-    </Link>
-);
+const Pill = ({ active, label, href, icon: Icon, large, onSelect, tabKey }) => {
+    const className = `flex items-center justify-center gap-1.5 ${large ? "px-3 sm:px-6 py-2 sm:py-2.5 text-[11px] sm:text-[14px] gap-2" : "px-3 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-[13px]"} rounded-full font-[600] poppins transition-all cursor-pointer ${
+        active
+            ? "bg-[#0955AC] text-white shadow-md"
+            : "text-[#475569] hover:text-[#0955AC] hover:bg-white/70"
+    }`;
 
-export const ModuleTabs = ({ active }) => (
+    if (onSelect) {
+        return (
+            <button
+                type="button"
+                onClick={() => onSelect(tabKey)}
+                className={className}
+            >
+                <Icon className={large ? "w-4 h-4 shrink-0" : "w-3.5 h-3.5 shrink-0"} />
+                {label}
+            </button>
+        );
+    }
+
+    return (
+        <Link href={href} className={className}>
+            <Icon className={large ? "w-4 h-4 shrink-0" : "w-3.5 h-3.5 shrink-0"} />
+            {label}
+        </Link>
+    );
+};
+
+export const ModuleTabs = ({ active, onSelect }) => (
     <div className="flex justify-center w-full">
         <div className="inline-flex flex-wrap justify-center items-center gap-1 p-1.5 rounded-full bg-[#F1F5F9] shadow-inner">
             {TOP_TABS.map((tab) => (
-                <Pill key={tab.key} large active={active === tab.key} {...tab} />
+                <Pill key={tab.key} tabKey={tab.key} large active={active === tab.key} onSelect={onSelect} {...tab} />
             ))}
         </div>
     </div>
 );
 
-export const RentalSubTabs = ({ active }) => (
+export const RentalSubTabs = ({ active, onSelect }) => (
     <div className="flex justify-center mb-4 sm:mb-6">
         <div className="inline-flex flex-wrap justify-center items-center gap-1 p-1 rounded-full bg-[#F1F5F9] shadow-inner">
             {RENTAL_SUB_TABS.map((tab) => (
-                <Pill key={tab.key} active={active === tab.key} {...tab} />
+                <Pill key={tab.key} tabKey={tab.key} active={active === tab.key} onSelect={onSelect} {...tab} />
             ))}
         </div>
     </div>
 );
 
-export const TicketSubTabs = ({ active }) => (
+export const TicketSubTabs = ({ active, onSelect }) => (
     <div className="flex justify-center mb-4 sm:mb-6">
         <div className="inline-flex flex-wrap justify-center items-center gap-1 p-1 rounded-full bg-[#F1F5F9] shadow-inner">
             {TICKET_SUB_TABS.map((tab) => (
-                <Pill key={tab.key} active={active === tab.key} {...tab} />
+                <Pill key={tab.key} tabKey={tab.key} active={active === tab.key} onSelect={onSelect} {...tab} />
             ))}
         </div>
     </div>

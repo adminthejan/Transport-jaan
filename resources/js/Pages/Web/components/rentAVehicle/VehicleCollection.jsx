@@ -131,20 +131,25 @@ const handleViewMore = () => {
   };
 
   return (
-    <div className="w-full py-12 px-4 sm:px-6 lg:px-10">
+    <div className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-10 bg-white">
       <div className="container mx-auto">
-        <h2 className="bebas-neue text-[28px] sm:text-[36px] md:text-[40px] font-[400] text-center mb-8">
+        <div className="text-center mb-4">
+          <span className="poppins inline-block text-[11px] font-[700] tracking-[0.14em] text-[#0955AC] bg-[#EAF1FE] px-3 py-1.5 rounded-full uppercase mb-4">
+            Our Fleet
+          </span>
+        </div>
+        <h2 className="bebas-neue text-[28px] sm:text-[36px] md:text-[40px] font-[400] text-center mb-3">
           OUR <span className="text-[#0955AC]">IMPRESSIVE COLLECTION</span> OF VEHICLES
         </h2>
-        <p className="poppins text-[#0F0F0F80] text-[14px] sm:text-[15px] text-center mb-10">
+        <p className="poppins text-[#0F0F0F80] text-[14px] sm:text-[15px] text-center mb-10 md:mb-14">
           Ranging from elegant sedans to powerful vehicles, all carefully selected to provide
-          our customers <br /> with the ultimate driving experience.
+          our customers <br className="hidden sm:block" /> with the ultimate driving experience.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6 md:gap-7 justify-items-center p-4 sm:p-6 md:p-8 lg:p-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6 md:gap-7 justify-items-center">
           {vehicles.map((vehicle, idx) => (
             <div
               key={vehicle.id}
-              className="group relative bg-white rounded-[18px] overflow-hidden h-auto w-full sm:max-w-[300px] border border-black/5 shadow-[0_2px_10px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_32px_rgba(9,85,172,0.16)] hover:-translate-y-1.5 transition-all duration-300"
+              className="group relative bg-white rounded-[20px] overflow-hidden h-auto w-full sm:max-w-[300px] border border-black/5 shadow-[0_2px_10px_rgba(0,0,0,0.06)] hover:shadow-[0_20px_36px_rgba(9,85,172,0.16)] hover:-translate-y-1.5 transition-all duration-300"
             >
               {/* Vehicle Image */}
               <div className="relative w-full overflow-hidden bg-[#F3F5F8]" style={{ aspectRatio: '4 / 3' }}>
@@ -231,10 +236,10 @@ const handleViewMore = () => {
         </div>
 
         {/* View More */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-10 md:mt-12">
           <button
             onClick={handleViewMore}
-            className="bg-[#0955AC] border-[2px] border-[#0955AC] text-white text-[16px] font-[700] py-2 px-6 rounded-[9px] cursor-pointer"
+            className="poppins bg-[#0955AC] hover:bg-[#073E82] border-[2px] border-[#0955AC] text-white text-[14px] font-[700] py-3 px-8 rounded-full cursor-pointer transition-colors shadow-[0_10px_24px_rgba(9,85,172,0.25)]"
           >
             VIEW MORE
           </button>

@@ -282,7 +282,7 @@ function HeroDetailsInner({
     };
 
     return (
-        <section className="mx-auto w-full max-w-7xl px-6 py-8 pb-28">
+        <section className="mx-auto w-full max-w-[1720px] px-4 sm:px-6 lg:px-8 xl:px-10 py-6 pb-20">
 
             {/* Search Summary */}
             {hasActiveFilters && (

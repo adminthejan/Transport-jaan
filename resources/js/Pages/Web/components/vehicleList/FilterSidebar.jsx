@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
-import { Briefcase, Car, Check, Cog, Fuel, Gauge, LayoutGrid, ShieldCheck, SlidersHorizontal, Tag, Users, Wifi, X } from "lucide-react";
+import { Briefcase, Car, Check, ChevronDown, Cog, Fuel, Gauge, LayoutGrid, ShieldCheck, SlidersHorizontal, Tag, Users, Wifi, X } from "lucide-react";
 
 const INDUSTRY_CATEGORIES = [
   { id: "cars_suvs", label: "Cars & SUVs" },
@@ -101,20 +101,41 @@ const FilterOption = ({ label, active, onClick }) => (
   </button>
 );
 
-const FilterSection = ({ icon, title, count, children }) => (
-  <div className="filter-section mb-7 pb-6 border-b border-[#00000014] last:border-b-0 last:mb-0 last:pb-0">
-    <div className="flex items-center gap-2 mb-3">
-      {icon}
-      <h3 className="bebas-neue text-[18px] text-[#0F0F0F] tracking-wide">{title}</h3>
-      {count > 0 && (
-        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0955AC1A] text-[#0955AC] text-[10px] font-[700]">
-          {count}
-        </span>
-      )}
+const FilterSection = ({ icon, title, count = 0, defaultOpen = false, children }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen || count > 0);
+
+  useEffect(() => {
+    if (count > 0) setIsOpen(true);
+  }, [count]);
+
+  return (
+    <div className="filter-section mb-4 pb-4 border-b border-[#00000014] last:border-b-0 last:mb-0 last:pb-0">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full text-left py-1 group cursor-pointer focus:outline-none"
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="bebas-neue text-[17px] text-[#0F0F0F] tracking-wide group-hover:text-[#0955AC] transition-colors">
+            {title}
+          </h3>
+          {count > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0955AC1A] text-[#0955AC] text-[10px] font-[700]">
+              {count}
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 group-hover:text-[#0955AC] ${
+            isOpen ? "rotate-180 text-[#0955AC]" : ""
+          }`}
+        />
+      </button>
+      {isOpen && <div className="pt-2">{children}</div>}
     </div>
-    {children}
-  </div>
-);
+  );
+};
 
 const THUMB_STYLES =
   "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#0955AC] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer " +
@@ -240,6 +261,8 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
   const [selectedMileage, setSelectedMileage] = useState(() => toList(searchParams?.mileage));
   const [selectedTransmission, setSelectedTransmission] = useState(() => toList(searchParams?.transmission));
   const [selectedFuel, setSelectedFuel] = useState(() => toList(searchParams?.fuel));
+  const [showAllBodyTypes, setShowAllBodyTypes] = useState(false);
+  const [showAllBrands, setShowAllBrands] = useState(false);
 
   useEffect(() => {
     setSelectedBodyType(toList(searchParams?.bodyType));
@@ -374,10 +397,11 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
 
       {/* Sidebar */}
       <div
-        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[15px] shadow-lg shadow-[#00000014] border border-[#0000000D] p-5
-          fixed xl:sticky xl:top-6
+        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[20px] shadow-[0_8px_24px_rgba(11,27,52,0.08)] border border-black/5 p-4 sm:p-5
+          fixed xl:sticky xl:top-4
           top-0 left-0
           h-full xl:h-auto
+          xl:max-h-[calc(100vh-2rem)]
           overflow-y-auto
           w-[283px] xl:w-[260px] xl:shrink-0
           transform transition-transform duration-300 ease-in-out
@@ -392,10 +416,10 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#00000014]">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#00000014]">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-[#0955AC]" />
-            <h2 className="bebas-neue text-[22px] text-[#0F0F0F] tracking-wide">FILTERS</h2>
+            <h2 className="bebas-neue text-[20px] text-[#0F0F0F] tracking-wide">FILTERS</h2>
           </div>
           {activeCount > 0 && (
             <button
@@ -403,12 +427,12 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
               onClick={clearAll}
               className="text-[11px] font-[600] text-[#0955AC] hover:underline cursor-pointer"
             >
-              Clear All
+              Clear All ({activeCount})
             </button>
           )}
         </div>
 
-        <FilterSection icon={<LayoutGrid className="w-4 h-4 text-[#0955AC]" />} title="USE / INDUSTRY CATEGORY" count={selectedIndustryCategory.length}>
+        <FilterSection icon={<LayoutGrid className="w-4 h-4 text-[#0955AC]" />} title="USE / CATEGORY" count={selectedIndustryCategory.length} defaultOpen={true}>
           {INDUSTRY_CATEGORIES.map((cat) => (
             <FilterOption
               key={cat.id}
@@ -419,8 +443,8 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Car className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType.length}>
-          {BODY_TYPES.map((type) => (
+        <FilterSection icon={<Car className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType.length} defaultOpen={true}>
+          {(showAllBodyTypes ? BODY_TYPES : BODY_TYPES.slice(0, 6)).map((type) => (
             <FilterOption
               key={type.id}
               label={type.label}
@@ -428,55 +452,22 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
               onClick={() => handleBodyTypeChange(type.id)}
             />
           ))}
-        </FilterSection>
-
-        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand.length}>
-          {BRANDS.map((brand) => (
-            <FilterOption
-              key={brand.id}
-              label={brand.label}
-              active={selectedBrand.includes(brand.id)}
-              onClick={() => handleBrandChange(brand.id)}
-            />
-          ))}
-        </FilterSection>
-
-        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={minSeats > SEATS_FLOOR ? 1 : 0}>
-          <MinValueSlider
-            min={SEATS_FLOOR}
-            max={SEATS_CEILING}
-            value={minSeats}
-            suffix="Seats"
-            onCommit={handleSeatsCommit}
-          />
-        </FilterSection>
-
-        <FilterSection icon={<Briefcase className="w-4 h-4 text-[#0955AC]" />} title="LUGGAGE CAPACITY" count={selectedLuggage.length}>
-          {LUGGAGE_CAPACITIES.map((l) => (
-            <FilterOption
-              key={l.id}
-              label={l.label}
-              active={selectedLuggage.includes(l.id)}
-              onClick={() => handleLuggageChange(l.id)}
-            />
-          ))}
-        </FilterSection>
-
-        <FilterSection icon={<ShieldCheck className="w-4 h-4 text-[#0955AC]" />} title="EXTRAS" count={selectedExtras.length}>
-          {EXTRAS.map((extra) => (
-            <FilterOption
-              key={extra.id}
-              label={extra.label}
-              active={selectedExtras.includes(extra.id)}
-              onClick={() => handleExtraToggle(extra.id)}
-            />
-          ))}
+          {BODY_TYPES.length > 6 && (
+            <button
+              type="button"
+              onClick={() => setShowAllBodyTypes(!showAllBodyTypes)}
+              className="text-[11px] font-[600] text-[#0955AC] hover:underline mt-1 pt-1 block cursor-pointer"
+            >
+              {showAllBodyTypes ? "Show Less" : `+ Show All (${BODY_TYPES.length})`}
+            </button>
+          )}
         </FilterSection>
 
         <FilterSection
           icon={<Gauge className="w-4 h-4 text-[#0955AC]" />}
           title="PRICE PER DAY"
           count={priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0}
+          defaultOpen={true}
         >
           <PriceRangeSlider
             min={PRICE_FLOOR}
@@ -488,7 +479,59 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           />
         </FilterSection>
 
-        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage.length}>
+        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand.length} defaultOpen={selectedBrand.length > 0}>
+          {(showAllBrands ? BRANDS : BRANDS.slice(0, 5)).map((brand) => (
+            <FilterOption
+              key={brand.id}
+              label={brand.label}
+              active={selectedBrand.includes(brand.id)}
+              onClick={() => handleBrandChange(brand.id)}
+            />
+          ))}
+          {BRANDS.length > 5 && (
+            <button
+              type="button"
+              onClick={() => setShowAllBrands(!showAllBrands)}
+              className="text-[11px] font-[600] text-[#0955AC] hover:underline mt-1 pt-1 block cursor-pointer"
+            >
+              {showAllBrands ? "Show Less" : `+ Show All (${BRANDS.length})`}
+            </button>
+          )}
+        </FilterSection>
+
+        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={minSeats > SEATS_FLOOR ? 1 : 0} defaultOpen={minSeats > SEATS_FLOOR}>
+          <MinValueSlider
+            min={SEATS_FLOOR}
+            max={SEATS_CEILING}
+            value={minSeats}
+            suffix="Seats"
+            onCommit={handleSeatsCommit}
+          />
+        </FilterSection>
+
+        <FilterSection icon={<Briefcase className="w-4 h-4 text-[#0955AC]" />} title="LUGGAGE CAPACITY" count={selectedLuggage.length} defaultOpen={selectedLuggage.length > 0}>
+          {LUGGAGE_CAPACITIES.map((l) => (
+            <FilterOption
+              key={l.id}
+              label={l.label}
+              active={selectedLuggage.includes(l.id)}
+              onClick={() => handleLuggageChange(l.id)}
+            />
+          ))}
+        </FilterSection>
+
+        <FilterSection icon={<ShieldCheck className="w-4 h-4 text-[#0955AC]" />} title="EXTRAS" count={selectedExtras.length} defaultOpen={selectedExtras.length > 0}>
+          {EXTRAS.map((extra) => (
+            <FilterOption
+              key={extra.id}
+              label={extra.label}
+              active={selectedExtras.includes(extra.id)}
+              onClick={() => handleExtraToggle(extra.id)}
+            />
+          ))}
+        </FilterSection>
+
+        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage.length} defaultOpen={selectedMileage.length > 0}>
           {MILEAGES.map((m) => (
             <FilterOption
               key={m.id}
@@ -499,7 +542,7 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Cog className="w-4 h-4 text-[#0955AC]" />} title="TRANSMISSION" count={selectedTransmission.length}>
+        <FilterSection icon={<Cog className="w-4 h-4 text-[#0955AC]" />} title="TRANSMISSION" count={selectedTransmission.length} defaultOpen={selectedTransmission.length > 0}>
           {TRANSMISSIONS.map((t) => (
             <FilterOption
               key={t.id}
@@ -510,7 +553,7 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           ))}
         </FilterSection>
 
-        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel.length}>
+        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel.length} defaultOpen={selectedFuel.length > 0}>
           {FUELS.map((f) => (
             <FilterOption
               key={f.id}

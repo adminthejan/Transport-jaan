@@ -24,21 +24,24 @@ const PopularRentals = () => {
   ];
 
   return (
-    <div className="w-full py-12">
-      <div className="container mx-auto p-5">
-        <h2 className="bebas-neue text-[40px] font-[400] text-start mb-2">
+    <div className="w-full py-16 md:py-20 bg-[#F7F9FC]">
+      <div className="container mx-auto px-5 md:px-10">
+        <span className="poppins inline-block text-[11px] font-[700] tracking-[0.14em] text-[#0955AC] bg-white px-3 py-1.5 rounded-full uppercase mb-4">
+          Worldwide Reach
+        </span>
+        <h2 className="bebas-neue text-[28px] sm:text-[36px] md:text-[40px] font-[400] text-start mb-2">
           DISCOVER <span className="text-[#0955AC]">POPULAR</span> VEHICLE RENTAL
           IN <span className="text-[#0955AC]">WORLDWIDE</span>
         </h2>
-        <p className="poppins text-[15px] font-[400] text-[#0F0F0F80] mb-10">
+        <p className="poppins text-[14px] sm:text-[15px] font-[400] text-[#0F0F0F80] mb-10 md:mb-12">
           Explore a diverse and extensive range of rental vehicle.
         </p>
 
-        <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-12 cursor-pointer">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-4 cursor-pointer">
           {popularLocations.map((location, index) => (
             <span
               key={index}
-              className="poppins bg-[#F4F3F3] border-[1px] border-[#00000026] text-black px-2 py-2 rounded-[7px] text-[15px] font-[400] text-center w-auto h-auto 2xl:h-[38px]"
+              className="poppins bg-white border border-black/5 text-[#0B1B34] font-[600] px-4 py-3 rounded-full text-[13px] sm:text-[14px] text-center shadow-[0_2px_8px_rgba(11,27,52,0.05)] hover:shadow-[0_10px_20px_rgba(9,85,172,0.14)] hover:text-[#0955AC] hover:border-[#0955AC]/30 hover:-translate-y-0.5 transition-all duration-300"
             >
               {location}
             </span>

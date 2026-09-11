@@ -77,7 +77,19 @@ const CompanyLogo = ({
         return enableLink ? <Link href={href}>{content}</Link> : content;
     }
 
-    const content = <div className={fallbackClassName}>COMPANY LOGO</div>;
+    // Temporary placeholder mark shown until a real logo is uploaded via
+    // the website branding settings (/website/logo/current).
+    const content = (
+        <div className={`flex items-center gap-[0.35em] ${fallbackClassName}`}>
+            <span
+                className="flex items-center justify-center w-[1.5em] h-[1.5em] rounded-[0.3em] bg-[#0955AC] text-white shrink-0"
+                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '0.7em' }}
+            >
+                X
+            </span>
+            <span style={{ fontFamily: "'Bebas Neue', sans-serif" }} className="tracking-wide">Xsarva</span>
+        </div>
+    );
     return enableLink ? <Link href={href} className="cursor-pointer">{content}</Link> : content;
 };
 

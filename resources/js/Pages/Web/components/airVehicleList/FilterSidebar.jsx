@@ -300,7 +300,7 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
 
       {/* Sidebar */}
       <div
-        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[15px] shadow-lg shadow-[#00000014] border border-[#0000000D] p-5
+        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[20px] shadow-[0_8px_24px_rgba(11,27,52,0.08)] border border-black/5 p-5
           fixed xl:sticky xl:top-6
           top-0 left-0
           h-full xl:h-auto

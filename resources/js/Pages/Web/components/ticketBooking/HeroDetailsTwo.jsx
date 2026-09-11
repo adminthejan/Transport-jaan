@@ -178,7 +178,15 @@ function BusTripCard({ trip, mode, selected, onSelect, href }) {
     );
 }
 
-const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = [], route = null, nearbyDates = [], searchParams = {} }) => {
+const HeroDetailsTwoInner = ({
+    stations = [],
+    schedules = [],
+    returnSchedules = [],
+    route = null,
+    nearbyDates = [],
+    searchParams = {},
+    hideSearchCard = false,
+}) => {
     const { t } = useLocale();
     const [sortBy, setSortBy] = useState('');
     const [selectedOutboundId, setSelectedOutboundId] = useState(null);
@@ -277,10 +285,12 @@ const HeroDetailsTwoInner = ({ stations = [], schedules = [], returnSchedules = 
     };
 
     return (
-        <section className="mx-auto w-full max-w-7xl px-6 py-8 pb-28">
-            <div className="mb-8 sm:mb-14">
-                <BusCard />
-            </div>
+        <section className="mx-auto w-full max-w-[1720px] px-4 sm:px-6 lg:px-8 xl:px-10 py-6 pb-20">
+            {!hideSearchCard && (
+                <div className="mb-8 sm:mb-14">
+                    <BusCard />
+                </div>
+            )}
 
             <div className={`grid grid-cols-1 gap-6 items-start ${route ? 'lg:grid-cols-3' : ''}`}>
             <div className={route ? 'lg:col-span-2 min-w-0' : 'min-w-0'}>

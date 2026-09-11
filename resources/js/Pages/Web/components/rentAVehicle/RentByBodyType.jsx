@@ -66,11 +66,16 @@ const RentByBodyType = ({ selectedType = "other" }) => {
     };
 
     return (
-        <div className="w-full py-12">
-            <div className="container mx-auto px-10 xl:px-20">
-                <h2 className="bebas-neue text-[40px] font-[400] text-center mb-8">
-                    RENT BY <span className="text-[#0955AC]">BODY TYPE</span>
-                </h2>
+        <div className="w-full py-16 md:py-20 bg-[#F7F9FC]">
+            <div className="container mx-auto px-6 xl:px-20">
+                <div className="text-center mb-10 md:mb-12">
+                    <span className="poppins inline-block text-[11px] font-[700] tracking-[0.14em] text-[#0955AC] bg-white px-3 py-1.5 rounded-full uppercase mb-4">
+                        Find Your Fit
+                    </span>
+                    <h2 className="bebas-neue text-[32px] md:text-[40px] font-[400]">
+                        RENT BY <span className="text-[#0955AC]">BODY TYPE</span>
+                    </h2>
+                </div>
 
                 {bodyTypes.length === 0 && (
                     <div className="mt-6 text-center figtree text-[14px] text-[#0F0F0F99]">
@@ -78,23 +83,25 @@ const RentByBodyType = ({ selectedType = "other" }) => {
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-10 cursor-pointer">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6 cursor-pointer">
                     {bodyTypes.map((bodyType) => (
                         <div
                             key={bodyType.name}
-                            className="bg-[#EAEAE9] border-[1px] border-[#0955AC] p-4 rounded-[8px] shadow flex flex-col items-center justify-center h-[137px] hover:bg-[#f5f5f5] transition-colors duration-200"
+                            className="group bg-white border border-black/5 p-4 rounded-[16px] shadow-[0_2px_10px_rgba(11,27,52,0.05)] flex flex-col items-center justify-center h-[130px] md:h-[150px] hover:shadow-[0_16px_28px_rgba(9,85,172,0.14)] hover:border-[#0955AC]/30 hover:-translate-y-1 transition-all duration-300"
                             onClick={() => handleBodyTypeClick(bodyType)}
                         >
                             {bodyType.img ? (
                                 <img
                                     src={bodyType.img}
                                     alt={`${bodyType.name} Icon`}
-                                    className="h-[40px] object-contain mb-5"
+                                    className="h-[36px] md:h-[42px] object-contain mb-4"
                                 />
                             ) : bodyType.Icon ? (
-                                <bodyType.Icon className="w-[42px] h-[42px] mb-5 text-[#0F0F0F]" />
+                                <div className="w-[52px] h-[52px] rounded-full bg-[#EAF1FE] flex items-center justify-center mb-4 group-hover:bg-[#0955AC] transition-colors duration-300">
+                                    <bodyType.Icon className="w-[24px] h-[24px] text-[#0955AC] group-hover:text-white transition-colors duration-300" />
+                                </div>
                             ) : null}
-                            <p className="figtree text-[#0955AC] text-[12px] md:text-[16px] text-center">
+                            <p className="figtree text-[#0B1B34] font-[600] text-[12px] md:text-[14px] text-center">
                                 {bodyType.name}
                             </p>
                         </div>

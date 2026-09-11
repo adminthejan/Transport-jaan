@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import Header from "../../../../js/Pages/Web/home/client/ClientHeader";
 import HeroSection from "../components/rentAVehicle/HeroSection";
+import WhyChooseUs from "../components/rentAVehicle/WhyChooseUs";
 import RentByBrands from "../components/rentAVehicle/RentByBrands";
 import RentByBodyType from "../components/rentAVehicle/RentByBodyType";
 import VehicleCollection from "../components/rentAVehicle/VehicleCollection";
 import PopularRentals from "../components/rentAVehicle/PopularRentals";
 import HowItWorks from "../components/rentAVehicle/HowItWorks";
+import ContactStrip from "../components/rentAVehicle/ContactStrip";
 import Footer from "../layouts/Footer";
 
 const HomePage = ({ auth ,vehicles,selectedType}) => {
@@ -51,11 +53,13 @@ const HomePage = ({ auth ,vehicles,selectedType}) => {
                 onSubmit={handleFormSubmit}
                 onVehicleTypeChange={handleVehicleTypeChange}
             />
+            <WhyChooseUs />
             <RentByBrands selectedType={vehicleType} />
             <RentByBodyType selectedType={vehicleType} />
             <VehicleCollection vehicles={vehicles} selectedType={vehicleType} />
             <PopularRentals />
             <HowItWorks />
+            <ContactStrip />
             <Footer />
         </div>
     );

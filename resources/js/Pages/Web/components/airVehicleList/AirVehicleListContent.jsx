@@ -135,7 +135,7 @@ const AirVehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehic
           return (
             <div
               key={v.id}
-              className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow overflow-hidden flex flex-col"
+              className="group bg-white rounded-[20px] border border-black/5 shadow-[0_2px_10px_rgba(11,27,52,0.05)] hover:shadow-[0_20px_36px_rgba(9,85,172,0.16)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
             >
               {/* --- vehicle image --- */}
               <div className="relative h-[190px] sm:h-[210px] bg-gray-100">
