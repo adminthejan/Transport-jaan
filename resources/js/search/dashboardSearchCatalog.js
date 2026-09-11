@@ -338,6 +338,15 @@ export const buildVendorDashboardSearchEntries = ({
 
 export const buildClientDashboardSearchEntries = () => [
     createSearchEntry({
+        id: "client-track-order",
+        title: "Track Any Order",
+        path: "/track",
+        manualPath: "Client Dashboard > Track Any Order",
+        group: "Client",
+        description: "Track a courier shipment, vehicle rental, or bus/train ticket by reference.",
+        keywords: ["track", "tracking", "reference", "shipment", "booking", "pin"],
+    }),
+    createSearchEntry({
         id: "client-all-bookings",
         title: "All Bookings Dashboard",
         path: "/clientAllBookings",

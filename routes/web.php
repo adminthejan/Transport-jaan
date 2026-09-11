@@ -92,6 +92,9 @@ Route::get('/landingPage/privacy-policy', [WebController::class, 'privacyPolicy'
 Route::get('/landingPage/return-policy', [WebController::class, 'returnPolicy'])->name('landingPage.returnPolicy');
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
+Route::get('/track', function () {
+    return \Inertia\Inertia::render('Web/track/TrackOrder');
+})->name('track.order');
 Route::get('/track-shipment', [ClientCourierController::class, 'trackPublic'])
     ->middleware('throttle:30,1')
     ->name('couriers.track.public');
