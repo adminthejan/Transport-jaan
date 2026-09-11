@@ -122,7 +122,10 @@ class EnsureVendorHasApprovedServiceAccess
             return ['waterborne-transport'];
         }
 
-        if (str_starts_with($routeName, 'multimodal.')) {
+        // Excludes the public multimodal marketing/planning home page, which
+        // shares this name prefix with the vendor dashboard routes below
+        // (multimodal.dashboard, .bookings, .units, etc.).
+        if (str_starts_with($routeName, 'multimodal.') && $routeName !== 'multimodal.home') {
             return ['vehicle-rental', 'aviation-service', 'railway-service', 'waterborne-transport'];
         }
 

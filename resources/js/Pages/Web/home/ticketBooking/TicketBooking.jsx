@@ -30,9 +30,7 @@ import Testimonials from "../../components/rentAVehicle/Testimonials";
 import ContactStrip from "../../components/rentAVehicle/ContactStrip";
 import Footer from "../../layouts/Footer";
 
-import heroImg from "../../assets/rentAVehicle/hero/land-sea-air.jpg";
-import busHero from "../../assets/ticketBooking/bus2.jpg";
-import trainHero from "../../assets/ticketBooking/train.jpg";
+import heroImg from "../../assets/ticketBooking/hero-bus-train-flight.jpg";
 
 const HERO_FEATURES = [
   { icon: ShieldCheck, label: "Verified Operators" },
@@ -190,13 +188,6 @@ const TicketBooking = () => {
   const [activeType, setActiveType] = useState(initialType);
   const [filterMode, setFilterMode] = useState("all");
 
-  // Determine current hero image based on active ticket type
-  const currentHeroImg = useMemo(() => {
-    if (activeType === "train") return trainHero;
-    if (activeType === "bus") return busHero;
-    return heroImg;
-  }, [activeType]);
-
   const filteredRoutes = useMemo(() => {
     if (filterMode === "all") return POPULAR_ROUTES;
     return POPULAR_ROUTES.filter((r) => r.type === filterMode);
@@ -248,10 +239,10 @@ const TicketBooking = () => {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src={currentHeroImg}
+            src={heroImg}
             alt=""
             aria-hidden="true"
-            className="w-full h-full object-cover object-[65%_45%] opacity-90 transition-all duration-700"
+            className="w-full h-full object-cover object-[65%_45%] opacity-75 transition-all duration-700"
           />
           {/* Gentle protective gradient ensuring text readability while keeping image ~75% visible */}
           <div

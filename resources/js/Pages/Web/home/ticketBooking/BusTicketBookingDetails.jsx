@@ -23,7 +23,7 @@ import Testimonials from "../../components/rentAVehicle/Testimonials";
 import ContactStrip from "../../components/rentAVehicle/ContactStrip";
 import Footer from "../../layouts/Footer";
 
-import busHero from "../../assets/ticketBooking/bus2.jpg";
+import busHero from "../../assets/ticketBooking/hero-bus-train-flight.jpg";
 
 const HERO_FEATURES = [
   { icon: ShieldCheck, label: "Verified Bus Operators" },
@@ -84,7 +84,7 @@ const BusTicketBookingDetails = ({
             src={busHero}
             alt=""
             aria-hidden="true"
-            className="w-full h-full object-cover object-[65%_45%] opacity-90"
+            className="w-full h-full object-cover object-[65%_45%] opacity-75"
           />
           {/* Gentle protective gradient ensuring text readability while keeping image ~75% visible */}
           <div

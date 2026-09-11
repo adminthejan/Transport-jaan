@@ -23,7 +23,7 @@ import Testimonials from "../../components/rentAVehicle/Testimonials";
 import ContactStrip from "../../components/rentAVehicle/ContactStrip";
 import Footer from "../../layouts/Footer";
 
-import trainHero from "../../assets/ticketBooking/train.jpg";
+import trainHero from "../../assets/ticketBooking/hero-bus-train-flight.jpg";
 
 const HERO_FEATURES = [
   { icon: ShieldCheck, label: "Sri Lanka Railways" },
@@ -87,7 +87,7 @@ const TrainTicketBookingDetails = ({
             src={trainHero}
             alt=""
             aria-hidden="true"
-            className="w-full h-full object-cover object-[65%_45%] opacity-90"
+            className="w-full h-full object-cover object-[65%_45%] opacity-75"
           />
           {/* Gentle protective gradient ensuring text readability while keeping image ~75% visible */}
           <div

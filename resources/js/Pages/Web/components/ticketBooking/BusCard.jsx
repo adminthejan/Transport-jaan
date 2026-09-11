@@ -4,6 +4,84 @@ import { MapPin, ArrowLeftRight, CalendarDays, Search } from "lucide-react";
 import { useLocale } from "../../context/LocaleContext";
 import PassengerSelector from "./PassengerSelector";
 
+// Autocomplete station field, styled and behaving like TrainCard's
+// StationDropdown / FlightCard's LocationDropdown — search-as-you-type
+// instead of a long native <select> list.
+const StationDropdown = ({ label, id, value, onChange, placeholder, error, iconColor, options }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [filtered, setFiltered] = useState([]);
+
+    const runFilter = (term) => options.filter((s) => s.toLowerCase().includes(term.toLowerCase()));
+
+    const handleChange = (e) => {
+        const term = e.target.value;
+        onChange(term);
+        if (term.length > 0) {
+            setFiltered(runFilter(term));
+            setIsOpen(true);
+        } else {
+            setIsOpen(false);
+        }
+    };
+
+    const handleSelect = (station) => {
+        onChange(station);
+        setIsOpen(false);
+    };
+
+    const handleFocus = () => {
+        if (value.length > 0) {
+            setFiltered(runFilter(value));
+            setIsOpen(true);
+        } else {
+            setFiltered(options);
+            setIsOpen(true);
+        }
+    };
+
+    const handleBlur = () => {
+        setTimeout(() => setIsOpen(false), 150);
+    };
+
+    return (
+        <div>
+            <label htmlFor={id} className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
+                {label}
+            </label>
+            <div className="relative">
+                <MapPin className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none ${iconColor}`} />
+                <input
+                    type="text"
+                    id={id}
+                    value={value}
+                    onChange={handleChange}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    placeholder={placeholder}
+                    autoComplete="off"
+                    className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white appearance-none outline-none transition-colors ${
+                        error ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                    }`}
+                />
+
+                {isOpen && filtered.length > 0 && (
+                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[12px] shadow-lg max-h-60 overflow-y-auto mt-1.5">
+                        {filtered.slice(0, 10).map((station) => (
+                            <div
+                                key={station}
+                                onClick={() => handleSelect(station)}
+                                className="px-4 py-3 hover:bg-[#0955AC]/5 cursor-pointer border-b border-gray-100 last:border-b-0 text-[13px] font-[600] text-[#0F172A]"
+                            >
+                                {station}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const BusCard = () => {
     const { t } = useLocale();
     const [tripType, setTripType] = useState("oneway");
@@ -110,27 +188,26 @@ const BusCard = () => {
 
                 {/* From / To with swap button */}
                 <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-14 mb-4">
-                    <div>
-                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("from", "FROM").toUpperCase()}</label>
-                        <div className="relative">
-                            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC]" />
-                            <select value={busFrom} onChange={(e) => setBusFrom(e.target.value)} className={fieldClass(errors.busFrom)}>
-                                <option value="" disabled>Select station</option>
-                                {stationOptions.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("to", "TO").toUpperCase()}</label>
-                        <div className="relative">
-                            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826]" />
-                            <select value={busTo} onChange={(e) => setBusTo(e.target.value)} className={fieldClass(errors.busTo)}>
-                                <option value="" disabled>Select station</option>
-                                {stationOptions.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
-                    </div>
+                    <StationDropdown
+                        label={t("from", "FROM").toUpperCase()}
+                        id="busFrom"
+                        value={busFrom}
+                        onChange={setBusFrom}
+                        placeholder="Search departure station"
+                        error={errors.busFrom}
+                        iconColor="text-[#0955AC]"
+                        options={stationOptions}
+                    />
+                    <StationDropdown
+                        label={t("to", "TO").toUpperCase()}
+                        id="busTo"
+                        value={busTo}
+                        onChange={setBusTo}
+                        placeholder="Search destination station"
+                        error={errors.busTo}
+                        iconColor="text-[#EF3826]"
+                        options={stationOptions}
+                    />
 
                     {/* Swap button, centered on the seam between the two fields */}
                     <button

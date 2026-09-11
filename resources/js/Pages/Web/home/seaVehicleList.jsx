@@ -53,7 +53,7 @@ const seaVehicleList = () => {
       {/* Full-bleed hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImg} alt="" aria-hidden="true" className="w-full h-full object-cover object-[65%_45%] opacity-90" />
+          <img src={heroImg} alt="" aria-hidden="true" className="w-full h-full object-cover object-[65%_45%] opacity-75" />
           {/* Gentle protective gradient ensuring text readability while keeping image ~75% visible */}
           <div
             className="absolute inset-0"
