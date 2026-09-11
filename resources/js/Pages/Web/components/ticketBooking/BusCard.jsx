@@ -1,86 +1,10 @@
 import React, { useState } from "react";
 import { router } from "@inertiajs/react";
-import { MapPin, ArrowLeftRight, CalendarDays, Search } from "lucide-react";
+import { MapPin, ArrowLeftRight, CalendarDays, Search, Bus as BusIcon } from "lucide-react";
 import { useLocale } from "../../context/LocaleContext";
 import PassengerSelector from "./PassengerSelector";
-
-// Autocomplete station field, styled and behaving like TrainCard's
-// StationDropdown / FlightCard's LocationDropdown — search-as-you-type
-// instead of a long native <select> list.
-const StationDropdown = ({ label, id, value, onChange, placeholder, error, iconColor, options }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [filtered, setFiltered] = useState([]);
-
-    const runFilter = (term) => options.filter((s) => s.toLowerCase().includes(term.toLowerCase()));
-
-    const handleChange = (e) => {
-        const term = e.target.value;
-        onChange(term);
-        if (term.length > 0) {
-            setFiltered(runFilter(term));
-            setIsOpen(true);
-        } else {
-            setIsOpen(false);
-        }
-    };
-
-    const handleSelect = (station) => {
-        onChange(station);
-        setIsOpen(false);
-    };
-
-    const handleFocus = () => {
-        if (value.length > 0) {
-            setFiltered(runFilter(value));
-            setIsOpen(true);
-        } else {
-            setFiltered(options);
-            setIsOpen(true);
-        }
-    };
-
-    const handleBlur = () => {
-        setTimeout(() => setIsOpen(false), 150);
-    };
-
-    return (
-        <div>
-            <label htmlFor={id} className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
-                {label}
-            </label>
-            <div className="relative">
-                <MapPin className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none ${iconColor}`} />
-                <input
-                    type="text"
-                    id={id}
-                    value={value}
-                    onChange={handleChange}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
-                    placeholder={placeholder}
-                    autoComplete="off"
-                    className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white appearance-none outline-none transition-colors ${
-                        error ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-                    }`}
-                />
-
-                {isOpen && filtered.length > 0 && (
-                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[12px] shadow-lg max-h-60 overflow-y-auto mt-1.5">
-                        {filtered.slice(0, 10).map((station) => (
-                            <div
-                                key={station}
-                                onClick={() => handleSelect(station)}
-                                className="px-4 py-3 hover:bg-[#0955AC]/5 cursor-pointer border-b border-gray-100 last:border-b-0 text-[13px] font-[600] text-[#0F172A]"
-                            >
-                                {station}
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
+import CardHeader from "./shared/CardHeader";
+import { AutoCompleteField, DateField, SubmitButton, SegmentedControl, SwapButton } from "./shared/FormElements";
 
 const BusCard = () => {
     const { t } = useLocale();
@@ -155,115 +79,81 @@ const BusCard = () => {
         });
     };
 
-    const fieldClass = (hasError) =>
-        `w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white appearance-none outline-none transition-colors ${
-            hasError ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-        }`;
-
     return (
-        <div className="bg-white rounded-[20px] shadow-[0_10px_30px_rgba(9,85,172,0.10)] border border-black/5 overflow-hidden">
-            <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-6 py-5 text-center">
-                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">{t("find_your_buses", "Find Your Buses")}</span>
-            </div>
+        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5 overflow-hidden">
+            <CardHeader icon={BusIcon} title={t("find_your_buses", "Find Your Buses")} subtitle="Every route, every operator — one search." />
 
             <form onSubmit={onSubmitBus} className="p-6 sm:p-8">
-                {/* Trip Type segmented control */}
-                <div className="inline-flex bg-[#F1F5F9] rounded-full p-1 mb-6">
-                    {[
+                <SegmentedControl
+                    value={tripType}
+                    onChange={setTripType}
+                    options={[
                         { value: "oneway", label: t("one_way", "One way") },
                         { value: "roundtrip", label: t("round_trip", "Round Trip") },
-                    ].map((opt) => (
-                        <button
-                            type="button"
-                            key={opt.value}
-                            onClick={() => setTripType(opt.value)}
-                            className={`px-6 py-2 rounded-full text-[13px] font-[700] transition-all ${
-                                tripType === opt.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
-                            }`}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
+                    ]}
+                />
 
                 {/* From / To with swap button */}
                 <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-14 mb-4">
-                    <StationDropdown
+                    <AutoCompleteField
                         label={t("from", "FROM").toUpperCase()}
                         id="busFrom"
                         value={busFrom}
                         onChange={setBusFrom}
                         placeholder="Search departure station"
-                        error={errors.busFrom}
+                        error={errors.busFrom && "Departure station is required"}
+                        icon={MapPin}
                         iconColor="text-[#0955AC]"
                         options={stationOptions}
                     />
-                    <StationDropdown
+                    <AutoCompleteField
                         label={t("to", "TO").toUpperCase()}
                         id="busTo"
                         value={busTo}
                         onChange={setBusTo}
                         placeholder="Search destination station"
-                        error={errors.busTo}
+                        error={errors.busTo && "Destination station is required"}
+                        icon={MapPin}
+                        iconBg="bg-[#FDEDEA]"
                         iconColor="text-[#EF3826]"
                         options={stationOptions}
                     />
-
-                    {/* Swap button, centered on the seam between the two fields */}
-                    <button
-                        type="button"
-                        onClick={swapStations}
-                        title="Swap stations"
-                        className="hidden md:flex absolute left-1/2 top-[34px] -translate-x-1/2 w-9 h-9 rounded-full bg-white border-2 border-[#0955AC] text-[#0955AC] items-center justify-center shadow-sm hover:bg-[#0955AC] hover:text-white transition-colors z-10"
-                    >
-                        <ArrowLeftRight className="w-4 h-4" />
-                    </button>
+                    <SwapButton onClick={swapStations} icon={ArrowLeftRight} />
                 </div>
 
                 {/* Dates */}
                 <div className={`grid gap-4 mb-6 ${tripType === 'roundtrip' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-                    <div>
-                        <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("journey_date", "JOURNEY DATE").toUpperCase()}</label>
-                        <div className="relative">
-                            <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
-                            <input
-                                type="date"
-                                value={busDate}
-                                onChange={(e) => setBusDate(e.target.value)}
-                                className={fieldClass(errors.busDate)}
-                                min={new Date().toISOString().split('T')[0]}
-                            />
-                        </div>
-                    </div>
+                    <DateField
+                        label={t("journey_date", "JOURNEY DATE").toUpperCase()}
+                        id="busDate"
+                        value={busDate}
+                        onChange={(e) => setBusDate(e.target.value)}
+                        error={errors.busDate && "Journey date is required"}
+                        icon={CalendarDays}
+                        iconColor="text-[#0955AC]"
+                        min={new Date().toISOString().split('T')[0]}
+                    />
 
                     {tripType === 'roundtrip' && (
-                        <div>
-                            <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">{t("return_date", "RETURN DATE").toUpperCase()}</label>
-                            <div className="relative">
-                                <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826] pointer-events-none" />
-                                <input
-                                    type="date"
-                                    value={returnDate}
-                                    onChange={(e) => setReturnDate(e.target.value)}
-                                    className={fieldClass(errors.returnDate)}
-                                    min={busDate || new Date().toISOString().split('T')[0]}
-                                />
-                            </div>
-                        </div>
+                        <DateField
+                            label={t("return_date", "RETURN DATE").toUpperCase()}
+                            id="returnDate"
+                            value={returnDate}
+                            onChange={(e) => setReturnDate(e.target.value)}
+                            error={errors.returnDate && "Return date is required"}
+                            icon={CalendarDays}
+                            iconBg="bg-[#FDEDEA]"
+                            iconColor="text-[#EF3826]"
+                            min={busDate || new Date().toISOString().split('T')[0]}
+                        />
                     )}
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-7">
                     <PassengerSelector value={passengers} onChange={setPassengers} />
                 </div>
 
-                <button
-                    type="submit"
-                    className="w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] text-[15px] rounded-[12px] transition-colors flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)]"
-                >
-                    <Search className="w-[18px] h-[18px]" />
-                    {t("search_buses", "Search Buses")}
-                </button>
+                <SubmitButton icon={Search} iconPosition="left">{t("search_buses", "Search Buses")}</SubmitButton>
             </form>
         </div>
     );

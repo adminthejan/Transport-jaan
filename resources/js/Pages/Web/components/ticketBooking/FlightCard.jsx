@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { router } from "@inertiajs/react";
-import { PlaneTakeoff, PlaneLanding, CalendarDays, ArrowRight } from "lucide-react";
+import { PlaneTakeoff, PlaneLanding, CalendarDays, ArrowRight, Plane } from "lucide-react";
+import CardHeader from "./shared/CardHeader";
+import { AutoCompleteField, DateField, SubmitButton } from "./shared/FormElements";
 
 // Sample airport/location data - you can replace this with API data
 const locations = [
@@ -29,103 +31,17 @@ const locations = [
     { code: "SYD", name: "Sydney Kingsford Smith Airport", city: "Sydney", country: "Australia" },
 ];
 
-// LocationDropdown component
-const LocationDropdown = ({ label, id, icon: Icon, iconColor, value, onChange, placeholder, error }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState(value);
-    const [filteredLocations, setFilteredLocations] = useState([]);
+const airportSearchText = (l) => `${l.name} ${l.city} ${l.code} ${l.country}`;
 
-    const filterLocations = (term) =>
-        locations.filter(location =>
-            location.name.toLowerCase().includes(term.toLowerCase()) ||
-            location.city.toLowerCase().includes(term.toLowerCase()) ||
-            location.code.toLowerCase().includes(term.toLowerCase()) ||
-            location.country.toLowerCase().includes(term.toLowerCase())
-        );
-
-    const handleInputChange = (e) => {
-        const term = e.target.value;
-        setSearchTerm(term);
-        onChange(term);
-
-        if (term.length > 0) {
-            setFilteredLocations(filterLocations(term));
-            setIsOpen(true);
-        } else {
-            setIsOpen(false);
-        }
-    };
-
-    const handleLocationSelect = (location) => {
-        const selectedValue = `${location.name} (${location.code})`;
-        setSearchTerm(selectedValue);
-        onChange(selectedValue);
-        setIsOpen(false);
-    };
-
-    const handleInputFocus = () => {
-        if (searchTerm.length > 0) {
-            setFilteredLocations(filterLocations(searchTerm));
-            setIsOpen(true);
-        }
-    };
-
-    const handleInputBlur = () => {
-        // Delay hiding dropdown to allow for click events
-        setTimeout(() => setIsOpen(false), 150);
-    };
-
-    return (
-        <div className="relative">
-            <label htmlFor={id} className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
-                {label}
-            </label>
-            <div className="relative">
-                <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none" style={{ color: iconColor }} />
-                <input
-                    type="text"
-                    id={id}
-                    value={searchTerm}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                    placeholder={placeholder}
-                    autoComplete="off"
-                    className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors ${
-                        error ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-                    }`}
-                />
-            </div>
-
-            {/* Dropdown List */}
-            {isOpen && filteredLocations.length > 0 && (
-                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[12px] shadow-lg max-h-60 overflow-y-auto mt-1.5">
-                    {filteredLocations.slice(0, 10).map((location, index) => (
-                        <div
-                            key={`${location.code}-${index}`}
-                            onClick={() => handleLocationSelect(location)}
-                            className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <div className="font-medium text-[#0F172A] text-sm">
-                                        {location.name}
-                                    </div>
-                                    <div className="text-gray-500 text-xs">
-                                        {location.city}, {location.country}
-                                    </div>
-                                </div>
-                                <div className="text-[#0955AC] font-bold text-xs bg-blue-100 px-2 py-1 rounded">
-                                    {location.code}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+const renderAirportOption = (location) => (
+    <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0">
+            <div className="font-[700] text-[#0F172A] text-[13px] truncate">{location.name}</div>
+            <div className="text-[#94A3B8] text-[12px] truncate">{location.city}, {location.country}</div>
         </div>
-    );
-};
+        <div className="text-[#0955AC] font-[700] text-[11px] bg-[#0955AC]/10 px-2 py-1 rounded shrink-0">{location.code}</div>
+    </div>
+);
 
 const FlightCard = () => {
     const [formData, setFormData] = useState({
@@ -194,100 +110,70 @@ const FlightCard = () => {
     };
 
     return (
-        <div className="bg-white rounded-[20px] shadow-[0_10px_30px_rgba(9,85,172,0.10)] border border-black/5 overflow-hidden">
-            <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-6 py-5 text-center">
-                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">Request a Flight Quote</span>
-                <p className="text-white/80 text-[12px] mt-1">Tell us your route — we'll follow up with pricing and availability.</p>
-            </div>
+        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5 overflow-hidden">
+            <CardHeader icon={Plane} title="Request a Flight Quote" subtitle="Tell us your route — we'll follow up with pricing and availability." />
 
             <form onSubmit={handleStartClick} className="p-6 sm:p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    {/* Departure Location */}
-                    <div>
-                        <LocationDropdown
-                            label="DEPARTURE AIRPORT"
-                            id="pickupLocation"
-                            icon={PlaneTakeoff}
-                            iconColor="#0955AC"
-                            value={formData.pickupLocation}
-                            onChange={(value) => handleInputChange('pickupLocation', value)}
-                            placeholder="Search departure airport"
-                            error={errors.pickupLocation}
-                        />
-                        {errors.pickupLocation && (
-                            <p className="text-red-500 text-xs mt-1">{errors.pickupLocation}</p>
-                        )}
-                    </div>
+                    <AutoCompleteField
+                        label="DEPARTURE AIRPORT"
+                        id="pickupLocation"
+                        value={formData.pickupLocation}
+                        onChange={(value) => handleInputChange('pickupLocation', value)}
+                        placeholder="Search departure airport"
+                        error={errors.pickupLocation}
+                        icon={PlaneTakeoff}
+                        iconColor="text-[#0955AC]"
+                        options={locations}
+                        getSearchText={airportSearchText}
+                        getKey={(l) => l.code}
+                        getValue={(l) => `${l.name} (${l.code})`}
+                        renderOption={renderAirportOption}
+                    />
 
-                    {/* Departure Date */}
-                    <div>
-                        <label htmlFor="pickupDate" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
-                            DEPARTURE DATE
-                        </label>
-                        <div className="relative">
-                            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
-                            <input
-                                type="date"
-                                id="pickupDate"
-                                value={formData.pickupDate}
-                                onChange={(e) => handleInputChange('pickupDate', e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
-                                className={`w-full h-[52px] rounded-[12px] border pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors ${
-                                    errors.pickupDate ? "border-red-400 ring-1 ring-red-200" : "border-[#E2E8F0] focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-                                }`}
-                            />
-                        </div>
-                        {errors.pickupDate && (
-                            <p className="text-red-500 text-xs mt-1">{errors.pickupDate}</p>
-                        )}
-                    </div>
+                    <DateField
+                        label="DEPARTURE DATE"
+                        id="pickupDate"
+                        value={formData.pickupDate}
+                        onChange={(e) => handleInputChange('pickupDate', e.target.value)}
+                        error={errors.pickupDate}
+                        icon={CalendarDays}
+                        iconColor="text-[#0955AC]"
+                        min={new Date().toISOString().split('T')[0]}
+                    />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    {/* Arrival Location */}
-                    <div>
-                        <LocationDropdown
-                            label="ARRIVAL AIRPORT"
-                            id="dropoffLocation"
-                            icon={PlaneLanding}
-                            iconColor="#EF3826"
-                            value={formData.dropoffLocation}
-                            onChange={(value) => handleInputChange('dropoffLocation', value)}
-                            placeholder="Search destination airport"
-                            error={errors.dropoffLocation}
-                        />
-                        {errors.dropoffLocation && (
-                            <p className="text-red-500 text-xs mt-1">{errors.dropoffLocation}</p>
-                        )}
-                    </div>
+                    <AutoCompleteField
+                        label="ARRIVAL AIRPORT"
+                        id="dropoffLocation"
+                        value={formData.dropoffLocation}
+                        onChange={(value) => handleInputChange('dropoffLocation', value)}
+                        placeholder="Search destination airport"
+                        error={errors.dropoffLocation}
+                        icon={PlaneLanding}
+                        iconBg="bg-[#FDEDEA]"
+                        iconColor="text-[#EF3826]"
+                        options={locations}
+                        getSearchText={airportSearchText}
+                        getKey={(l) => l.code}
+                        getValue={(l) => `${l.name} (${l.code})`}
+                        renderOption={renderAirportOption}
+                    />
 
-                    {/* Return Date (optional) */}
-                    <div>
-                        <label htmlFor="dropoffDate" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
-                            RETURN DATE (OPTIONAL)
-                        </label>
-                        <div className="relative">
-                            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#EF3826] pointer-events-none" />
-                            <input
-                                type="date"
-                                id="dropoffDate"
-                                value={formData.dropoffDate}
-                                onChange={(e) => handleInputChange('dropoffDate', e.target.value)}
-                                min={formData.pickupDate || new Date().toISOString().split('T')[0]}
-                                className="w-full h-[52px] rounded-[12px] border border-[#E2E8F0] pl-11 pr-4 text-[14px] font-[600] text-[#0F172A] bg-white outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-                            />
-                        </div>
-                    </div>
+                    <DateField
+                        label="RETURN DATE (OPTIONAL)"
+                        id="dropoffDate"
+                        value={formData.dropoffDate}
+                        onChange={(e) => handleInputChange('dropoffDate', e.target.value)}
+                        icon={CalendarDays}
+                        iconBg="bg-[#FDEDEA]"
+                        iconColor="text-[#EF3826]"
+                        min={formData.pickupDate || new Date().toISOString().split('T')[0]}
+                    />
                 </div>
 
-                {/* Action Button */}
-                <button
-                    type="submit"
-                    className="w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] text-[15px] rounded-[12px] transition-colors flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)]"
-                >
-                    Continue to Quote Request
-                    <ArrowRight className="w-[18px] h-[18px]" />
-                </button>
+                <SubmitButton icon={ArrowRight}>Continue to Quote Request</SubmitButton>
             </form>
         </div>
     );
