@@ -77,7 +77,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   placeholder="Search a location"
                   value={formData.pickupLocation}
                   onChange={handleInputChange}
-                  className="appearance-none w-full py-[14px] leading-tight focus:outline-none placeholder:text-[#286BB6] bg-transparent"
+                  className="appearance-none w-full py-[14px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6] bg-transparent"
                 />
               </div>
             </div>
@@ -94,7 +94,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   placeholder="12/12/2023"
                   value={formData.pickupDate}
                   onChange={handleInputChange}
-                  className="w-full py-[14px] leading-tight focus:outline-none bg-transparent [&::-webkit-calendar-picker-indicator]:hidden"
+                  className="w-full py-[14px] leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent [&::-webkit-calendar-picker-indicator]:hidden"
                 />
                 <img
                   src={calendarBlue}
@@ -118,7 +118,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   placeholder="Search a location"
                   value={formData.dropoffLocation}
                   onChange={handleInputChange}
-                  className="w-full py-[14px] leading-tight focus:outline-none placeholder:text-[#286BB6] bg-transparent"
+                  className="w-full py-[14px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6] bg-transparent"
                 />
               </div>
             </div>
@@ -135,7 +135,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   placeholder="12/12/2023"
                   value={formData.dropoffDate}
                   onChange={handleInputChange}
-                  className="w-full py-[14px] leading-tight focus:outline-none bg-transparent [&::-webkit-calendar-picker-indicator]:hidden"
+                  className="w-full py-[14px] leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent [&::-webkit-calendar-picker-indicator]:hidden"
                 />
                 <img
                   src={calendarBlue}

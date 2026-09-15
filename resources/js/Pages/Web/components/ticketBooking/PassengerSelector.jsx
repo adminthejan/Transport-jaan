@@ -55,20 +55,20 @@ const PassengerSelector = ({ value, onChange, label = "Passengers" }) => {
 
     return (
         <div className="relative" ref={containerRef}>
-            <label className="block mb-2 text-[11px] font-[700] text-[#64748B] tracking-widest">
+            <label className="block mb-1 text-[10.5px] font-[700] text-[#64748B] tracking-wider uppercase">
                 {label.toUpperCase()}
             </label>
             <button
                 type="button"
                 onClick={() => setOpen((o) => !o)}
-                className={`w-full h-[56px] rounded-[14px] border flex items-center gap-3 px-4 text-left text-[14px] font-[600] text-[#0F172A] transition-all duration-200 cursor-pointer focus:outline-none ${
+                className={`w-full h-[46px] sm:h-[48px] rounded-[11px] border flex items-center gap-2.5 px-3 sm:px-3.5 text-left text-[13.5px] sm:text-[14px] font-[600] text-[#0F172A] transition-all duration-200 cursor-pointer focus:outline-none ${
                     open
-                        ? "bg-white border-[#0955AC]/40 shadow-[0_0_0_4px_rgba(9,85,172,0.10)]"
+                        ? "bg-white border-[#0955AC]/40 shadow-[0_0_0_3px_rgba(9,85,172,0.10)]"
                         : "bg-[#F8FAFC] border-transparent hover:bg-[#F1F5F9]"
                 }`}
             >
-                <span className="w-8 h-8 rounded-full bg-[#EAF1FE] flex items-center justify-center flex-shrink-0">
-                    <Users className="w-4 h-4 text-[#0955AC]" />
+                <span className="w-7 h-7 rounded-full bg-[#EAF1FE] flex items-center justify-center flex-shrink-0">
+                    <Users className="w-3.5 h-3.5 text-[#0955AC]" />
                 </span>
                 <span>
                     {total} passenger{total === 1 ? "" : "s"}

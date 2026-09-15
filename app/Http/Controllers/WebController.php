@@ -732,7 +732,8 @@ class WebController extends Controller
         $searchParams = $request->all();
 
         $query = WarehouseUnit::approved()
-            ->active();
+            ->active()
+            ->with(['mainImage', 'images']);
 
         // Apply filters based on search parameters
 

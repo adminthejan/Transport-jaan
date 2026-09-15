@@ -22,7 +22,9 @@ import Header from "../client/ClientHeader";
 import { ModuleTabs, TicketSubTabs } from "../../components/ModuleTabs";
 import BusCard from "../../components/ticketBooking/BusCard";
 import TrainCard from "../../components/ticketBooking/TrainCard";
-import FlightCard from "../../components/ticketBooking/FlightCard";
+import SkyscannerFlightHero from "../../components/ticketBooking/SkyscannerFlightHero";
+import SkyscannerFlightContent from "../../components/ticketBooking/SkyscannerFlightContent";
+import SkyscannerFooter from "../../components/ticketBooking/shared/SkyscannerFooter";
 import Categories from "../../components/rentAVehicle/Categories";
 import WhyChooseUs from "../../components/rentAVehicle/WhyChooseUs";
 import HowItWorks from "../../components/rentAVehicle/HowItWorks";
@@ -155,6 +157,54 @@ const POPULAR_ROUTES = [
   {
     id: 6,
     type: "flight",
+    category: "International Direct",
+    badge: "Cheapest Flight",
+    operator: "SriLankan Airlines",
+    from: "Colombo (CMB)",
+    to: "Male, Maldives (MLE)",
+    departureTime: "08:15 AM",
+    arrivalTime: "09:40 AM",
+    duration: "1h 25m",
+    price: "LKR 68,500",
+    amenities: ["In-flight Meal", "30kg Baggage", "Direct Flight"],
+    dailyTrips: 4,
+    routeParam: { from: "Colombo (CMB)", to: "Male (MLE)" },
+  },
+  {
+    id: 7,
+    type: "flight",
+    category: "International Direct",
+    badge: "Popular Deal",
+    operator: "Emirates & Flydubai",
+    from: "Colombo (CMB)",
+    to: "Dubai (DXB)",
+    departureTime: "10:00 AM",
+    arrivalTime: "01:30 PM",
+    duration: "4h 30m",
+    price: "LKR 125,000",
+    amenities: ["Entertainment", "30kg Baggage", "Wi-Fi onboard"],
+    dailyTrips: 5,
+    routeParam: { from: "Colombo (CMB)", to: "Dubai (DXB)" },
+  },
+  {
+    id: 8,
+    type: "flight",
+    category: "International Direct",
+    badge: "Fastest Direct",
+    operator: "Singapore Airlines",
+    from: "Colombo (CMB)",
+    to: "Singapore (SIN)",
+    departureTime: "01:10 AM",
+    arrivalTime: "07:45 AM",
+    duration: "4h 05m",
+    price: "LKR 115,000",
+    amenities: ["World Class Service", "25kg Baggage", "Meals & Drinks"],
+    dailyTrips: 3,
+    routeParam: { from: "Colombo (CMB)", to: "Singapore (SIN)" },
+  },
+  {
+    id: 9,
+    type: "flight",
     category: "Domestic Air",
     badge: "Scenic Express",
     operator: "Cinnamon Air",
@@ -166,7 +216,7 @@ const POPULAR_ROUTES = [
     price: "USD 180",
     amenities: ["Seaplane", "Luggage 20kg", "VIP Lounge"],
     dailyTrips: 2,
-    routeParam: { from: "Bandaranaike International Airport", to: "Anuradhapura Airport" },
+    routeParam: { from: "Colombo (CMB)", to: "Castlereagh" },
   },
 ];
 
@@ -186,7 +236,21 @@ const TicketBooking = () => {
   }, [url]);
 
   const [activeType, setActiveType] = useState(initialType);
-  const [filterMode, setFilterMode] = useState("all");
+  const [filterMode, setFilterMode] = useState(initialType === "flight" ? "flight" : "all");
+
+  // Keep state in sync if URL changes
+  React.useEffect(() => {
+    if (typeof url === "string" && url.includes("?")) {
+      const params = new URLSearchParams(url.split("?")[1]);
+      const type = params.get("type");
+      if (type === "bus" || type === "train" || type === "flight") {
+        setActiveType(type);
+        if (type === "flight") {
+          setFilterMode("flight");
+        }
+      }
+    }
+  }, [url]);
 
   const filteredRoutes = useMemo(() => {
     if (filterMode === "all") return POPULAR_ROUTES;
@@ -211,8 +275,17 @@ const TicketBooking = () => {
         tripType: "oneway",
       });
     } else {
-      setActiveType("flight");
-      window.scrollTo({ top: 380, behavior: "smooth" });
+      // Matches the Skyscanner search card: flight results always open in
+      // a new tab rather than navigating this page away.
+      const params = new URLSearchParams({
+        trip_type: "oneway",
+        departure_airport: route.routeParam.from,
+        arriving_airport: route.routeParam.to,
+        departure_date: today,
+        travellers_summary: "1 Adult, Economy",
+        direct_only: "1",
+      });
+      window.open(`/flightResults?${params.toString()}`, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -230,73 +303,100 @@ const TicketBooking = () => {
     window.scrollTo({ top: 350, behavior: "smooth" });
   };
 
+  if (activeType === "flight") {
+    // Air tickets are a self-contained, Skyscanner-style complete experience:
+    // search hero + trending deals + AI inspiration + features + FAQs + flight footer.
+    return (
+      <div className="ticket-booking-page min-h-screen bg-[#F6F7F9] flex flex-col justify-between">
+        <Head title="Flights - Millions of cheap flights. One simple search. | Transport Jaan" />
+        <SkyscannerFlightHero
+          onSelectTab={(type) => {
+            setActiveType(type);
+            router.get("/ticketBooking", { type }, { preserveState: true, replace: true });
+          }}
+        />
+        <SkyscannerFlightContent />
+        <SkyscannerFooter />
+      </div>
+    );
+  }
+
   return (
     <div className="ticket-booking-page bg-[#F6F7F9] min-h-screen">
-      <Head title="Ticket Booking - Bus, Train & Flight Tickets | Transport Jaan" />
-      <Header />
+      <Head title="Ticket Booking - Bus & Train Tickets | Transport Jaan" />
 
-      {/* Full-bleed hero with 75% visible image */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src={heroImg}
-            alt=""
-            aria-hidden="true"
-            className="w-full h-full object-cover object-[65%_45%] opacity-75 transition-all duration-700"
-          />
-          {/* Gentle protective gradient ensuring text readability while keeping image ~75% visible */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.05) 55%, transparent 75%)",
-            }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(0deg, #F6F7F9 0%, rgba(246,247,249,0.20) 10%, transparent 25%)",
-            }}
-          />
-        </div>
+      {/* Standard Transport Jaan Header & Hero - untouched for Bus, Train and other areas */}
+      <>
+          <Header />
 
-        <div className="relative z-10 max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 sm:pt-8 md:pt-10 pb-14 sm:pb-16 md:pb-20">
-          <p className="poppins text-[11px] font-[700] tracking-[0.14em] text-[#0955AC] uppercase mb-2">
-            Ticket Booking · Bus, Train & Flight
-          </p>
-          <h1 className="bebas-neue text-[28px] sm:text-[36px] md:text-[44px] leading-none text-[#0B1B34] mb-4">
-            BOOK YOUR <span className="text-[#0955AC]">JOURNEY TICKETS</span>
-          </h1>
+          {/* Full-bleed hero with 75% visible image */}
+          <section className="relative overflow-hidden">
+            <div className="absolute inset-0">
+              <img
+                src={heroImg}
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full object-cover object-[65%_45%] opacity-75 transition-all duration-700"
+              />
+              {/* Gentle protective gradient ensuring text readability while keeping image ~75% visible */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(90deg, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.05) 55%, transparent 75%)",
+                }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(0deg, #F6F7F9 0%, rgba(246,247,249,0.20) 10%, transparent 25%)",
+                }}
+              />
+            </div>
 
-          <div className="flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-2.5 mb-6 max-w-[620px]">
-            {HERO_FEATURES.map((f) => (
-              <div key={f.label} className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[#EAF1FE] flex items-center justify-center flex-shrink-0">
-                  <f.icon className="w-3.5 h-3.5 text-[#0955AC]" />
-                </div>
-                <span className="poppins text-[12.5px] font-[600] text-[#0B1B34]">{f.label}</span>
+            <div className="relative z-10 max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 sm:pt-8 md:pt-10 pb-14 sm:pb-16 md:pb-20">
+              <p className="poppins text-[11px] font-[700] tracking-[0.14em] text-[#0955AC] uppercase mb-2">
+                Ticket Booking · Bus, Train & Flight
+              </p>
+              <h1 className="bebas-neue text-[28px] sm:text-[36px] md:text-[44px] leading-none text-[#0B1B34] mb-4">
+                BOOK YOUR <span className="text-[#0955AC]">JOURNEY TICKETS</span>
+              </h1>
+
+              <div className="flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-2.5 mb-6 max-w-[620px]">
+                {HERO_FEATURES.map((f) => (
+                  <div key={f.label} className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-[#EAF1FE] flex items-center justify-center flex-shrink-0">
+                      <f.icon className="w-3.5 h-3.5 text-[#0955AC]" />
+                    </div>
+                    <span className="poppins text-[12.5px] font-[600] text-[#0B1B34]">{f.label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="flex flex-col items-center mt-3 sm:mt-4">
-            <ModuleTabs active="ticket" />
-            <div className="mt-2.5 sm:mt-3">
-              <TicketSubTabs active={activeType} onSelect={(type) => setActiveType(type)} />
+              <div className="flex flex-col items-center mt-3 sm:mt-4">
+                <ModuleTabs active="ticket" />
+                <div className="mt-2.5 sm:mt-3">
+                  <TicketSubTabs
+                    active={activeType}
+                    onSelect={(type) => {
+                      setActiveType(type);
+                      router.get("/ticketBooking", { type }, { preserveState: true, replace: true });
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Floating search form card, positioned smoothly over hero's bottom edge */}
+          <div className="relative z-20 -mt-6 sm:-mt-8 md:-mt-10 max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 mb-10 sm:mb-12">
+            <div className="w-full">
+              {activeType === "bus" && <BusCard />}
+              {activeType === "train" && <TrainCard />}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Floating search form card, positioned smoothly over hero's bottom edge */}
-      <div className="relative z-20 -mt-6 sm:-mt-8 md:-mt-10 max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 mb-10 sm:mb-12">
-        <div className="w-full">
-          {activeType === "bus" && <BusCard />}
-          {activeType === "train" && <TrainCard />}
-          {activeType === "flight" && <FlightCard />}
-        </div>
-      </div>
+        </>
 
       {/* Popular Routes / Featured Offers Section */}
       <section className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-2 pb-12 sm:pb-16">

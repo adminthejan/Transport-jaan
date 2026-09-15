@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
 import axios from "axios";
-import { Heart, MapPin, Ruler, Warehouse as WarehouseIcon } from "lucide-react";
+import { Heart, Map as MapIcon, MapPin, Ruler, Warehouse as WarehouseIcon } from "lucide-react";
+import defaultWarehouseImg from "../../assets/landingPages/hero/warehouse.jpg";
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest First" },
@@ -15,7 +16,7 @@ const formatTypeLabel = (value) =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWarehouseIds }) => {
+const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWarehouseIds, showMap, onToggleMap }) => {
   // normalize input (paginator or array)
   const warehouses = useMemo(
     () => (Array.isArray(initialWarehouses) ? initialWarehouses : (initialWarehouses?.data || [])),
@@ -64,6 +65,8 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
     // First priority: main/primary image
     if (w?.main_image?.url) return w.main_image.url;
     if (w?.main_image?.file_path) return `/storage/${w.main_image.file_path}`;
+    if (w?.mainImage?.url) return w.mainImage.url;
+    if (w?.mainImage?.file_path) return `/storage/${w.mainImage.file_path}`;
     if (w?.primary_image_url) return w.primary_image_url;
     
     // Second priority: first image from images array
@@ -81,7 +84,7 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
     if (w?.primaryImage?.file_path) return `/storage/${w.primaryImage.file_path}`;
     if (w?.primaryImage?.path) return `/storage/${w.primaryImage.path}`;
     
-    return "/placeholder.png";
+    return defaultWarehouseImg;
   };
 
   const handleViewDetails = (warehouse) => {
@@ -153,22 +156,39 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
           we found <span className="text-[#0955AC]">{warehouses.length} warehouses</span> for you
         </p>
 
-        {warehouses.length > 1 && (
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="poppins text-[12px] font-[600] text-[#0955AC] bg-white border border-[#0000001A] rounded-[8px] px-3 py-2 shadow-sm focus:outline-none cursor-pointer"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                Sort: {opt.label}
-              </option>
-            ))}
-          </select>
-        )}
+        <div className="flex items-center gap-2">
+          {onToggleMap && (
+            <button
+              type="button"
+              onClick={onToggleMap}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-[8px] text-[12px] font-[600] border transition-colors cursor-pointer shadow-sm ${
+                showMap
+                  ? "bg-[#0955AC] text-white border-[#0955AC]"
+                  : "bg-white text-[#475569] border-[#0000001A] hover:text-[#0955AC] hover:border-[#0955AC]"
+              }`}
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+              <span>{showMap ? "Hide Map" : "Show Map"}</span>
+            </button>
+          )}
+
+          {warehouses.length > 1 && (
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="poppins text-[12px] font-[600] text-[#0955AC] bg-white border border-[#0000001A] rounded-[8px] px-3 py-2 shadow-sm focus:outline-none cursor-pointer"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  Sort: {opt.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-5">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${showMap ? 'xl:grid-cols-2 2xl:grid-cols-2' : 'xl:grid-cols-3 2xl:grid-cols-4'} gap-5`}>
         {sortedWarehouses.map((w) => {
           const specs = [];
           if (w.total_area) specs.push({ icon: Ruler, label: `${Number(w.total_area).toLocaleString()} sq ft` });
@@ -177,10 +197,10 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
           return (
             <div
               key={w.id}
-              className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow overflow-hidden flex flex-col"
+              className="group bg-white rounded-[20px] border border-black/5 shadow-[0_2px_10px_rgba(11,27,52,0.05)] hover:shadow-[0_20px_36px_rgba(9,85,172,0.16)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
             >
               {/* --- warehouse image --- */}
-              <div className="relative h-[190px] sm:h-[210px] bg-gray-100">
+              <div className="relative h-[190px] sm:h-[210px] bg-gray-100 overflow-hidden">
                 <img
                   src={getImg(w)}
                   alt={w.name || "warehouse"}
@@ -188,13 +208,13 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
                   loading="lazy"
                   onError={(e) => {
                     e.currentTarget.onerror = null;
-                    e.currentTarget.src = "https://via.placeholder.com/286x240?text=Warehouse+Image";
+                    e.currentTarget.src = defaultWarehouseImg;
                   }}
                 />
 
                 <button
                   onClick={() => toggleLike(w.id)}
-                  className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 backdrop-blur grid place-items-center shadow hover:bg-white transition-colors"
+                  className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 backdrop-blur grid place-items-center shadow hover:bg-white transition-colors cursor-pointer"
                   aria-label={likedMap[w.id] ? "Unlike" : "Like"}
                 >
                   <Heart
@@ -217,7 +237,7 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
 
                 {w.address && (
                   <div className="flex items-center gap-1 mt-1 text-[12px] text-[#6B7280]">
-                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <MapPin className="w-3.5 h-3.5 shrink-0 text-[#0955AC]" />
                     <span className="truncate">{w.address}</span>
                   </div>
                 )}
@@ -249,7 +269,7 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
 
                   <button
                     onClick={() => handleViewDetails(w)}
-                    className="h-[38px] px-4 rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700] tracking-wide hover:bg-[#074494] transition-colors"
+                    className="h-[38px] px-4 rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700] tracking-wide hover:bg-[#074494] transition-colors cursor-pointer"
                   >
                     VIEW DETAILS
                   </button>

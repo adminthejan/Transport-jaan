@@ -247,6 +247,25 @@ Route::post('/flight-bookings/{reference}/cancel', [FlightBookingController::cla
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store')->middleware('auth');
 
+// Skyscanner-style flight search demo — dummy/client-generated data only,
+// no live inventory, no backend writes (see FlightResults.jsx and its
+// generateDummyFlights.js seed-based generator).
+Route::get('/flightResults', function () {
+    return Inertia::render('Web/home/ticketBooking/FlightResults');
+})->name('flightResults.flightResults');
+
+Route::get('/flightReview', function () {
+    return Inertia::render('Web/home/ticketBooking/FlightReview');
+})->name('flightReview.flightReview');
+
+Route::get('/flightPayment', function () {
+    return Inertia::render('Web/home/ticketBooking/FlightPayment');
+})->name('flightPayment.flightPayment');
+
+Route::get('/flightConfirmation', function () {
+    return Inertia::render('Web/home/ticketBooking/FlightConfirmation');
+})->name('flightConfirmation.flightConfirmation');
+
 // Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
 Route::get('/warehouses/search', [WebController::class, 'warehouseList'])->name('warehouses.search');

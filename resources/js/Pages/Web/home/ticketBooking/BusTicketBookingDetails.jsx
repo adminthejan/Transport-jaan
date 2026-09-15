@@ -23,7 +23,7 @@ import Testimonials from "../../components/rentAVehicle/Testimonials";
 import ContactStrip from "../../components/rentAVehicle/ContactStrip";
 import Footer from "../../layouts/Footer";
 
-import busHero from "../../assets/ticketBooking/hero-bus-train-flight.jpg";
+import busHero from "../../assets/ticketBooking/bus_hero_ultra.jpg";
 
 const HERO_FEATURES = [
   { icon: ShieldCheck, label: "Verified Bus Operators" },
@@ -77,21 +77,21 @@ const BusTicketBookingDetails = ({
       <Head title="Bus Ticket Booking - Search Schedules & Book Seats | Transport Jaan" />
       <Header />
 
-      {/* Full-bleed hero with 75% visible image */}
+      {/* Full-bleed hero with 85% visible ultra-resolution bus image */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
           <img
             src={busHero}
-            alt=""
+            alt="Express Highway Bus"
             aria-hidden="true"
-            className="w-full h-full object-cover object-[65%_45%] opacity-75"
+            className="w-full h-full object-cover object-[55%_42%] opacity-85"
           />
-          {/* Gentle protective gradient ensuring text readability while keeping image ~75% visible */}
+          {/* Gentle protective gradient ensuring text readability while keeping image ~85% visible */}
           <div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(90deg, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.05) 55%, transparent 75%)",
+                "linear-gradient(90deg, rgba(255,255,255,0.70) 0%, rgba(255,255,255,0.35) 30%, rgba(255,255,255,0.05) 55%, transparent 75%)",
             }}
           />
           <div
@@ -131,8 +131,8 @@ const BusTicketBookingDetails = ({
         </div>
       </section>
 
-      {/* Search form floating smoothly over hero's bottom edge */}
-      <div className="relative z-20 -mt-6 sm:-mt-8 md:-mt-10 max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
+      {/* Compact, user-friendly search form container floating smoothly over hero's bottom edge */}
+      <div className="relative z-20 -mt-6 sm:-mt-8 md:-mt-10 max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
         <BusCard />
       </div>
 

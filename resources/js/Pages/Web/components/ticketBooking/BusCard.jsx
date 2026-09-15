@@ -80,10 +80,10 @@ const BusCard = () => {
     };
 
     return (
-        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5">
+        <div className="bg-white rounded-[20px] shadow-[0_12px_40px_rgba(9,85,172,0.12)] border border-black/5 overflow-hidden">
             <CardHeader icon={BusIcon} title={t("find_your_buses", "Find Your Buses")} subtitle="Every route, every operator — one search." />
 
-            <form onSubmit={onSubmitBus} className="p-6 sm:p-8">
+            <form onSubmit={onSubmitBus} className="p-4 sm:p-5">
                 <SegmentedControl
                     value={tripType}
                     onChange={setTripType}
@@ -94,7 +94,7 @@ const BusCard = () => {
                 />
 
                 {/* From / To with swap button */}
-                <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-14 mb-4">
+                <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-3.5">
                     <AutoCompleteField
                         label={t("from", "FROM").toUpperCase()}
                         id="busFrom"
@@ -121,8 +121,8 @@ const BusCard = () => {
                     <SwapButton onClick={swapStations} icon={ArrowLeftRight} />
                 </div>
 
-                {/* Dates */}
-                <div className={`grid gap-4 mb-6 ${tripType === 'roundtrip' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                {/* Dates & Passengers in one responsive row */}
+                <div className={`grid gap-3 sm:gap-4 mb-4 ${tripType === 'roundtrip' ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
                     <DateField
                         label={t("journey_date", "JOURNEY DATE").toUpperCase()}
                         id="busDate"
@@ -147,9 +147,7 @@ const BusCard = () => {
                             min={busDate || new Date().toISOString().split('T')[0]}
                         />
                     )}
-                </div>
 
-                <div className="mb-7">
                     <PassengerSelector value={passengers} onChange={setPassengers} />
                 </div>
 
