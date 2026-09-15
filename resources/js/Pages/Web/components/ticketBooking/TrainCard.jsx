@@ -148,82 +148,118 @@ const TrainCard = () => {
             <CardHeader icon={TrainFront} title={t("find_your_trains", "Find Your Trains")} subtitle="Scenic and intercity routes, seat reserved instantly." />
 
             <form onSubmit={onSubmitTrain} className="p-4 sm:p-5">
-                <SegmentedControl
-                    value={tripType}
-                    onChange={setTripType}
-                    options={[
-                        { value: "oneway", label: t("one_way", "One way") },
-                        { value: "roundtrip", label: t("round_trip", "Round Trip") },
-                    ]}
-                />
-
-                {/* From / To with swap button */}
-                <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-3.5">
-                    <AutoCompleteField
-                        label={t("from", "FROM").toUpperCase()}
-                        id="fromStation"
-                        value={formData.fromStation}
-                        onChange={(value) => handleInputChange('fromStation', value)}
-                        placeholder="Search departure station"
-                        error={errors.fromStation}
-                        icon={MapPin}
-                        iconColor="text-[#0955AC]"
-                        options={trainStations}
-                        getSearchText={stationSearchText}
-                        getKey={(s) => s.code}
-                        getValue={(s) => `${s.name} (${s.code})`}
-                        renderOption={renderStationOption}
+                <div className="mb-3 sm:mb-3.5">
+                    <SegmentedControl
+                        value={tripType}
+                        onChange={setTripType}
+                        options={[
+                            { value: "oneway", label: t("one_way", "One way") },
+                            { value: "roundtrip", label: t("round_trip", "Round Trip") },
+                        ]}
                     />
-                    <AutoCompleteField
-                        label={t("to", "TO").toUpperCase()}
-                        id="toStation"
-                        value={formData.toStation}
-                        onChange={(value) => handleInputChange('toStation', value)}
-                        placeholder="Search destination station"
-                        error={errors.toStation}
-                        icon={MapPin}
-                        iconBg="bg-[#FDEDEA]"
-                        iconColor="text-[#EF3826]"
-                        options={trainStations}
-                        getSearchText={stationSearchText}
-                        getKey={(s) => s.code}
-                        getValue={(s) => `${s.name} (${s.code})`}
-                        renderOption={renderStationOption}
-                    />
-                    <SwapButton onClick={swapStations} icon={ArrowLeftRight} />
                 </div>
 
-                {/* Dates & Passengers in one responsive row */}
-                <div className={`grid gap-3 sm:gap-4 mb-4 ${tripType === 'roundtrip' ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
-                    <DateField
-                        label={t("departure_date", "DEPARTURE DATE")}
-                        id="departureDate"
-                        value={formData.departureDate}
-                        onChange={(e) => handleInputChange('departureDate', e.target.value)}
-                        error={errors.departureDate}
-                        icon={CalendarDays}
-                        iconColor="text-[#0955AC]"
-                        min={new Date().toISOString().split('T')[0]}
-                    />
+                {/* All Search Contents in ONE Horizontal Row */}
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-start gap-2.5 sm:gap-3">
+                    {/* From Station */}
+                    <div className="flex-1 min-w-0">
+                        <AutoCompleteField
+                            label={t("from", "FROM").toUpperCase()}
+                            id="fromStation"
+                            value={formData.fromStation}
+                            onChange={(value) => handleInputChange('fromStation', value)}
+                            placeholder="Search departure station"
+                            error={errors.fromStation}
+                            icon={MapPin}
+                            iconColor="text-[#0955AC]"
+                            options={trainStations}
+                            getSearchText={stationSearchText}
+                            getKey={(s) => s.code}
+                            getValue={(s) => `${s.name} (${s.code})`}
+                            renderOption={renderStationOption}
+                        />
+                    </div>
 
-                    {tripType === 'roundtrip' && (
-                        <DateField
-                            label={t("return_date", "RETURN DATE")}
-                            id="returnDate"
-                            value={formData.returnDate}
-                            onChange={(e) => handleInputChange('returnDate', e.target.value)}
-                            error={errors.returnDate}
-                            icon={CalendarDays}
+                    {/* Swap Button */}
+                    <div className="hidden lg:flex items-center justify-center pt-5 shrink-0">
+                        <button
+                            type="button"
+                            onClick={swapStations}
+                            title="Swap departure and destination"
+                            className="w-8 h-8 rounded-full border border-gray-200 bg-white hover:bg-[#EAF1FE] text-[#0955AC] flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
+                        >
+                            <ArrowLeftRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+
+                    {/* To Station */}
+                    <div className="flex-1 min-w-0">
+                        <AutoCompleteField
+                            label={t("to", "TO").toUpperCase()}
+                            id="toStation"
+                            value={formData.toStation}
+                            onChange={(value) => handleInputChange('toStation', value)}
+                            placeholder="Search destination station"
+                            error={errors.toStation}
+                            icon={MapPin}
                             iconBg="bg-[#FDEDEA]"
                             iconColor="text-[#EF3826]"
-                            min={formData.departureDate || new Date().toISOString().split('T')[0]}
+                            options={trainStations}
+                            getSearchText={stationSearchText}
+                            getKey={(s) => s.code}
+                            getValue={(s) => `${s.name} (${s.code})`}
+                            renderOption={renderStationOption}
                         />
+                    </div>
+
+                    {/* Departure Date */}
+                    <div className={`w-full ${tripType === 'roundtrip' ? 'lg:w-[145px] xl:w-[160px]' : 'lg:w-[160px] xl:w-[180px]'} shrink-0`}>
+                        <DateField
+                            label={t("departure_date", "DEPARTURE DATE").toUpperCase()}
+                            id="departureDate"
+                            value={formData.departureDate}
+                            onChange={(e) => handleInputChange('departureDate', e.target.value)}
+                            error={errors.departureDate}
+                            icon={CalendarDays}
+                            iconColor="text-[#0955AC]"
+                            min={new Date().toISOString().split('T')[0]}
+                        />
+                    </div>
+
+                    {/* Return Date if Round Trip */}
+                    {tripType === 'roundtrip' && (
+                        <div className="w-full lg:w-[145px] xl:w-[160px] shrink-0">
+                            <DateField
+                                label={t("return_date", "RETURN DATE").toUpperCase()}
+                                id="returnDate"
+                                value={formData.returnDate}
+                                onChange={(e) => handleInputChange('returnDate', e.target.value)}
+                                error={errors.returnDate}
+                                icon={CalendarDays}
+                                iconBg="bg-[#FDEDEA]"
+                                iconColor="text-[#EF3826]"
+                                min={formData.departureDate || new Date().toISOString().split('T')[0]}
+                            />
+                        </div>
                     )}
 
-                    <PassengerSelector value={passengers} onChange={setPassengers} />
-                </div>
+                    {/* Passengers */}
+                    <div className={`w-full ${tripType === 'roundtrip' ? 'lg:w-[145px] xl:w-[160px]' : 'lg:w-[160px] xl:w-[180px]'} shrink-0`}>
+                        <PassengerSelector value={passengers} onChange={setPassengers} />
+                    </div>
 
-                <SubmitButton icon={Search} iconPosition="left">{t("search_trains", "Search Trains")}</SubmitButton>
+                    {/* Search Trains Button */}
+                    <div className="w-full lg:w-auto shrink-0 flex flex-col justify-end pt-5 lg:pt-0">
+                        <div className="hidden lg:block h-[18px]" /> {/* Spacer aligning with field label */}
+                        <button
+                            type="submit"
+                            className="w-full lg:w-auto h-[46px] sm:h-[48px] px-6 sm:px-7 bg-gradient-to-r from-[#0955AC] to-[#073E82] hover:from-[#0B63C4] hover:to-[#0955AC] text-white font-[700] text-[14px] rounded-[11px] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)] hover:shadow-[0_12px_28px_rgba(9,85,172,0.32)] hover:-translate-y-0.5 cursor-pointer shrink-0"
+                        >
+                            <Search className="w-4 h-4" />
+                            <span className="whitespace-nowrap">{t("search_trains", "Search Trains")}</span>
+                        </button>
+                    </div>
+                </div>
             </form>
         </div>
     );

@@ -390,7 +390,7 @@ const TicketBooking = () => {
           </section>
 
           {/* Floating search form card, positioned smoothly over hero's bottom edge */}
-          <div className="relative z-20 -mt-6 sm:-mt-8 md:-mt-10 max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 mb-10 sm:mb-12">
+          <div className="relative z-20 -mt-6 sm:-mt-8 md:-mt-10 max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 mb-10 sm:mb-12">
             <div className="w-full">
               {activeType === "bus" && <BusCard />}
               {activeType === "train" && <TrainCard />}
