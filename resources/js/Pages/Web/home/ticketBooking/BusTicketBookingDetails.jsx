@@ -23,7 +23,7 @@ import Testimonials from "../../components/rentAVehicle/Testimonials";
 import ContactStrip from "../../components/rentAVehicle/ContactStrip";
 import Footer from "../../layouts/Footer";
 
-import busHero from "../../assets/ticketBooking/bus_hero_ultra.jpg";
+import busHero from "../../assets/ticketBooking/bus_hero_ultra.jpeg";
 
 const HERO_FEATURES = [
   { icon: ShieldCheck, label: "Verified Bus Operators" },

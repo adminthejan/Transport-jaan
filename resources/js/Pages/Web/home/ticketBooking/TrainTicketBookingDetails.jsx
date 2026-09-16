@@ -23,7 +23,7 @@ import Testimonials from "../../components/rentAVehicle/Testimonials";
 import ContactStrip from "../../components/rentAVehicle/ContactStrip";
 import Footer from "../../layouts/Footer";
 
-import trainHero from "../../assets/ticketBooking/train_hero_ultra.jpg";
+import trainHero from "../../assets/ticketBooking/train_hero_ultra.jpeg";
 
 const HERO_FEATURES = [
   { icon: ShieldCheck, label: "Sri Lanka Railways" },
