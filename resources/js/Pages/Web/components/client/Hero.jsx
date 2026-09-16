@@ -209,7 +209,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     };
 
     const handleNewBooking = () => {
-        window.location.href = "/multiModel/plan-journey";
+        window.location.href = "/vehicleList";
     };
 
     const handleRefresh = () => {

@@ -35,7 +35,7 @@ const IMAGES = [
         description:
             "Rent vehicles across land, sea, and air for personal and business travel needs.",
         ctaLabel: "Book Vehicle",
-        href: "/multiModel/plan-journey?tab=rental",
+        href: "/vehicleList",
         url: img1,
         tags: ["Vehicle", "Rental", "Transport"],
     },
@@ -46,7 +46,7 @@ const IMAGES = [
         description:
             "Book tickets across land and air routes with reliable schedules and easy reservation flow.",
         ctaLabel: "Book Ticket",
-        href: "/multiModel/plan-journey?tab=ticket",
+        href: "/busTicketBookingDetails",
         url: img7,
         tags: ["Train", "Bus", "Flight"],
     },

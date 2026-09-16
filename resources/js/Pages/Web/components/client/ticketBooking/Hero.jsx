@@ -582,7 +582,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
             <p className="text-slate-500 text-[13px] mt-1">Book and manage your Bus, Train &amp; Flight tickets</p>
           </div>
           <button
-            onClick={() => router.visit("/multiModel/plan-journey?tab=ticket")}
+            onClick={() => router.visit("/busTicketBookingDetails")}
             className="inline-flex items-center h-11 px-5 rounded-xl bg-[#0955AC] text-white text-[14px] font-[600] hover:bg-[#0744a0] transition-colors shrink-0 self-start md:self-auto"
           >
             <Plus className="mr-2 h-4 w-4" /> New Booking
