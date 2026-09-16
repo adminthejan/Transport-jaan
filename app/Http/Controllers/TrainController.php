@@ -163,6 +163,8 @@ class TrainController extends Controller
                 'seniors' => (int)$seniors,
                 'student' => $student,
                 'wheelchair' => $wheelchair,
+                'fromCity' => $fromStationRecord->city ?? null,
+                'toCity' => $toStationRecord->city ?? null,
             ],
             'outboundSchedules' => $outboundSchedules,
             'returnSchedules' => $returnSchedules,

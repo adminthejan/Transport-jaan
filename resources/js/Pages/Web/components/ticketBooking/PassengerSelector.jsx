@@ -81,7 +81,7 @@ const PassengerSelector = ({ value, onChange, label = "Passengers" }) => {
             </button>
 
             {open && (
-                <div className="absolute z-30 mt-2 w-[300px] rounded-[18px] border border-black/5 bg-white shadow-[0_20px_50px_rgba(11,27,52,0.18)] p-5">
+                <div className="absolute right-0 z-30 mt-2 w-[300px] max-w-[calc(100vw-2rem)] rounded-[18px] border border-black/5 bg-white shadow-[0_20px_50px_rgba(11,27,52,0.18)] p-5">
                     {tiers.map((tier) => (
                         <div key={tier.key} className="flex items-center justify-between py-2.5">
                             <div>

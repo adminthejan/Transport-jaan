@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { ModuleTabs, TicketSubTabs } from "../ModuleTabs";
-import flightHeroImg from "../../assets/ticketBooking/flight_hero_2k.jpg";
+import flightHeroImg from "../../assets/ticketBooking/flight_hero_2k.jpeg";
 
 const AIRPORTS = [
   { code: "CMB", name: "Bandaranaike International", city: "Colombo", country: "Sri Lanka", label: "Colombo (CMB)" },

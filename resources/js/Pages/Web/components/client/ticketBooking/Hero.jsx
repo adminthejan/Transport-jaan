@@ -193,12 +193,34 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    const params = new URLSearchParams({ tab: "ticket", subTab: searchMode });
-    if (searchFrom) params.set("from", searchFrom);
-    if (searchTo) params.set("to", searchTo);
-    if (searchDate) params.set("date", searchDate);
-    if (searchPassengers) params.set("passengers", String(searchPassengers));
-    router.visit(`/multiModel/plan-journey?${params.toString()}`);
+
+    if (searchMode === "bus") {
+      router.get("/busTicketBookingDetails", {
+        from: searchFrom,
+        to: searchTo,
+        date: searchDate,
+        tripType: "oneway",
+        passengers: searchPassengers,
+        adults: searchPassengers,
+      });
+    } else if (searchMode === "train") {
+      router.get("/trainTicketBookingDetails", {
+        from: searchFrom,
+        to: searchTo,
+        departureDate: searchDate,
+        tripType: "oneway",
+        adults: searchPassengers,
+      });
+    } else {
+      const params = new URLSearchParams({
+        trip_type: "oneway",
+        departure_airport: searchFrom,
+        arriving_airport: searchTo,
+        departure_date: searchDate,
+        travellers_summary: `${searchPassengers} Adult${searchPassengers === 1 ? "" : "s"}, Economy`,
+      });
+      router.visit(`/flightResults?${params.toString()}`);
+    }
   };
 
   const rows = useMemo(() => bookings.map(normalizeRow), [bookings]);
@@ -540,9 +562,9 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
   const canCancelBooking = (booking) => booking.status !== "cancelled" && ["confirmed", "paid"].includes(booking.status);
 
   const quickActionTiles = [
-    { icon: Plane, label: "Book Flight", tint: "bg-blue-50 text-blue-600", onClick: () => router.visit("/multiModel/plan-journey?tab=ticket&subTab=flight") },
-    { icon: TrainFront, label: "Book Train", tint: "bg-emerald-50 text-emerald-600", onClick: () => router.visit("/multiModel/plan-journey?tab=ticket&subTab=train") },
-    { icon: Bus, label: "Book Bus", tint: "bg-indigo-50 text-indigo-600", onClick: () => router.visit("/multiModel/plan-journey?tab=ticket&subTab=bus") },
+    { icon: Plane, label: "Book Flight", tint: "bg-blue-50 text-blue-600", onClick: () => router.visit("/ticketBooking?type=flight") },
+    { icon: TrainFront, label: "Book Train", tint: "bg-emerald-50 text-emerald-600", onClick: () => router.visit("/trainTicketBookingDetails") },
+    { icon: Bus, label: "Book Bus", tint: "bg-indigo-50 text-indigo-600", onClick: () => router.visit("/busTicketBookingDetails") },
     { icon: Ticket, label: "My Tickets", tint: "bg-amber-50 text-amber-600", onClick: () => { setActiveTab("all"); scrollToTable(); } },
     { icon: Wallet, label: "Payments", tint: "bg-teal-50 text-teal-600", onClick: () => router.visit(route("client.wallet.dashboard")) },
     { icon: RefreshCw, label: "Refunds", tint: "bg-rose-50 text-rose-600", onClick: () => { setActiveTab("cancelled"); scrollToTable(); } },

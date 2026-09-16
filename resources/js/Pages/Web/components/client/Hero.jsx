@@ -525,9 +525,9 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     };
 
     const quickActionTiles = [
-        { icon: Car, label: "Rent Land Vehicle", tint: "bg-blue-50 text-blue-600", onClick: () => (window.location.href = "/multiModel/plan-journey?tab=rental&subTab=land") },
-        { icon: Plane, label: "Charter Aircraft", tint: "bg-emerald-50 text-emerald-600", onClick: () => (window.location.href = "/multiModel/plan-journey?tab=rental&subTab=air") },
-        { icon: Ship, label: "Book Yacht/Boat", tint: "bg-indigo-50 text-indigo-600", onClick: () => (window.location.href = "/multiModel/plan-journey?tab=rental&subTab=sea") },
+        { icon: Car, label: "Rent Land Vehicle", tint: "bg-blue-50 text-blue-600", onClick: () => (window.location.href = "/vehicleList") },
+        { icon: Plane, label: "Charter Aircraft", tint: "bg-emerald-50 text-emerald-600", onClick: () => (window.location.href = "/airVehicleList") },
+        { icon: Ship, label: "Book Yacht/Boat", tint: "bg-indigo-50 text-indigo-600", onClick: () => (window.location.href = "/seaVehicleList") },
         { icon: Calendar, label: "View Bookings", tint: "bg-amber-50 text-amber-600", onClick: scrollToTable },
         { icon: RefreshCw, label: "Extend Rental", tint: "bg-teal-50 text-teal-600", onClick: () => { setActiveTab("active"); scrollToTable(); } },
         { icon: Download, label: "Download Invoice", tint: "bg-rose-50 text-rose-600", onClick: () => setShowExportModal(true) },

@@ -104,6 +104,9 @@ Route::get('/track-vehicle-booking', [VehicleTrackingController::class, 'trackPu
 Route::get('/track-ticket-booking', [TicketBookingTrackingController::class, 'trackPublic'])
     ->middleware('throttle:30,1')
     ->name('tickets.track.public');
+Route::get('/track/lookup', [\App\Http\Controllers\QuickTrackController::class, 'lookup'])
+    ->middleware('throttle:30,1')
+    ->name('track.lookup');
 Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/create', function () {
         return redirect()->route('couriers.flow.create', ['flow' => 'domestic']);
@@ -226,6 +229,7 @@ Route::get('/busTicketBookingDetails/json', [BusBookingController::class, 'searc
 Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
 Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
 Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview');
+Route::get('/transport/compare', [\App\Http\Controllers\TransportCompareController::class, 'compare'])->name('transport.compare');
 
 // Bus ticket routes
 Route::get('/bus-ticket/download/{reference}', [BusBookingController::class, 'downloadTicket'])->name('bus.ticket.download')->middleware('auth');

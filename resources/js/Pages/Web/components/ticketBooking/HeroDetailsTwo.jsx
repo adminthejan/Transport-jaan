@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, router } from "@inertiajs/react";
 import { Snowflake, Wifi, Usb, Tv, ArmchairIcon, ShowerHead, Clock, Users, MapPin, Radio, ArrowUpDown } from "lucide-react";
 import BusCard from "./BusCard";
 import LocaleSelector from "./LocaleSelector";
 import TripRouteMap from "./TripRouteMap";
+import TransportCompareCard from "./TransportCompareCard";
 import { LocaleProvider, useLocale } from "../../context/LocaleContext";
 
 const amenityIcons = {
@@ -253,6 +254,18 @@ const HeroDetailsTwoInner = ({
         setSortBy(sortBy === sortType ? '' : sortType);
     };
 
+    // Own-mode (bus) summary for the compare card — no extra request needed
+    // since the results are already loaded.
+    const ownSummary = useMemo(() => {
+        if (!trips || trips.length === 0) return null;
+        const cheapest = [...trips].sort((a, b) => a.price - b.price)[0];
+        const fastest = [...trips].sort((a, b) => parseDurationMinutes(a.duration) - parseDurationMinutes(b.duration))[0];
+        return {
+            cheapest: { price: cheapest.price, duration: cheapest.duration },
+            fastest: { price: fastest.price, duration: fastest.duration },
+        };
+    }, [trips]);
+
     const bothLegsSelected = isRoundTrip && selectedOutboundId && selectedReturnId;
 
     // Picking an outbound bus automatically moves you to the Return tab —
@@ -294,6 +307,18 @@ const HeroDetailsTwoInner = ({
 
             <div className={`grid grid-cols-1 gap-6 items-start ${route ? 'lg:grid-cols-3' : ''}`}>
             <div className={route ? 'lg:col-span-2 min-w-0' : 'min-w-0'}>
+
+            {/* Compare with Train — same route/date, matched by city since bus
+                and train stations are separate named datasets. */}
+            {(!isRoundTrip || activeLeg === 'outbound') && (
+                <TransportCompareCard
+                    mode="bus"
+                    fromCity={searchParams.fromCity}
+                    toCity={searchParams.toCity}
+                    date={searchParams.date}
+                    ownSummary={ownSummary}
+                />
+            )}
 
             {/* Nearby dates — browse a few extra days without re-searching.
                 Prices reflect the outbound leg's route. */}

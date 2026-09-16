@@ -1,44 +1,51 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { MapPin, ArrowLeftRight, CalendarDays, Search, TrainFront } from "lucide-react";
 import { useLocale } from "../../context/LocaleContext";
 import PassengerSelector from "./PassengerSelector";
 import CardHeader from "./shared/CardHeader";
+import TripRouteMap from "./TripRouteMap";
 import { AutoCompleteField, DateField, SubmitButton, SegmentedControl, SwapButton } from "./shared/FormElements";
 
-// Train stations data for Sri Lanka
+// Train stations data for Sri Lanka — lat/lng are placeholder coordinates
+// (no geocoding backend yet) used only to preview the route on a map.
 const trainStations = [
     // Major railway stations in Sri Lanka
-    { code: "CMB", name: "Colombo Fort Railway Station", city: "Colombo", province: "Western Province" },
-    { code: "MDA", name: "Maradana Railway Station", city: "Colombo", province: "Western Province" },
-    { code: "KDT", name: "Kandy Railway Station", city: "Kandy", province: "Central Province" },
-    { code: "GAL", name: "Galle Railway Station", city: "Galle", province: "Southern Province" },
-    { code: "MTR", name: "Matara Railway Station", city: "Matara", province: "Southern Province" },
-    { code: "ANP", name: "Anuradhapura Railway Station", city: "Anuradhapura", province: "North Central Province" },
-    { code: "POL", name: "Polonnaruwa Railway Station", city: "Polonnaruwa", province: "North Central Province" },
-    { code: "BTL", name: "Batticaloa Railway Station", city: "Batticaloa", province: "Eastern Province" },
-    { code: "TNK", name: "Trincomalee Railway Station", city: "Trincomalee", province: "Eastern Province" },
-    { code: "KUR", name: "Kurunegala Railway Station", city: "Kurunegala", province: "North Western Province" },
-    { code: "PND", name: "Puttalam Railway Station", city: "Puttalam", province: "North Western Province" },
-    { code: "RTP", name: "Ratnapura Railway Station", city: "Ratnapura", province: "Sabaragamuwa Province" },
-    { code: "BDL", name: "Badulla Railway Station", city: "Badulla", province: "Uva Province" },
-    { code: "BAN", name: "Bandarawela Railway Station", city: "Bandarawela", province: "Uva Province" },
-    { code: "ELA", name: "Ella Railway Station", city: "Ella", province: "Uva Province" },
-    { code: "NWE", name: "Nanu Oya Railway Station", city: "Nuwara Eliya", province: "Central Province" },
-    { code: "HTN", name: "Hatton Railway Station", city: "Hatton", province: "Central Province" },
-    { code: "NRL", name: "Nawalapitiya Railway Station", city: "Nawalapitiya", province: "Central Province" },
-    { code: "PER", name: "Peradeniya Railway Station", city: "Peradeniya", province: "Central Province" },
-    { code: "GMP", name: "Gampaha Railway Station", city: "Gampaha", province: "Western Province" },
-    { code: "RGM", name: "Ragama Railway Station", city: "Ragama", province: "Western Province" },
-    { code: "VYA", name: "Veyangoda Railway Station", city: "Veyangoda", province: "Western Province" },
-    { code: "MHO", name: "Mirigama Railway Station", city: "Mirigama", province: "Western Province" },
-    { code: "PLM", name: "Pallewela Railway Station", city: "Pallewela", province: "Central Province" },
-    { code: "AMB", name: "Ambalangoda Railway Station", city: "Ambalangoda", province: "Southern Province" },
-    { code: "HIK", name: "Hikkaduwa Railway Station", city: "Hikkaduwa", province: "Southern Province" },
-    { code: "UNW", name: "Unawatuna Railway Station", city: "Unawatuna", province: "Southern Province" },
-    { code: "KLT", name: "Kalutara South Railway Station", city: "Kalutara", province: "Western Province" },
-    { code: "ALT", name: "Aluthgama Railway Station", city: "Aluthgama", province: "Western Province" },
-    { code: "BEN", name: "Bentota Railway Station", city: "Bentota", province: "Southern Province" },
+    { code: "CMB", name: "Colombo Fort Railway Station", city: "Colombo", province: "Western Province", lat: 6.9344, lng: 79.8428 },
+    { code: "MDA", name: "Maradana Railway Station", city: "Colombo", province: "Western Province", lat: 6.9291, lng: 79.8636 },
+    { code: "KDT", name: "Kandy Railway Station", city: "Kandy", province: "Central Province", lat: 7.2924, lng: 80.6337 },
+    { code: "GAL", name: "Galle Railway Station", city: "Galle", province: "Southern Province", lat: 6.0329, lng: 80.2168 },
+    { code: "MTR", name: "Matara Railway Station", city: "Matara", province: "Southern Province", lat: 5.9549, lng: 80.5540 },
+    { code: "ANP", name: "Anuradhapura Railway Station", city: "Anuradhapura", province: "North Central Province", lat: 8.3114, lng: 80.4037 },
+    { code: "POL", name: "Polonnaruwa Railway Station", city: "Polonnaruwa", province: "North Central Province", lat: 7.9403, lng: 81.0188 },
+    { code: "BTL", name: "Batticaloa Railway Station", city: "Batticaloa", province: "Eastern Province", lat: 7.7170, lng: 81.7000 },
+    { code: "TNK", name: "Trincomalee Railway Station", city: "Trincomalee", province: "Eastern Province", lat: 8.5711, lng: 81.2335 },
+    { code: "KUR", name: "Kurunegala Railway Station", city: "Kurunegala", province: "North Western Province", lat: 7.4867, lng: 80.3647 },
+    { code: "PND", name: "Puttalam Railway Station", city: "Puttalam", province: "North Western Province", lat: 8.0362, lng: 79.8283 },
+    { code: "RTP", name: "Ratnapura Railway Station", city: "Ratnapura", province: "Sabaragamuwa Province", lat: 6.6828, lng: 80.3992 },
+    { code: "BDL", name: "Badulla Railway Station", city: "Badulla", province: "Uva Province", lat: 6.9934, lng: 81.0550 },
+    { code: "BAN", name: "Bandarawela Railway Station", city: "Bandarawela", province: "Uva Province", lat: 6.8333, lng: 80.9833 },
+    { code: "ELA", name: "Ella Railway Station", city: "Ella", province: "Uva Province", lat: 6.8667, lng: 81.0466 },
+    { code: "NWE", name: "Nanu Oya Railway Station", city: "Nuwara Eliya", province: "Central Province", lat: 6.9497, lng: 80.7590 },
+    { code: "HTN", name: "Hatton Railway Station", city: "Hatton", province: "Central Province", lat: 6.8917, lng: 80.5956 },
+    { code: "NRL", name: "Nawalapitiya Railway Station", city: "Nawalapitiya", province: "Central Province", lat: 7.0533, lng: 80.5333 },
+    { code: "PER", name: "Peradeniya Railway Station", city: "Peradeniya", province: "Central Province", lat: 7.2694, lng: 80.5972 },
+    { code: "GMP", name: "Gampaha Railway Station", city: "Gampaha", province: "Western Province", lat: 7.0917, lng: 80.0000 },
+    { code: "RGM", name: "Ragama Railway Station", city: "Ragama", province: "Western Province", lat: 7.0297, lng: 79.9186 },
+    { code: "VYA", name: "Veyangoda Railway Station", city: "Veyangoda", province: "Western Province", lat: 7.1550, lng: 80.0656 },
+    { code: "MHO", name: "Mirigama Railway Station", city: "Mirigama", province: "Western Province", lat: 7.2494, lng: 80.1236 },
+    { code: "PLM", name: "Pallewela Railway Station", city: "Pallewela", province: "Central Province", lat: 7.1667, lng: 80.4167 },
+    { code: "AMB", name: "Ambalangoda Railway Station", city: "Ambalangoda", province: "Southern Province", lat: 6.2354, lng: 80.0540 },
+    { code: "HIK", name: "Hikkaduwa Railway Station", city: "Hikkaduwa", province: "Southern Province", lat: 6.1408, lng: 80.1017 },
+    { code: "UNW", name: "Unawatuna Railway Station", city: "Unawatuna", province: "Southern Province", lat: 6.0108, lng: 80.2500 },
+    { code: "KLT", name: "Kalutara South Railway Station", city: "Kalutara", province: "Western Province", lat: 6.5831, lng: 79.9608 },
+    { code: "ALT", name: "Aluthgama Railway Station", city: "Aluthgama", province: "Western Province", lat: 6.4292, lng: 79.9958 },
+    { code: "BEN", name: "Bentota Railway Station", city: "Bentota", province: "Southern Province", lat: 6.4260, lng: 80.0004 },
 ];
+
+const STATION_BY_LABEL = trainStations.reduce((map, s) => {
+    map[`${s.name} (${s.code})`] = s;
+    return map;
+}, {});
 
 const stationSearchText = (s) => `${s.name} ${s.city} ${s.code} ${s.province}`;
 
@@ -90,6 +97,18 @@ const TrainCard = () => {
     const swapStations = () => {
         setFormData(prev => ({ ...prev, fromStation: prev.toStation, toStation: prev.fromStation }));
     };
+
+    // Preview route on a map once both stations are picked and recognized —
+    // uses the placeholder coordinates above since there's no geocoding yet.
+    const previewRoute = useMemo(() => {
+        const origin = STATION_BY_LABEL[formData.fromStation];
+        const destination = STATION_BY_LABEL[formData.toStation];
+        if (!origin || !destination) return null;
+        return {
+            origin: { lat: origin.lat, lng: origin.lng, label: origin.name },
+            destination: { lat: destination.lat, lng: destination.lng, label: destination.name },
+        };
+    }, [formData.fromStation, formData.toStation]);
 
     const validateForm = () => {
         const newErrors = {};
@@ -144,7 +163,7 @@ const TrainCard = () => {
     };
 
     return (
-        <div className="bg-white rounded-[20px] shadow-[0_12px_40px_rgba(9,85,172,0.12)] border border-black/5 overflow-hidden">
+        <div className="bg-white rounded-[20px] shadow-[0_12px_40px_rgba(9,85,172,0.12)] border border-black/5">
             <CardHeader icon={TrainFront} title={t("find_your_trains", "Find Your Trains")} subtitle="Scenic and intercity routes, seat reserved instantly." />
 
             <form onSubmit={onSubmitTrain} className="p-4 sm:p-5">
@@ -155,6 +174,7 @@ const TrainCard = () => {
                         options={[
                             { value: "oneway", label: t("one_way", "One way") },
                             { value: "roundtrip", label: t("round_trip", "Round Trip") },
+                            { value: "multicity", label: t("multi_city", "Multi-city") },
                         ]}
                     />
                 </div>
@@ -260,6 +280,12 @@ const TrainCard = () => {
                         </button>
                     </div>
                 </div>
+
+                {previewRoute && (
+                    <div className="mt-3.5">
+                        <TripRouteMap route={previewRoute} className="h-[200px]" />
+                    </div>
+                )}
             </form>
         </div>
     );
