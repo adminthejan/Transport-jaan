@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
-import { MapPin, ArrowLeftRight, CalendarDays, Search, Bus as BusIcon } from "lucide-react";
+import { MapPin, ArrowLeftRight, CalendarDays, Search } from "lucide-react";
 import { useLocale } from "../../context/LocaleContext";
 import PassengerSelector from "./PassengerSelector";
-import CardHeader from "./shared/CardHeader";
 import TripRouteMap from "./TripRouteMap";
 import { AutoCompleteField, DateField, SubmitButton, SegmentedControl, SwapButton } from "./shared/FormElements";
 
@@ -119,15 +118,14 @@ const BusCard = () => {
     };
 
     return (
-        <div className="bg-white rounded-[20px] shadow-[0_12px_40px_rgba(9,85,172,0.12)] border border-black/5">
-            <CardHeader icon={BusIcon} title={t("find_your_buses", "Find Your Buses")} subtitle="Every route, every operator — one search." />
-
-            <form onSubmit={onSubmitBus} className="p-4 sm:p-5">
+        <div className="figtree bg-white p-4 sm:p-5 lg:p-6 rounded-[20px] border border-black/5 shadow-[0_12px_32px_rgba(9,85,172,0.10)]">
+            <form onSubmit={onSubmitBus}>
                 {/* Trip Type Segmented Control */}
                 <div className="flex items-center justify-between gap-3 mb-3.5">
                     <SegmentedControl
                         value={tripType}
                         onChange={setTripType}
+                        variant="boxed"
                         options={[
                             { value: "oneway", label: t("one_way", "One way") },
                             { value: "roundtrip", label: t("round_trip", "Round Trip") },
@@ -149,6 +147,7 @@ const BusCard = () => {
                             error={errors.busFrom && "Required"}
                             icon={MapPin}
                             iconColor="text-[#0955AC]"
+                            variant="outline"
                             options={stationOptions}
                         />
                     </div>
@@ -177,6 +176,7 @@ const BusCard = () => {
                             icon={MapPin}
                             iconBg="bg-[#FDEDEA]"
                             iconColor="text-[#EF3826]"
+                            variant="outline"
                             options={stationOptions}
                         />
                     </div>
@@ -191,6 +191,7 @@ const BusCard = () => {
                             error={errors.busDate && "Required"}
                             icon={CalendarDays}
                             iconColor="text-[#0955AC]"
+                            variant="outline"
                             min={new Date().toISOString().split('T')[0]}
                         />
                     </div>
@@ -207,6 +208,7 @@ const BusCard = () => {
                                 icon={CalendarDays}
                                 iconBg="bg-[#FDEDEA]"
                                 iconColor="text-[#EF3826]"
+                                variant="outline"
                                 min={busDate || new Date().toISOString().split('T')[0]}
                             />
                         </div>
@@ -222,10 +224,11 @@ const BusCard = () => {
                         <div className="hidden lg:block h-[18px]" /> {/* Spacer aligning with field label */}
                         <button
                             type="submit"
-                            className="w-full lg:w-auto h-[46px] sm:h-[48px] px-6 sm:px-7 bg-gradient-to-r from-[#0955AC] to-[#073E82] hover:from-[#0B63C4] hover:to-[#0955AC] text-white font-[700] text-[14px] rounded-[11px] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)] hover:shadow-[0_12px_28px_rgba(9,85,172,0.32)] hover:-translate-y-0.5 cursor-pointer shrink-0"
+                            title={t("search_buses", "Search Buses")}
+                            aria-label={t("search_buses", "Search Buses")}
+                            className="bg-[#0955AC] text-white font-bold h-[46px] sm:h-[48px] w-full lg:w-[48px] flex items-center justify-center rounded-[10px] focus:outline-none cursor-pointer hover:bg-[#074494] transition-colors shadow-[0_8px_18px_rgba(9,85,172,0.25)] shrink-0"
                         >
-                            <Search className="w-4 h-4" />
-                            <span className="whitespace-nowrap">{t("search_buses", "Search Buses")}</span>
+                            <Search className="w-5 h-5" />
                         </button>
                     </div>
                 </div>

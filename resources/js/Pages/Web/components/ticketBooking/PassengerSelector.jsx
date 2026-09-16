@@ -61,10 +61,10 @@ const PassengerSelector = ({ value, onChange, label = "Passengers" }) => {
             <button
                 type="button"
                 onClick={() => setOpen((o) => !o)}
-                className={`w-full h-[46px] sm:h-[48px] rounded-[11px] border flex items-center gap-2.5 px-3 sm:px-3.5 text-left text-[13.5px] sm:text-[14px] font-[600] text-[#0F172A] transition-all duration-200 cursor-pointer focus:outline-none ${
+                className={`w-full h-[46px] sm:h-[48px] rounded-[11px] border flex items-center gap-2.5 px-3 sm:px-3.5 text-left text-[13.5px] sm:text-[14px] font-[600] text-[#0F172A] transition-all duration-200 cursor-pointer focus:outline-none bg-white ${
                     open
-                        ? "bg-white border-[#0955AC]/40 shadow-[0_0_0_3px_rgba(9,85,172,0.10)]"
-                        : "bg-[#F8FAFC] border-transparent hover:bg-[#F1F5F9]"
+                        ? "border-[#0955AC] shadow-[0_0_0_3px_rgba(9,85,172,0.10)]"
+                        : "border-[#0000001A] hover:border-[#0955AC]/40"
                 }`}
             >
                 <span className="w-7 h-7 rounded-full bg-[#EAF1FE] flex items-center justify-center flex-shrink-0">

@@ -4,11 +4,15 @@ import React, { useState } from "react";
 // grey fill with an icon in a tinted circle, brightening to white with a
 // focus ring when active — one consistent, modern language instead of each
 // card inventing its own bordered-box-plus-icon treatment.
-export const FieldShell = ({ icon: Icon, iconBg = "bg-[#EAF1FE]", iconColor = "text-[#0955AC]", error, focused, children }) => (
+export const FieldShell = ({ icon: Icon, iconBg = "bg-[#EAF1FE]", iconColor = "text-[#0955AC]", error, focused, variant = "filled", children }) => (
   <div
     className={`flex items-center gap-2.5 h-[46px] sm:h-[48px] rounded-[11px] border px-3 sm:px-3.5 transition-all duration-200 ${
       error
         ? "bg-red-50/60 border-red-300"
+        : variant === "outline"
+        ? focused
+          ? "bg-white border-[#0955AC] shadow-[0_0_0_3px_rgba(9,85,172,0.10)]"
+          : "bg-white border-[#0000001A] hover:border-[#0955AC]/40"
         : focused
         ? "bg-white border-[#0955AC]/40 shadow-[0_0_0_3px_rgba(9,85,172,0.10)]"
         : "bg-[#F8FAFC] border-transparent hover:bg-[#F1F5F9]"
@@ -45,6 +49,7 @@ export const AutoCompleteField = ({
   icon,
   iconBg,
   iconColor,
+  variant = "filled",
   options,
   getSearchText = (o) => String(o),
   getKey = (o) => String(o),
@@ -84,7 +89,7 @@ export const AutoCompleteField = ({
   return (
     <div className="relative">
       {label && <FieldLabel>{label}</FieldLabel>}
-      <FieldShell icon={icon} iconBg={iconBg} iconColor={iconColor} error={error} focused={focused}>
+      <FieldShell icon={icon} iconBg={iconBg} iconColor={iconColor} error={error} focused={focused} variant={variant}>
         <input
           type="text"
           id={id}
@@ -149,10 +154,10 @@ export const TextField = ({ label, id, type = "text", value, onChange, placehold
   );
 };
 
-export const DateField = ({ label, id, value, onChange, error, icon, iconBg, iconColor, min }) => (
+export const DateField = ({ label, id, value, onChange, error, icon, iconBg, iconColor, min, variant = "filled" }) => (
   <div>
     {label && <FieldLabel>{label}</FieldLabel>}
-    <FieldShell icon={icon} iconBg={iconBg} iconColor={iconColor} error={error}>
+    <FieldShell icon={icon} iconBg={iconBg} iconColor={iconColor} error={error} variant={variant}>
       <input
         type="date"
         id={id}
@@ -187,22 +192,45 @@ export const SubmitButton = ({ children, icon: Icon, iconPosition = "right", dis
 );
 
 // Trip-type segmented control (One way / Round Trip), shared visual style.
-export const SegmentedControl = ({ options, value, onChange }) => (
-  <div className="inline-flex bg-[#F1F5F9] rounded-full p-0.5 mb-3.5">
-    {options.map((opt) => (
-      <button
-        type="button"
-        key={opt.value}
-        onClick={() => onChange(opt.value)}
-        className={`px-4 sm:px-5 py-1.5 rounded-full text-[12px] font-[700] transition-all cursor-pointer ${
-          value === opt.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
-        }`}
-      >
-        {opt.label}
-      </button>
-    ))}
-  </div>
-);
+// `variant="boxed"` matches the outlined, squared-off look of the Vehicle
+// List search card's "Driver Option" toggle instead of the default pill.
+export const SegmentedControl = ({ options, value, onChange, variant = "pill" }) => {
+  if (variant === "boxed") {
+    return (
+      <div className="inline-flex rounded-[10px] border border-[#0000001A] bg-[#F1F5F9] p-1 mb-3.5">
+        {options.map((opt) => (
+          <button
+            type="button"
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            className={`whitespace-nowrap rounded-[8px] px-3 sm:px-4 h-[38px] text-[12px] font-[700] transition-colors cursor-pointer ${
+              value === opt.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="inline-flex bg-[#F1F5F9] rounded-full p-0.5 mb-3.5">
+      {options.map((opt) => (
+        <button
+          type="button"
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`px-4 sm:px-5 py-1.5 rounded-full text-[12px] font-[700] transition-all cursor-pointer ${
+            value === opt.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 // Swap button centered on the seam between two fields.
 export const SwapButton = ({ onClick, icon: Icon }) => (
