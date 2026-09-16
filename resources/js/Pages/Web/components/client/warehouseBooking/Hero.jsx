@@ -9,6 +9,7 @@ import {
     Building2,
     Calendar,
     ChevronRight,
+    Clock,
     CreditCard,
     Download,
     FileText,
@@ -28,6 +29,18 @@ import {
     X,
     XCircle,
 } from "lucide-react";
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip as RTooltip,
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+} from "recharts";
 
 const statusStyles = {
     confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -91,6 +104,39 @@ const formatDateRange = (start, end) => {
     if (!end) return `${formatDate(start)} → TBD`;
     return `${formatDate(start)} → ${formatDate(end)}`;
 };
+
+const buildMonthlyTrend = (rows, predicate, valueFn = () => 1) => {
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({ y: d.getFullYear(), m: d.getMonth(), label: d.toLocaleString("en-US", { month: "short" }) });
+    }
+    return months.map(({ y, m, label }) => {
+        const value = rows.reduce((sum, r) => {
+            const d = new Date(r.created_at);
+            if (Number.isNaN(d.getTime()) || d.getFullYear() !== y || d.getMonth() !== m) return sum;
+            return predicate(r) ? sum + valueFn(r) : sum;
+        }, 0);
+        return { label, value };
+    });
+};
+
+const Sparkline = ({ data, color, id }) => (
+    <div className="hidden sm:block h-9 w-16 shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                    <linearGradient id={`wspark-${id}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={color} stopOpacity={0.4} />
+                        <stop offset="95%" stopColor={color} stopOpacity={0} />
+                    </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={`url(#wspark-${id})`} dot={false} isAnimationActive={false} />
+            </AreaChart>
+        </ResponsiveContainer>
+    </div>
+);
 
 const Hero = () => {
     const [dashboard, setDashboard] = useState(null);
@@ -515,6 +561,29 @@ const Hero = () => {
         // },
     ];
 
+    const activeBookingsTrend = useMemo(
+        () => buildMonthlyTrend(recentActivity, (r) => ["confirmed", "active", "paid", "pending"].includes(r.status)),
+        [recentActivity]
+    );
+    const pendingPaymentsTrend = useMemo(
+        () => buildMonthlyTrend(recentActivity, (r) => r.status === "pending"),
+        [recentActivity]
+    );
+    const spendTrend = useMemo(
+        () => buildMonthlyTrend(recentActivity, (r) => ["confirmed", "active", "paid", "completed"].includes(r.status), (r) => Number(r.amount || 0)),
+        [recentActivity]
+    );
+
+    const statusDistribution = useMemo(() => {
+        const counts = {};
+        recentActivity.forEach((r) => {
+            const key = normalizeStatus(r.status) || "Other";
+            counts[key] = (counts[key] || 0) + 1;
+        });
+        return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    }, [recentActivity]);
+    const statusColors = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#f43f5e", "#64748b"];
+
     const statCards = [
         {
             key: "activeBookings",
@@ -522,20 +591,39 @@ const Hero = () => {
             value: stats.activeBookings ?? 0,
             helper: `${stats.upcomingMoveIns ?? 0} move-ins scheduled`,
             icon: BookmarkCheck,
+            tint: "bg-blue-50 text-blue-600",
+            color: "#3b82f6",
+            trend: activeBookingsTrend,
+        },
+        {
+            key: "pendingPayments",
+            label: "Pending payments",
+            value: stats.pendingPayments ?? 0,
+            helper: "Requires attention",
+            icon: Clock,
+            tint: "bg-amber-50 text-amber-600",
+            color: "#f59e0b",
+            trend: pendingPaymentsTrend,
         },
         {
             key: "totalSpend",
             label: "Lifetime spend",
             value: formatCurrency(stats.totalSpend ?? 0),
-            helper: `${stats.pendingPayments ?? 0} payment(s) pending`,
+            helper: `${stats.completedBookings ?? 0} completed reservations`,
             icon: CreditCard,
+            tint: "bg-emerald-50 text-emerald-600",
+            color: "#10b981",
+            trend: spendTrend,
         },
         {
             key: "likedWarehouses",
             label: "Saved warehouses",
             value: stats.likedWarehouses ?? 0,
-            helper: `${stats.completedBookings ?? 0} completed reservations`,
+            helper: "Wishlist items",
             icon: Building2,
+            tint: "bg-indigo-50 text-indigo-600",
+            color: "#6366f1",
+            trend: null,
         },
         {
             key: "expiringSoon",
@@ -543,6 +631,9 @@ const Hero = () => {
             value: stats.expiringSoon ?? 0,
             helper: "Prepare renewals & extensions",
             icon: Calendar,
+            tint: "bg-rose-50 text-rose-600",
+            color: "#f43f5e",
+            trend: null,
         },
     ];
 
@@ -797,7 +888,7 @@ const Hero = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+            <div className="min-h-screen w-full bg-[#F4F6F9] md:p-20 poppins">
                 <div className="mx-auto flex h-full max-w-[700px] flex-col items-center justify-center gap-4 rounded-3xl bg-white p-12 text-center shadow-sm">
                     <Loader2 className="h-10 w-10 animate-spin text-[#0955AC]" />
                     <p className="text-sm text-slate-500">
@@ -810,7 +901,7 @@ const Hero = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+            <div className="min-h-screen w-full bg-[#F4F6F9] md:p-20 poppins">
                 <div className="mx-auto flex h-full max-w-[700px] flex-col items-center justify-center gap-6 rounded-3xl bg-white p-12 text-center shadow-sm">
                     <AlertTriangle className="h-10 w-10 text-amber-500" />
                     <div>
@@ -837,11 +928,11 @@ const Hero = () => {
     }
 
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5] md:px-20 md:pt-2 md:pb-20 poppins">
-            <div className="mx-auto max-w-[1300px]">
-                <div className="mb-3 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-h-screen w-full bg-[#F4F6F9] poppins">
+            <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6">
+                <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-[36px]">
+                        <h1 className="text-2xl md:text-[26px] font-[700] tracking-tight text-slate-900">
                             Warehouse Management
                             <span className="text-[#0955AC]"> Dashboard</span>
                         </h1>
@@ -865,28 +956,27 @@ const Hero = () => {
                     </div>
                 </div>
 
-                <div className="mb-3 md:mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="mb-5 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
                     {statCards.map((card) => {
                         const Icon = card.icon;
                         return (
                             <div
                                 key={card.key}
-                                className="rounded-2xl bg-white p-6 shadow-sm"
+                                className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4 flex items-center justify-between gap-2"
                             >
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm font-semibold text-slate-500">
-                                        {card.label}
+                                <div className="min-w-0">
+                                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 ${card.tint}`}>
+                                        <Icon className="w-[18px] h-[18px]" />
+                                    </span>
+                                    <p className="text-[19px] font-[700] text-slate-900 leading-tight truncate">
+                                        {card.key === "totalSpend"
+                                            ? card.value
+                                            : Number(card.value ?? 0).toLocaleString()}
                                     </p>
-                                    <Icon className="h-6 w-6 text-[#0955AC]" />
+                                    <p className="text-[11.5px] font-[600] text-slate-600 mt-0.5">{card.label}</p>
+                                    <p className="text-[10.5px] text-slate-400 truncate">{card.helper}</p>
                                 </div>
-                                <p className="mt-3 text-3xl font-bold text-slate-900">
-                                    {card.key === "totalSpend"
-                                        ? card.value
-                                        : Number(card.value ?? 0).toLocaleString()}
-                                </p>
-                                <p className="mt-2 text-xs text-slate-500">
-                                    {card.helper}
-                                </p>
+                                {card.trend && <Sparkline data={card.trend} color={card.color} id={card.key} />}
                             </div>
                         );
                     })}
@@ -1249,6 +1339,47 @@ const Hero = () => {
                             </div>
                         </div>
 
+                        {(stats.pendingPayments > 0 || stats.expiringSoon > 0) && (
+                            <div className="rounded-2xl bg-white p-6 shadow-sm">
+                                <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                                    Attention required
+                                </h3>
+                                <p className="text-xs text-slate-500 mb-4">
+                                    Items that need action soon
+                                </p>
+                                <div className="space-y-1">
+                                    {stats.pendingPayments > 0 && (
+                                        <button
+                                            onClick={() => setShowAdvancedFilters(true)}
+                                            className="w-full flex items-center gap-3 py-2 px-1 rounded-xl hover:bg-slate-50 text-left transition-colors"
+                                        >
+                                            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-amber-50 text-amber-600">
+                                                <Clock className="w-4 h-4" />
+                                            </span>
+                                            <span className="flex-1 text-sm font-semibold text-slate-700">Payments pending</span>
+                                            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                                                {stats.pendingPayments}
+                                            </span>
+                                        </button>
+                                    )}
+                                    {stats.expiringSoon > 0 && (
+                                        <button
+                                            onClick={() => setShowAdvancedFilters(true)}
+                                            className="w-full flex items-center gap-3 py-2 px-1 rounded-xl hover:bg-slate-50 text-left transition-colors"
+                                        >
+                                            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-rose-50 text-rose-600">
+                                                <AlertTriangle className="w-4 h-4" />
+                                            </span>
+                                            <span className="flex-1 text-sm font-semibold text-slate-700">Renewals due within 30 days</span>
+                                            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                                                {stats.expiringSoon}
+                                            </span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="rounded-2xl bg-white p-6 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <div>
@@ -1324,6 +1455,64 @@ const Hero = () => {
                                 )}
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div className="mb-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <h3 className="text-[15px] font-[700] text-slate-800">Booking Trends</h3>
+                        <p className="text-[12px] text-slate-400 mb-2">Bookings created per month (last 6 months)</p>
+                        <div className="h-[240px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={activeBookingsTrend} margin={{ left: -20, right: 10, top: 10 }}>
+                                    <defs>
+                                        <linearGradient id="gWarehouseBookings" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#0955AC" stopOpacity={0.35} />
+                                            <stop offset="95%" stopColor="#0955AC" stopOpacity={0.02} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
+                                    <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
+                                    <RTooltip />
+                                    <Area type="monotone" dataKey="value" name="Bookings" stroke="#0955AC" fill="url(#gWarehouseBookings)" strokeWidth={2.5} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <h3 className="text-[15px] font-[700] text-slate-800">Status Distribution</h3>
+                        <p className="text-[12px] text-slate-400 mb-2">Recent activity by status</p>
+                        {statusDistribution.length === 0 ? (
+                            <p className="text-[12px] text-slate-400 text-center py-16">No activity yet.</p>
+                        ) : (
+                            <>
+                                <div className="h-[180px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie data={statusDistribution} innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" nameKey="name" cornerRadius={6}>
+                                                {statusDistribution.map((d, i) => (
+                                                    <Cell key={d.name} fill={statusColors[i % statusColors.length]} />
+                                                ))}
+                                            </Pie>
+                                            <RTooltip />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="mt-3 space-y-1.5">
+                                    {statusDistribution.map((d, i) => (
+                                        <div key={d.name} className="flex items-center justify-between text-[12px]">
+                                            <span className="flex items-center gap-2 text-slate-600">
+                                                <span className="w-2.5 h-2.5 rounded-full" style={{ background: statusColors[i % statusColors.length] }} />
+                                                {d.name}
+                                            </span>
+                                            <span className="font-[600] text-slate-700">{d.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 

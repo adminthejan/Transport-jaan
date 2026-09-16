@@ -18,7 +18,7 @@ import {
   Search,
   ArrowLeftRight,
 } from "lucide-react";
-import SkyscannerTopBar from "../../components/ticketBooking/shared/SkyscannerTopBar";
+import Header from "../client/ClientHeader";
 import SkyscannerFooter from "../../components/ticketBooking/shared/SkyscannerFooter";
 import FlightFilterSidebar from "../../components/ticketBooking/flightResults/FlightFilterSidebar";
 import FlightResultCard from "../../components/ticketBooking/flightResults/FlightResultCard";
@@ -221,7 +221,7 @@ const FlightResults = () => {
     <div className="bg-[#F6F7F9] min-h-screen flex flex-col justify-between">
       <div>
         <Head title={`Flights to ${search.to} | Search Results - Transport Jaan`} />
-        <SkyscannerTopBar sticky />
+        <Header />
 
         {/* Compact single-line search bar with date-shift arrows & Edit trigger */}
         <div className="bg-[#0B1B34] pb-4 pt-3 px-4 sm:px-6 lg:px-8 border-b border-white/10 shadow-md">

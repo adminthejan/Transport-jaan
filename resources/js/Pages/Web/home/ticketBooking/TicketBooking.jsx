@@ -309,6 +309,7 @@ const TicketBooking = () => {
     return (
       <div className="ticket-booking-page min-h-screen bg-[#F6F7F9] flex flex-col justify-between">
         <Head title="Flights - Millions of cheap flights. One simple search. | Transport Jaan" />
+        <Header />
         <SkyscannerFlightHero
           onSelectTab={(type) => {
             setActiveType(type);

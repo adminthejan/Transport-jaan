@@ -14,7 +14,8 @@ import {
   Sparkles,
   TrainFront,
 } from "lucide-react";
-import SkyscannerTopBar from "./shared/SkyscannerTopBar";
+
+import { ModuleTabs, TicketSubTabs } from "../ModuleTabs";
 import flightHeroImg from "../../assets/ticketBooking/flight_hero_2k.jpg";
 
 const AIRPORTS = [
@@ -146,7 +147,6 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
 
   return (
     <div className="skyscanner-experience bg-[#0B1B34] text-white w-full">
-      <SkyscannerTopBar sticky />
 
       {/* Hero Body with High-Resolution Airplane Image */}
       <div className="relative overflow-hidden w-full lg:min-h-[500px] flex flex-col justify-center">
@@ -176,56 +176,16 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-9 pb-14 sm:pb-20 w-full">
-          {/* Ticket Switcher Component (Switch to Train & Bus Ticket pages) */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          {/* Ticket Booking Modes Switcher */}
-          <div className="inline-flex items-center p-1 bg-[#152A4A] rounded-full border border-white/15 shadow-md backdrop-blur-sm">
-            <div className="flex items-center gap-2 bg-[#0955AC] text-white font-[700] text-[13px] px-4 sm:px-5 py-2 rounded-full shadow-sm cursor-default">
-              <Plane className="w-4 h-4" />
-              <span>Air Tickets</span>
+          {/* Common Navigation Tabs */}
+          <div className="flex flex-col items-center mb-6">
+            <ModuleTabs active="ticket" />
+            <div className="mt-2.5 sm:mt-3">
+              <TicketSubTabs
+                active="flight"
+                onSelect={onSelectTab}
+              />
             </div>
-
-            <button
-              type="button"
-              onClick={() => router.visit("/busTicketBookingDetails")}
-              className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-white/10 font-[600] text-[13px] px-4 sm:px-5 py-2 rounded-full transition-colors cursor-pointer"
-              title="Switch to Bus Ticket Booking"
-            >
-              <Bus className="w-4 h-4 text-white/80" />
-              <span>Bus Tickets</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => router.visit("/trainTicketBookingDetails")}
-              className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-white/10 font-[600] text-[13px] px-4 sm:px-5 py-2 rounded-full transition-colors cursor-pointer"
-              title="Switch to Train Ticket Booking"
-            >
-              <TrainFront className="w-4 h-4 text-white/80" />
-              <span>Train Tickets</span>
-            </button>
           </div>
-
-          {/* Additional Travel Services */}
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => router.visit("/warehouseList")}
-              className="text-white/90 hover:text-white bg-[#152A4A]/80 hover:bg-[#152A4A] border border-white/20 hover:border-white/50 font-[600] text-[12.5px] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-            >
-              <Bed className="w-3.5 h-3.5 text-white/80" />
-              <span>Stays</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => router.visit("/vehicleList")}
-              className="text-white/90 hover:text-white bg-[#152A4A]/80 hover:bg-[#152A4A] border border-white/20 hover:border-white/50 font-[600] text-[12.5px] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-            >
-              <Car className="w-3.5 h-3.5 text-white/80" />
-              <span>Cars</span>
-            </button>
-          </div>
-        </div>
 
         {/* Main Title */}
         <h1 className="text-[28px] sm:text-[36px] md:text-[44px] font-[800] tracking-tight leading-tight mb-5 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
