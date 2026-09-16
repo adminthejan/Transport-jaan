@@ -59,8 +59,10 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
   // Travellers & Cabin
   const [adults, setAdults] = useState(1);
   const [childrenCount, setChildrenCount] = useState(0);
+  const [infantsCount, setInfantsCount] = useState(0);
   const [cabinClass, setCabinClass] = useState("Economy");
   const [showTravellersModal, setShowTravellersModal] = useState(false);
+  const [modalAnchor, setModalAnchor] = useState("search"); // 'top' or 'search'
 
   // Checkboxes
   const [nearDepart, setNearDepart] = useState(false);
@@ -71,6 +73,7 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
   // Refs for outside click handling
   const tripMenuRef = useRef(null);
   const travellersRef = useRef(null);
+  const topTravellersRef = useRef(null);
   const fromRef = useRef(null);
   const toRef = useRef(null);
 
@@ -79,7 +82,12 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
       if (tripMenuRef.current && !tripMenuRef.current.contains(e.target)) {
         setShowTripTypeMenu(false);
       }
-      if (travellersRef.current && !travellersRef.current.contains(e.target)) {
+      if (
+        travellersRef.current &&
+        !travellersRef.current.contains(e.target) &&
+        topTravellersRef.current &&
+        !topTravellersRef.current.contains(e.target)
+      ) {
         setShowTravellersModal(false);
       }
       if (fromRef.current && !fromRef.current.contains(e.target)) {
@@ -124,8 +132,135 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
   });
 
   const travellersSummary = `${adults} Adult${adults > 1 ? "s" : ""}${
-    childrenCount > 0 ? `, ${childrenCount} Child` : ""
+    childrenCount > 0 ? `, ${childrenCount} Child${childrenCount > 1 ? "ren" : ""}` : ""
+  }${
+    infantsCount > 0 ? `, ${infantsCount} Infant${infantsCount > 1 ? "s" : ""}` : ""
   }, ${cabinClass}`;
+
+  const renderTravellersPopover = (alignClass = "right-0") => (
+    <div
+      className={`absolute ${alignClass} top-full mt-2 w-[320px] max-w-[calc(100vw-32px)] bg-white rounded-[14px] shadow-[0_20px_50px_rgba(11,27,52,0.25)] border border-gray-100 p-4 z-50 text-left text-[#0F172A] max-h-[min(520px,80vh)] overflow-y-auto`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+        <span className="font-[700] text-[14px] text-[#0B1B34]">Cabin class</span>
+        <span className="text-[11px] font-[600] text-[#0955AC] bg-[#EAF1FE] px-2 py-0.5 rounded-full">
+          {cabinClass}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-1.5 my-3">
+        {CABIN_CLASSES.map((cls) => (
+          <button
+            type="button"
+            key={cls}
+            onClick={() => setCabinClass(cls)}
+            className={`text-[12px] font-[600] py-1.5 px-2 rounded-[6px] border text-center transition-colors cursor-pointer ${
+              cabinClass === cls
+                ? "bg-[#0955AC] text-white border-[#0955AC] shadow-sm"
+                : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            {cls}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3 pt-2 border-t border-gray-100">
+        <div className="text-[11px] font-[700] text-[#64748B] uppercase tracking-wider mb-1">
+          Passengers
+        </div>
+
+        {/* Adults */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[13px] font-[700] text-[#0F172A]">Adults</div>
+            <div className="text-[11px] text-gray-500">Age 12+ years</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={adults <= 1}
+              onClick={() => setAdults((a) => Math.max(1, a - 1))}
+              className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 cursor-pointer transition-colors"
+            >
+              <Minus className="w-3 h-3 text-[#0F172A]" />
+            </button>
+            <span className="w-5 text-center font-[700] text-[14px] text-[#0F172A]">{adults}</span>
+            <button
+              type="button"
+              disabled={adults >= 8}
+              onClick={() => setAdults((a) => Math.min(8, a + 1))}
+              className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 cursor-pointer transition-colors"
+            >
+              <Plus className="w-3 h-3 text-[#0F172A]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Children */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[13px] font-[700] text-[#0F172A]">Children</div>
+            <div className="text-[11px] text-gray-500">Age 2 - 11 years</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={childrenCount <= 0}
+              onClick={() => setChildrenCount((c) => Math.max(0, c - 1))}
+              className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 cursor-pointer transition-colors"
+            >
+              <Minus className="w-3 h-3 text-[#0F172A]" />
+            </button>
+            <span className="w-5 text-center font-[700] text-[14px] text-[#0F172A]">{childrenCount}</span>
+            <button
+              type="button"
+              disabled={childrenCount >= 6}
+              onClick={() => setChildrenCount((c) => Math.min(6, c + 1))}
+              className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 cursor-pointer transition-colors"
+            >
+              <Plus className="w-3 h-3 text-[#0F172A]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Infants */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[13px] font-[700] text-[#0F172A]">Infants</div>
+            <div className="text-[11px] text-gray-500">Under 2 years (in lap)</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={infantsCount <= 0}
+              onClick={() => setInfantsCount((c) => Math.max(0, c - 1))}
+              className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 cursor-pointer transition-colors"
+            >
+              <Minus className="w-3 h-3 text-[#0F172A]" />
+            </button>
+            <span className="w-5 text-center font-[700] text-[14px] text-[#0F172A]">{infantsCount}</span>
+            <button
+              type="button"
+              disabled={infantsCount >= 4}
+              onClick={() => setInfantsCount((c) => Math.min(4, c + 1))}
+              className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 cursor-pointer transition-colors"
+            >
+              <Plus className="w-3 h-3 text-[#0F172A]" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowTravellersModal(false)}
+        className="mt-4 w-full bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] text-[13.5px] py-2.5 rounded-[8px] transition-colors cursor-pointer shadow-sm"
+      >
+        Apply
+      </button>
+    </div>
+  );
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -146,10 +281,10 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
   };
 
   return (
-    <div className="skyscanner-experience bg-[#0B1B34] text-white w-full">
+    <div className="skyscanner-experience bg-[#0B1B34] text-white w-full relative z-30">
 
       {/* Hero Body with High-Resolution Airplane Image */}
-      <div className="relative overflow-hidden w-full lg:min-h-[500px] flex flex-col justify-center">
+      <div className="relative w-full lg:min-h-[500px] flex flex-col justify-center">
         {/* High Resolution Background Image & Overlays */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <img
@@ -175,7 +310,7 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-9 pb-14 sm:pb-20 w-full">
+        <div className="relative z-30 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-9 pb-14 sm:pb-20 w-full">
           {/* Common Navigation Tabs */}
           <div className="flex flex-col items-center mb-6">
             <ModuleTabs active="ticket" />
@@ -233,19 +368,26 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
             )}
           </div>
 
-          {/* Bags / Class Dropdown */}
-          <button
-            type="button"
-            onClick={() => setShowTravellersModal(true)}
-            className="bg-[#152A4A] hover:bg-[#1D3A63] text-white text-[13px] font-[600] px-3.5 py-1.5 rounded-[8px] flex items-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <span>Bags</span>
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
+          {/* Travellers / Cabin Class Pill */}
+          <div className="relative" ref={topTravellersRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowTravellersModal((v) => (!v ? true : modalAnchor !== "top"));
+                setModalAnchor("top");
+              }}
+              className="bg-[#152A4A] hover:bg-[#1D3A63] text-white text-[13px] font-[600] px-3.5 py-1.5 rounded-[8px] flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <span>{travellersSummary}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showTravellersModal && modalAnchor === "top" ? "rotate-180" : ""}`} />
+            </button>
+
+            {showTravellersModal && modalAnchor === "top" && renderTravellersPopover("left-0")}
+          </div>
         </div>
 
         {/* Connected Search Bar Form */}
-        <form onSubmit={handleSearch}>
+        <form onSubmit={handleSearch} className="relative z-40">
           <div className="bg-white rounded-[10px] sm:rounded-[12px] shadow-2xl p-1 grid grid-cols-1 lg:grid-cols-[1.4fr_auto_1.4fr_1fr_1fr_1.3fr_auto] items-stretch divide-y lg:divide-y-0 lg:divide-x divide-gray-200 border border-black/10">
             {/* From Segment */}
             <div className="relative p-2.5 sm:px-4 sm:py-2 flex flex-col justify-center" ref={fromRef}>
@@ -383,7 +525,10 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
             <div
               className="p-2.5 sm:px-4 sm:py-2 flex flex-col justify-center relative cursor-pointer"
               ref={travellersRef}
-              onClick={() => setShowTravellersModal((v) => !v)}
+              onClick={() => {
+                setShowTravellersModal((v) => (!v ? true : modalAnchor !== "search"));
+                setModalAnchor("search");
+              }}
             >
               <span className="text-[11px] font-[700] text-[#68697F] uppercase tracking-wider block mb-0.5">
                 Travellers and cabin class
@@ -393,94 +538,7 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
               </div>
 
               {/* Travellers Popover */}
-              {showTravellersModal && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-[280px] sm:w-[320px] bg-white rounded-[12px] shadow-2xl border border-gray-100 p-4 z-50 text-left text-[#0F172A]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                    <span className="font-[700] text-[14px]">Cabin class</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 my-3">
-                    {CABIN_CLASSES.map((cls) => (
-                      <button
-                        type="button"
-                        key={cls}
-                        onClick={() => setCabinClass(cls)}
-                        className={`text-[12px] font-[600] py-1.5 px-2 rounded-[6px] border text-center transition-colors cursor-pointer ${
-                          cabinClass === cls
-                            ? "bg-[#0955AC] text-white border-[#0955AC]"
-                            : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        {cls}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="space-y-3 pt-2 border-t border-gray-100">
-                    {/* Adults */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-[13px] font-[700]">Adults</div>
-                        <div className="text-[11px] text-gray-500">12+ years</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={adults <= 1}
-                          onClick={() => setAdults((a) => Math.max(1, a - 1))}
-                          className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 cursor-pointer"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="w-5 text-center font-[700] text-[14px]">{adults}</span>
-                        <button
-                          type="button"
-                          onClick={() => setAdults((a) => Math.min(8, a + 1))}
-                          className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Children */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-[13px] font-[700]">Children</div>
-                        <div className="text-[11px] text-gray-500">2 - 11 years</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={childrenCount <= 0}
-                          onClick={() => setChildrenCount((c) => Math.max(0, c - 1))}
-                          className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 cursor-pointer"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="w-5 text-center font-[700] text-[14px]">{childrenCount}</span>
-                        <button
-                          type="button"
-                          onClick={() => setChildrenCount((c) => Math.min(6, c + 1))}
-                          className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowTravellersModal(false)}
-                    className="mt-4 w-full bg-[#0955AC] text-white font-[700] text-[13px] py-2 rounded-[6px] hover:bg-[#073E82] transition-colors cursor-pointer"
-                  >
-                    Apply
-                  </button>
-                </div>
-              )}
+              {showTravellersModal && modalAnchor === "search" && renderTravellersPopover("right-0")}
             </div>
 
             {/* Blue Search Button in Current Theme */}
