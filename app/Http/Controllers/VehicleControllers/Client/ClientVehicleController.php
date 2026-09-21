@@ -1472,7 +1472,7 @@ class ClientVehicleController extends Controller
     {
         $base = Vehicle::query()
             ->with([
-                'airSpec',
+                'seaSpec',
                 'images' => fn($q) => $q->orderByDesc('is_primary')->orderBy('sort_order')->orderBy('id'),
                 'primaryImage',
                 'documents',
@@ -1524,7 +1524,7 @@ class ClientVehicleController extends Controller
         ] : null;
         // Frontend-friendly aliases (include URLs)
         $vehicle ->setAttribute('provider', $provider);
-        $vehicle->setAttribute('airSpec', $vehicle->airSpec);
+        $vehicle->setAttribute('seaSpec', $vehicle->seaSpec);
         $vehicle->setAttribute('primaryImage', $vehicle->primaryImage);
         $vehicle->setAttribute('primary_image_url', $vehicle->primary_image_url);
         $vehicle->setAttribute('images', $vehicle->images->map(fn($m) => [
@@ -1541,7 +1541,7 @@ class ClientVehicleController extends Controller
 
         $similarVehicles = Vehicle::query()
             ->active()
-            ->type('air')
+            ->type('sea')
             ->where('id', '!=', $vehicle->id)
             ->when($vehicle->category_id, fn($q) => $q->where('category_id', $vehicle->category_id))
             ->when($vehicle->manufacturer, fn($q) => $q->where('manufacturer', $vehicle->manufacturer))

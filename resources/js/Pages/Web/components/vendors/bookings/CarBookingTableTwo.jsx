@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
-import { Trash2, UserCog } from "lucide-react";
+import { Trash2, UserCog, Check, X } from "lucide-react";
 import VendorCancellationModal from "./VendorCancellationModal";
 import AssignDriverModal from "./AssignDriverModal";
 
@@ -81,7 +81,9 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors, drivers 
       const backendStatus = newStatus.toLowerCase();
       
       // Call backend API to update booking
-      const response = await axios.patch(`/vendors/api/bookings/${selectedBooking.id}`, {
+      const bookingType = selectedBooking.bookingType || "land";
+      const bookingId = selectedBooking.rawId ?? selectedBooking.id;
+      const response = await axios.patch(`/vendors/api/bookings/${bookingType}/${bookingId}`, {
         status: backendStatus,
         payment_status: newPaymentStatus.toLowerCase(),
         total_amount: parseFloat(newPayment)
@@ -113,6 +115,59 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors, drivers 
       console.error('Failed to update booking:', error);
       const errorMessage = error.response?.data?.message || 'Failed to update booking. Please try again.';
       alert(errorMessage);
+    }
+  };
+
+  const applyStatusUpdate = (booking, statusLabel) => {
+    const idx = bookings.findIndex(
+      (b) => b.bookingType === booking.bookingType && b.rawId === booking.rawId
+    );
+    if (idx === -1) return;
+
+    const updated = [...bookings];
+    updated[idx] = {
+      ...updated[idx],
+      status: statusLabel,
+      statusBg: statusColors?.[statusLabel]?.bg || updated[idx].statusBg,
+      statusText: statusColors?.[statusLabel]?.text || updated[idx].statusText,
+    };
+    setBookings(updated);
+  };
+
+  const handleAccept = async (booking) => {
+    try {
+      const res = await axios.post(
+        `/multiModel/vendor/booking/approve/${booking.rawId}/${booking.bookingType}`
+      );
+      if (res.data?.success) {
+        applyStatusUpdate(booking, "Confirmed");
+      } else {
+        alert(res.data?.message || "Failed to accept booking.");
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to accept booking.");
+    }
+  };
+
+  const handleReject = async (booking) => {
+    const reason = window.prompt("Reason for rejecting this booking:");
+    if (reason === null) return;
+    if (!reason.trim()) {
+      alert("A rejection reason is required.");
+      return;
+    }
+    try {
+      const res = await axios.post(
+        `/multiModel/vendor/booking/reject/${booking.rawId}/${booking.bookingType}`,
+        { reason: reason.trim() }
+      );
+      if (res.data?.success) {
+        applyStatusUpdate(booking, "Cancelled");
+      } else {
+        alert(res.data?.message || "Failed to reject booking.");
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to reject booking.");
     }
   };
 
@@ -219,6 +274,24 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors, drivers 
               </span>
             )}
             <div className="flex items-center gap-1">
+              {booking.status === "Pending" && (
+                <>
+                  <button
+                    onClick={() => handleAccept(booking)}
+                    className="p-2 text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                    title="Accept booking"
+                  >
+                    <Check className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => handleReject(booking)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Reject booking"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </>
+              )}
               {booking.status !== "Cancelled" && (
                 <button
                   onClick={() => {
@@ -342,7 +415,25 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors, drivers 
             </div>
 
             {/* Mobile Action Buttons */}
-            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-200">
+              {booking.status === "Pending" && (
+                <>
+                  <button
+                    onClick={() => handleAccept(booking)}
+                    className="flex-1 py-2 px-3 bg-green-600 text-white rounded-lg text-[13px] font-[600] hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleReject(booking)}
+                    className="flex-1 py-2 px-3 bg-red-600 text-white rounded-lg text-[13px] font-[600] hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Reject
+                  </button>
+                </>
+              )}
               {booking.editable !== false && (
                 <button
                   onClick={() => handleRowClick(booking, idx)}
