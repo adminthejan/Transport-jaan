@@ -537,8 +537,19 @@ class WebController extends Controller
     public function freightTicketBooking()
     {
         return Inertia::render('Web/home/ticketBooking/TicketBooking');
-    }    public function ticketBooking()
+    }    public function ticketBooking(Request $request)
     {
+        // Bus and Train each have their own dedicated page; /ticketBooking is
+        // reserved for Flight only, so redirect stray ?type=bus/train links
+        // instead of rendering them here.
+        $type = $request->query('type');
+        if ($type === 'bus') {
+            return redirect()->route('busTicketBookingDetails.busTicketBookingDetails', $request->except('type'));
+        }
+        if ($type === 'train') {
+            return redirect()->route('TrainTicketBookingDetails.TrainTicketBookingDetails', $request->except('type'));
+        }
+
         // Allow unauthenticated users to access the page
         return Inertia::render('Web/home/ticketBooking/TicketBooking');
     }
@@ -732,7 +743,8 @@ class WebController extends Controller
         $searchParams = $request->all();
 
         $query = WarehouseUnit::approved()
-            ->active();
+            ->active()
+            ->with(['mainImage', 'images']);
 
         // Apply filters based on search parameters
 

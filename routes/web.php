@@ -104,6 +104,9 @@ Route::get('/track-vehicle-booking', [VehicleTrackingController::class, 'trackPu
 Route::get('/track-ticket-booking', [TicketBookingTrackingController::class, 'trackPublic'])
     ->middleware('throttle:30,1')
     ->name('tickets.track.public');
+Route::get('/track/lookup', [\App\Http\Controllers\QuickTrackController::class, 'lookup'])
+    ->middleware('throttle:30,1')
+    ->name('track.lookup');
 Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/create', function () {
         return redirect()->route('couriers.flow.create', ['flow' => 'domestic']);
@@ -226,6 +229,7 @@ Route::get('/busTicketBookingDetails/json', [BusBookingController::class, 'searc
 Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
 Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
 Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview');
+Route::get('/transport/compare', [\App\Http\Controllers\TransportCompareController::class, 'compare'])->name('transport.compare');
 
 // Bus ticket routes
 Route::get('/bus-ticket/download/{reference}', [BusBookingController::class, 'downloadTicket'])->name('bus.ticket.download')->middleware('auth');
@@ -246,6 +250,25 @@ Route::post('/flight-bookings/{reference}/cancel', [FlightBookingController::cla
 
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store')->middleware('auth');
+
+// Skyscanner-style flight search demo — dummy/client-generated data only,
+// no live inventory, no backend writes (see FlightResults.jsx and its
+// generateDummyFlights.js seed-based generator).
+Route::get('/flightResults', function () {
+    return Inertia::render('Web/home/ticketBooking/FlightResults');
+})->name('flightResults.flightResults');
+
+Route::get('/flightReview', function () {
+    return Inertia::render('Web/home/ticketBooking/FlightReview');
+})->name('flightReview.flightReview');
+
+Route::get('/flightPayment', function () {
+    return Inertia::render('Web/home/ticketBooking/FlightPayment');
+})->name('flightPayment.flightPayment');
+
+Route::get('/flightConfirmation', function () {
+    return Inertia::render('Web/home/ticketBooking/FlightConfirmation');
+})->name('flightConfirmation.flightConfirmation');
 
 // Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');

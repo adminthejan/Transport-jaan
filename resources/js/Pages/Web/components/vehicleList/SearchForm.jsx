@@ -78,7 +78,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   placeholder="Search a location"
                   value={formData.pickupLocation}
                   onChange={handleInputChange}
-                  className="appearance-none w-full py-[12px] sm:py-[13px] leading-tight focus:outline-none placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
+                  className="appearance-none w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
                 />
               </div>
             </div>
@@ -95,7 +95,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   placeholder="12/12/2023"
                   value={formData.pickupDate}
                   onChange={handleInputChange}
-                  className="w-full py-[12px] sm:py-[13px] leading-tight focus:outline-none bg-transparent [&::-webkit-calendar-picker-indicator]:hidden text-[13px]"
+                  className="w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent [&::-webkit-calendar-picker-indicator]:hidden text-[13px]"
                 />
                 <img
                   src={calendarBlue}
@@ -119,7 +119,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   placeholder="Search a location"
                   value={formData.dropoffLocation}
                   onChange={handleInputChange}
-                  className="w-full py-[12px] sm:py-[13px] leading-tight focus:outline-none placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
+                  className="w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
                 />
               </div>
             </div>
@@ -136,7 +136,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
                   placeholder="12/12/2023"
                   value={formData.dropoffDate}
                   onChange={handleInputChange}
-                  className="w-full py-[12px] sm:py-[13px] leading-tight focus:outline-none bg-transparent [&::-webkit-calendar-picker-indicator]:hidden text-[13px]"
+                  className="w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent [&::-webkit-calendar-picker-indicator]:hidden text-[13px]"
                 />
                 <img
                   src={calendarBlue}

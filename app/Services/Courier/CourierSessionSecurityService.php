@@ -45,7 +45,7 @@ class CourierSessionSecurityService
                 'ipDenyList' => [],
             ],
             'stepUp' => [
-                'enabled' => true,
+                'enabled' => false,
                 'ttlMinutes' => 120,
                 'twoFactorTtlMinutes' => 120,
                 'persistOnTrustedDevice' => true,
@@ -71,7 +71,7 @@ class CourierSessionSecurityService
                 ],
             ],
             'mandatory2FA' => [
-                'enabled' => true,
+                'enabled' => false,
                 'roles' => ['courier_owner', 'courier_admin'],
                 'userIds' => [],
                 'forSensitiveActions' => true,
@@ -184,6 +184,12 @@ class CourierSessionSecurityService
         }
 
         $policy = $this->resolvePolicyForVendor($vendorUserId);
+
+        // Step-up/2FA enforcement is temporarily bypassed org-wide, regardless of
+        // any per-vendor override, while keeping the feature and its settings intact.
+        $policy['stepUp']['enabled'] = false;
+        $policy['mandatory2FA']['enabled'] = false;
+
         if (!(bool) ($policy['enabled'] ?? true)) {
             return ['ok' => true, 'policy' => $policy];
         }

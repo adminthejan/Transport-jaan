@@ -9,7 +9,10 @@ import {
     PlaneLanding,
     CalendarDays,
     Send,
+    Plane,
 } from "lucide-react";
+import CardHeader from "./shared/CardHeader";
+import { SegmentedControl, SubmitButton } from "./shared/FormElements";
 
 const FlightForm = () => {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -25,8 +28,10 @@ const FlightForm = () => {
         arriving_airport: '',
     });
 
-    // Pre-fill from the quick "Scheduled Flight" search on the Air rental
-    // page, so picking a route/date there doesn't have to be re-typed here.
+    // Pre-fill from the quick flight search card (either the ticketBooking
+    // "Flight" tab or the Air Vehicle Rental "Scheduled Flight" tab — both
+    // funnel into this same form), so picking a route/date/travellers there
+    // doesn't have to be re-typed here.
     useEffect(() => {
         try {
             const sp = new URLSearchParams(window.location.search || "");
@@ -35,6 +40,13 @@ const FlightForm = () => {
                 const value = sp.get(key);
                 if (value) patch[key] = value;
             });
+            // Travellers/cabin-class is UI-only (no dedicated column on
+            // flight_bookings), so fold it into the existing free-text
+            // special_requests field instead of dropping it silently.
+            const travellersSummary = sp.get('travellers_summary');
+            if (travellersSummary) {
+                patch.special_requests = travellersSummary;
+            }
             if (Object.keys(patch).length > 0) {
                 setData((prev) => ({ ...prev, ...patch }));
             }
@@ -73,35 +85,19 @@ const FlightForm = () => {
     const labelClass = "block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5";
 
     return (
-        <div className="bg-white rounded-[20px] shadow-[0_10px_30px_rgba(9,85,172,0.10)] border border-black/5 overflow-hidden">
-            <div className="bg-gradient-to-r from-[#0955AC] to-[#073E82] px-6 py-5 text-center">
-                <span className="text-yellow-400 font-bold text-[18px] tracking-wide">
-                    Request a Charter Quote
-                </span>
-                <p className="text-white/80 text-[12px] mt-1">
-                    Tell us your route and travel dates — our team will get back to you with pricing and availability.
-                </p>
-            </div>
+        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5">
+            <CardHeader icon={Plane} title="Request a Charter Quote" subtitle="Tell us your route and travel dates — our team will get back to you with pricing and availability." />
 
             <form onSubmit={handleSubmit} className="p-6 sm:p-8">
                 {/* Trip type segmented control */}
-                <div className="inline-flex bg-[#F1F5F9] rounded-full p-1 mb-6">
-                    {[
+                <SegmentedControl
+                    value={data.trip_type}
+                    onChange={(value) => setData("trip_type", value)}
+                    options={[
                         { value: "oneway", label: "One way" },
                         { value: "return", label: "Return" },
-                    ].map((opt) => (
-                        <button
-                            type="button"
-                            key={opt.value}
-                            onClick={() => setData("trip_type", opt.value)}
-                            className={`px-6 py-2 rounded-full text-[13px] font-[700] transition-all ${
-                                data.trip_type === opt.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#475569] hover:text-[#0955AC]"
-                            }`}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
+                    ]}
+                />
                 {errors.trip_type && <p className="text-red-500 text-xs -mt-4 mb-4">{errors.trip_type}</p>}
 
                 {/* Trip details */}
@@ -256,16 +252,9 @@ const FlightForm = () => {
                     {errors.special_requests && <p className="text-red-500 text-xs mt-1">{errors.special_requests}</p>}
                 </div>
 
-                <button
-                    type="submit"
-                    disabled={processing}
-                    className={`w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] text-[15px] rounded-[12px] transition-colors flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(9,85,172,0.25)] ${
-                        processing ? 'opacity-70 cursor-not-allowed' : ''
-                    }`}
-                >
-                    <Send className="w-[18px] h-[18px]" />
+                <SubmitButton icon={Send} iconPosition="left" disabled={processing}>
                     {processing ? 'Sending Request...' : 'Get a Charter Quote'}
-                </button>
+                </SubmitButton>
                 <p className="text-center text-[12px] text-[#94A3B8] mt-3">
                     This is a quote request, not an instant booking — a member of our team will confirm pricing and availability by email or phone.
                 </p>

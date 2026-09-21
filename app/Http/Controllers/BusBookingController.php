@@ -36,6 +36,8 @@ class BusBookingController extends Controller
         $returnSchedules = collect();
         $route = null;
         $nearbyDates = [];
+        $departureStation = null;
+        $arrivalStation = null;
 
         if ($from && $to && $date) {
             // Find departure and arrival stations
@@ -80,6 +82,8 @@ class BusBookingController extends Controller
                 'seniors' => $seniors,
                 'student' => $request->boolean('student'),
                 'wheelchair' => $request->boolean('wheelchair'),
+                'fromCity' => $departureStation->city ?? null,
+                'toCity' => $arrivalStation->city ?? null,
             ]
         ]);
     }

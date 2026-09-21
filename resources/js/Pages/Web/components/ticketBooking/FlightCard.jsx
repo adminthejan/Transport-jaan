@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { router } from "@inertiajs/react";
-import { PlaneTakeoff, PlaneLanding, CalendarDays, ArrowRight, Plane } from "lucide-react";
+import { PlaneTakeoff, PlaneLanding, ArrowLeftRight, Search, Plane } from "lucide-react";
 import CardHeader from "./shared/CardHeader";
-import { AutoCompleteField, DateField, SubmitButton } from "./shared/FormElements";
+import { AutoCompleteField, SubmitButton, SegmentedControl, SwapButton } from "./shared/FormElements";
+import DateRangeField from "./shared/DateRangeField";
+import TravellersCabinField from "./shared/TravellersCabinField";
 
 // Sample airport/location data - you can replace this with API data
 const locations = [
@@ -44,12 +46,14 @@ const renderAirportOption = (location) => (
 );
 
 const FlightCard = () => {
+    const [tripType, setTripType] = useState("oneway");
     const [formData, setFormData] = useState({
         pickupLocation: '',
         pickupDate: '',
         dropoffLocation: '',
         dropoffDate: ''
     });
+    const [travellers, setTravellers] = useState({ adults: 1, children: 0, cabinClass: "Economy" });
 
     const [errors, setErrors] = useState({});
 
@@ -59,13 +63,16 @@ const FlightCard = () => {
             [field]: value
         }));
 
-        // Clear error when user starts typing
         if (errors[field]) {
             setErrors(prev => ({
                 ...prev,
                 [field]: ''
             }));
         }
+    };
+
+    const swapAirports = () => {
+        setFormData(prev => ({ ...prev, pickupLocation: prev.dropoffLocation, dropoffLocation: prev.pickupLocation }));
     };
 
     const validateForm = () => {
@@ -83,6 +90,10 @@ const FlightCard = () => {
             newErrors.dropoffLocation = 'Arrival airport is required';
         }
 
+        if (tripType === 'return' && !formData.dropoffDate.trim()) {
+            newErrors.dropoffDate = 'Return date is required';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -98,23 +109,39 @@ const FlightCard = () => {
             return;
         }
 
-        // Hand off into the flight quote-request form, pre-filled with what
-        // was entered here (FlightForm.jsx reads these from the query string).
-        router.get('/flightBooking', {
-            trip_type: formData.dropoffDate ? 'return' : 'oneway',
+        const travellersSummary = `${travellers.adults} adult${travellers.adults === 1 ? '' : 's'}` +
+            (travellers.children ? ` + ${travellers.children} child${travellers.children === 1 ? '' : 'ren'}` : '') +
+            ` · ${travellers.cabinClass} class`;
+
+        // Hand off into the Skyscanner-style results page, pre-filled with
+        // what was entered here (FlightResults.jsx reads these from the
+        // query string). The honest "request a custom quote" flow
+        // (FlightForm.jsx on /flightBooking) is still reachable from there.
+        router.get('/flightResults', {
+            trip_type: tripType,
             departure_airport: formData.pickupLocation,
             arriving_airport: formData.dropoffLocation,
             departure_date: formData.pickupDate,
-            ...(formData.dropoffDate ? { return_date: formData.dropoffDate } : {}),
+            ...(tripType === 'return' && formData.dropoffDate ? { return_date: formData.dropoffDate } : {}),
+            travellers_summary: travellersSummary,
         });
     };
 
     return (
-        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5 overflow-hidden">
-            <CardHeader icon={Plane} title="Request a Flight Quote" subtitle="Tell us your route — we'll follow up with pricing and availability." />
+        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5">
+            <CardHeader icon={Plane} title="Search Flights" subtitle="Tell us your route — we'll follow up with pricing and availability." />
 
             <form onSubmit={handleStartClick} className="p-6 sm:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <SegmentedControl
+                    value={tripType}
+                    onChange={setTripType}
+                    options={[
+                        { value: "oneway", label: "One way" },
+                        { value: "return", label: "Return" },
+                    ]}
+                />
+
+                <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-14 mb-4">
                     <AutoCompleteField
                         label="DEPARTURE AIRPORT"
                         id="pickupLocation"
@@ -130,20 +157,6 @@ const FlightCard = () => {
                         getValue={(l) => `${l.name} (${l.code})`}
                         renderOption={renderAirportOption}
                     />
-
-                    <DateField
-                        label="DEPARTURE DATE"
-                        id="pickupDate"
-                        value={formData.pickupDate}
-                        onChange={(e) => handleInputChange('pickupDate', e.target.value)}
-                        error={errors.pickupDate}
-                        icon={CalendarDays}
-                        iconColor="text-[#0955AC]"
-                        min={new Date().toISOString().split('T')[0]}
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <AutoCompleteField
                         label="ARRIVAL AIRPORT"
                         id="dropoffLocation"
@@ -160,20 +173,24 @@ const FlightCard = () => {
                         getValue={(l) => `${l.name} (${l.code})`}
                         renderOption={renderAirportOption}
                     />
-
-                    <DateField
-                        label="RETURN DATE (OPTIONAL)"
-                        id="dropoffDate"
-                        value={formData.dropoffDate}
-                        onChange={(e) => handleInputChange('dropoffDate', e.target.value)}
-                        icon={CalendarDays}
-                        iconBg="bg-[#FDEDEA]"
-                        iconColor="text-[#EF3826]"
-                        min={formData.pickupDate || new Date().toISOString().split('T')[0]}
-                    />
+                    <SwapButton onClick={swapAirports} icon={ArrowLeftRight} />
                 </div>
 
-                <SubmitButton icon={ArrowRight}>Continue to Quote Request</SubmitButton>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <DateRangeField
+                        isRange={tripType === 'return'}
+                        departureDate={formData.pickupDate}
+                        returnDate={formData.dropoffDate}
+                        onChange={({ departureDate, returnDate }) => {
+                            setFormData(prev => ({ ...prev, pickupDate: departureDate, dropoffDate: returnDate }));
+                            setErrors(prev => ({ ...prev, pickupDate: '', dropoffDate: '' }));
+                        }}
+                        error={errors.pickupDate || errors.dropoffDate}
+                    />
+                    <TravellersCabinField value={travellers} onChange={setTravellers} />
+                </div>
+
+                <SubmitButton icon={Search} iconPosition="left">Search Flights</SubmitButton>
             </form>
         </div>
     );

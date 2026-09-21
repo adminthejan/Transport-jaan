@@ -6,7 +6,7 @@ import { ModuleTabs, RentalSubTabs } from "../components/ModuleTabs";
 import FilterSidebar from "../components/airVehicleList/FilterSidebar";
 import AirVehicleListContent from "../components/airVehicleList/AirVehicleListContent";
 import SearchForm from "../components/airVehicleList/SearchForm";
-import ScheduledFlightForm from "../components/airVehicleList/ScheduledFlightForm";
+import FlightCard from "../components/ticketBooking/FlightCard";
 import WhyChooseUs from "../components/rentAVehicle/WhyChooseUs";
 import Categories from "../components/rentAVehicle/Categories";
 import HowItWorks from "../components/rentAVehicle/HowItWorks";
@@ -127,7 +127,7 @@ const airVehicleList = () => {
 
         {bookingMode === "scheduled" ? (
           <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-4">
-            <ScheduledFlightForm />
+            <FlightCard />
           </div>
         ) : (
           <>

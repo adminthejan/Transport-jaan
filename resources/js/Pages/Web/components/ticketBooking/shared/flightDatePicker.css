@@ -1,0 +1,94 @@
+/* Re-skins react-datepicker to match the flight search card's brand
+   language (blue #0955AC, rounded, Figtree/Poppins-friendly) instead of its
+   default look. Scoped under .flight-datepicker so it never leaks into any
+   other react-datepicker usage elsewhere in the app (e.g. Vendors/Availability.jsx). */
+
+.flight-datepicker .react-datepicker {
+  border: none;
+  font-family: inherit;
+  background: transparent;
+}
+
+.flight-datepicker .react-datepicker__month-container {
+  padding: 4px 8px;
+}
+
+.flight-datepicker .react-datepicker__header {
+  background: transparent;
+  border-bottom: none;
+  padding-top: 4px;
+}
+
+.flight-datepicker .react-datepicker__current-month {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0B1B34;
+  margin-bottom: 4px;
+}
+
+.flight-datepicker .react-datepicker__day-name {
+  color: #94A3B8;
+  font-size: 11px;
+  font-weight: 700;
+  width: 2.1rem;
+}
+
+.flight-datepicker .react-datepicker__day {
+  width: 2.1rem;
+  line-height: 2.1rem;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0B1B34;
+  border-radius: 9999px;
+  margin: 2px;
+}
+
+.flight-datepicker .react-datepicker__day:hover {
+  background-color: #EAF1FE;
+  border-radius: 9999px;
+}
+
+.flight-datepicker .react-datepicker__day--today {
+  font-weight: 800;
+  border: 1.5px solid #0955AC;
+}
+
+.flight-datepicker .react-datepicker__day--selected,
+.flight-datepicker .react-datepicker__day--range-start,
+.flight-datepicker .react-datepicker__day--range-end,
+.flight-datepicker .react-datepicker__day--keyboard-selected {
+  background-color: #0955AC !important;
+  color: #fff !important;
+  border-radius: 9999px;
+}
+
+.flight-datepicker .react-datepicker__day--in-range,
+.flight-datepicker .react-datepicker__day--in-selecting-range {
+  background-color: #EAF1FE;
+  color: #0955AC;
+  border-radius: 0;
+}
+
+.flight-datepicker .react-datepicker__day--range-start.react-datepicker__day--in-range {
+  border-radius: 9999px 0 0 9999px;
+}
+
+.flight-datepicker .react-datepicker__day--range-end.react-datepicker__day--in-range {
+  border-radius: 0 9999px 9999px 0;
+}
+
+.flight-datepicker .react-datepicker__day--disabled {
+  color: #CBD5E1;
+}
+
+.flight-datepicker .react-datepicker__navigation-icon::before {
+  border-color: #0955AC;
+}
+
+.flight-datepicker .react-datepicker__triangle {
+  display: none;
+}
+
+.flight-datepicker .react-datepicker__month {
+  margin: 0.4rem;
+}

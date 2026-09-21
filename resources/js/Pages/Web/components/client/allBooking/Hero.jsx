@@ -1,9 +1,13 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
+import { route } from "ziggy-js";
+import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import BookingCancellationModal from "./BookingCancellationModal";
+import ClientHeader from "../../../home/client/ClientHeader";
+import DashboardRightPanel from "./DashboardRightPanel";
 import {
     Car,
     Plane,
@@ -52,6 +56,8 @@ import {
     Cell,
     BarChart,
     Bar,
+    LineChart,
+    Line,
     Legend,
 } from "recharts";
 
@@ -144,6 +150,29 @@ const Hero = ({
     const [showCancellationModal, setShowCancellationModal] = useState(false);
     const [bookingToCancell, setBookingToCancell] = useState(null);
     const receiptRef = useRef(null);
+
+    // ---------- Wallet balance (shown in the greeting bar) ----------
+    const { auth } = usePage().props;
+    const [walletBalance, setWalletBalance] = useState(null);
+    const [walletCurrency, setWalletCurrency] = useState("LKR");
+
+    useEffect(() => {
+        if (!auth?.user) return;
+        let cancelled = false;
+        axios
+            .get(route("client.wallet.summary"))
+            .then(({ data }) => {
+                if (cancelled) return;
+                setWalletBalance(Number(data?.balance ?? 0));
+                setWalletCurrency(data?.currency || "LKR");
+            })
+            .catch(() => {
+                if (!cancelled) setWalletBalance(null);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [auth?.user]);
 
     // Calculate comprehensive KPI metrics
     const kpiMetrics = useMemo(() => {
@@ -309,6 +338,61 @@ const Hero = ({
             completionRate
         };
     }, [filteredBookings]);
+
+    // Bookings that need the customer's attention (pending status / unpaid)
+    const actionRequired = useMemo(() => {
+        return allBookings
+            .filter((b) => ["pending", "unpaid"].includes(b.status?.toLowerCase()) || (b.payment_status && b.payment_status.toLowerCase() === "pending"))
+            .sort((a, b) => new Date(b.created_at || b.booking_date) - new Date(a.created_at || a.booking_date))
+            .slice(0, 5);
+    }, [allBookings]);
+
+    const notifications = useMemo(
+        () =>
+            actionRequired.map((b) => ({
+                title: `${toTitleLabel(b.booking_type, "Booking")} awaiting payment`,
+                subtitle: b.service_name || b.vehicle_name || b.booking_code || `#${b.id}`,
+                booking: b,
+            })),
+        [actionRequired]
+    );
+
+    // 5-series monthly trend (Vehicle Rental / Ticket Booking / Courier /
+    // Warehouse / Freight) computed client-side from allBookings so the
+    // chart doesn't depend on a backend shape change.
+    const monthlyTrendData = useMemo(() => {
+        const months = [];
+        const now = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString("en-US", { month: "short" }), year: d.getFullYear(), month: d.getMonth() });
+        }
+        return months.map(({ key, label, year, month }) => {
+            const monthBookings = allBookings.filter((b) => {
+                const d = new Date(b.created_at || b.booking_date);
+                return !Number.isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
+            });
+            return {
+                key,
+                month: label,
+                vehicleRental: monthBookings.filter((b) => ["vehicle", "air", "sea"].includes(b.booking_type)).length,
+                ticketBooking: monthBookings.filter((b) => ["train", "bus", "flight"].includes(b.booking_type)).length,
+                courier: monthBookings.filter((b) => b.booking_type === "courier").length,
+                warehouse: monthBookings.filter((b) => b.booking_type === "warehouse").length,
+                freight: monthBookings.filter((b) => b.booking_type === "freight").length,
+            };
+        });
+    }, [allBookings]);
+
+    const paymentOverview = useMemo(() => {
+        const paidAmount = allBookings
+            .filter((b) => ["paid", "completed", "delivered"].includes(b.status?.toLowerCase()))
+            .reduce((sum, b) => sum + (parseFloat(b.total_amount || b.amount || 0) || 0), 0);
+        const pendingAmount = allBookings
+            .filter((b) => ["pending", "unpaid"].includes(b.status?.toLowerCase()))
+            .reduce((sum, b) => sum + (parseFloat(b.total_amount || b.amount || 0) || 0), 0);
+        return { paidAmount, pendingAmount };
+    }, [allBookings]);
 
     // Bulk actions handlers
     const handleSelectAll = () => {
@@ -686,613 +770,484 @@ const Hero = ({
             || selectedBookingDetails?.company_phone
             || 'N/A');
 
+    const displayName = (auth?.user?.name || "there").split(/\s+/)[0];
+    const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+    const quickActions = [
+        { href: route("clientVehicleDashboard"), icon: Car, label: "Rent Vehicle", tint: "bg-blue-50 text-blue-700" },
+        { href: route("clientTicketBookingDashboard"), icon: Plane, label: "Book Ticket", tint: "bg-purple-50 text-purple-700" },
+        { href: route("courierBookingDashboard"), icon: Package, label: "Send Courier", tint: "bg-orange-50 text-orange-700" },
+        { href: route("warehouseBookingDashboard"), icon: Warehouse, label: "Book Warehouse", tint: "bg-green-50 text-green-700" },
+        { href: route("freightBookingDashboard"), icon: Truck, label: "Freight Quote", tint: "bg-red-50 text-red-700" },
+    ];
+
+    const statCards = [
+        { label: "Active Bookings", value: kpiMetrics.activeBookings, icon: Activity, tone: "text-[#0955AC]" },
+        { label: "This Month", value: kpiMetrics.thisMonthBookings, icon: Calendar, tone: "text-purple-600" },
+        { label: "Upcoming", value: kpiMetrics.upcomingTrips, icon: Clock, tone: "text-amber-600" },
+        { label: "Total Spent", value: `$${kpiMetrics.totalSpent.toFixed(0)}`, icon: DollarSign, tone: "text-emerald-600" },
+        { label: "Completed", value: analytics.completedBookings, icon: CheckSquare, tone: "text-green-600" },
+        { label: "Cancelled", value: analytics.cancelledBookings, icon: X, tone: "text-rose-600" },
+    ];
+
+    const trendSeries = [
+        { key: "vehicleRental", name: "Vehicle Rental", color: "#3b82f6" },
+        { key: "ticketBooking", name: "Ticket Booking", color: "#0955AC" },
+        { key: "courier", name: "Courier", color: "#f59e0b" },
+        { key: "warehouse", name: "Warehouse", color: "#8b5cf6" },
+        { key: "freight", name: "Freight", color: "#ef4444" },
+    ];
+
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5]">
-            <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 md:pt-2 md:pb-20 poppins">
-                {/* Header */}
-                <div className="mb-3 flex flex-col gap-4 md:mb-3">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="flex flex-col gap-4">
-                            <div>
-                                <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
-                                    <span className="text-[#0955AC]">All Bookings</span>{" "}
-                                    Dashboard
-                                </h1>
-                                <p className="text-slate-600 text-[14px]">
-                                    Manage all your bookings: Vehicles, Tickets, Warehouse, Courier & Freight
-                                </p>
-                            </div>
-                            
-                            {/* Service Buttons */}
-                            <div className="flex flex-wrap gap-3">
-                                <Link
-                                    href="/clientVehicleDashboard"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-lg text-[13px] font-medium transition-colors"
-                                >
-                                    <Car className="w-4 h-4" /> Vehicle Rental
-                                </Link>
-                                <Link
-                                    href="/clientTicketBookingDashboard"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-lg text-[13px] font-medium transition-colors"
-                                >
-                                    <Plane className="w-4 h-4" /> Ticket Booking
-                                </Link>
-                                <Link
-                                    href="/courierBookingDashboard"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 rounded-lg text-[13px] font-medium transition-colors"
-                                >
-                                    <Package className="w-4 h-4" /> Courier Service
-                                </Link>
-                                <Link
-                                    href="/warehouseBookingDashboard"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 rounded-lg text-[13px] font-medium transition-colors"
-                                >
-                                    <Warehouse className="w-4 h-4" /> Warehouse Services
-                                </Link>
-                                <Link
-                                    href="/freightBookingDashboard"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg text-[13px] font-medium transition-colors"
-                                >
-                                    <Truck className="w-4 h-4" /> Freight Services
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
+        <div className="min-h-screen w-full bg-[#F4F6F9] poppins">
+            <ClientHeader />
 
-                    {/* Advanced Analytics Bar */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl border border-slate-200">
-                        <div className="text-center p-2">
-                            <p className="text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wide">Total Revenue</p>
-                            <p className="text-[16px] sm:text-[18px] font-bold text-[#0955AC]">${analytics.totalRevenue.toFixed(0)}</p>
+            <div className="flex flex-col min-h-screen">
+                <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6 flex-1">
+                    {/* Greeting */}
+                    <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <h1 className="text-[22px] sm:text-[26px] font-[700] text-slate-900">
+                                Welcome back, <span className="text-[#0955AC]">{displayName}</span> 👋
+                            </h1>
+                            <p className="text-[13px] text-slate-500 mt-0.5">{todayLabel} — here's what's happening with your bookings.</p>
                         </div>
-                        <div className="text-center p-2">
-                            <p className="text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wide">Avg Value</p>
-                            <p className="text-[16px] sm:text-[18px] font-bold text-slate-700">${analytics.avgBookingValue.toFixed(0)}</p>
-                        </div>
-                        <div className="text-center p-2">
-                            <p className="text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wide">Completed</p>
-                            <p className="text-[16px] sm:text-[18px] font-bold text-green-600">{analytics.completedBookings}</p>
-                        </div>
-                        <div className="text-center p-2">
-                            <p className="text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wide">Cancelled</p>
-                            <p className="text-[16px] sm:text-[18px] font-bold text-red-600">{analytics.cancelledBookings}</p>
-                        </div>
-                        <div className="text-center p-2">
-                            <p className="text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wide">Success Rate</p>
-                            <p className="text-[16px] sm:text-[18px] font-bold text-emerald-600">{analytics.completionRate.toFixed(1)}%</p>
-                        </div>
-                        <div className="text-center p-2">
-                            <p className="text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wide">Cancel Rate</p>
-                            <p className="text-[16px] sm:text-[18px] font-bold text-rose-600">{analytics.cancellationRate.toFixed(1)}%</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* KPI Cards */}
-                <div className="mb-4 md:mb-4 mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-5 pt-5 pb-2">
-                            <p className="flex items-center gap-3 text-[#7B7B7A] text-[14px] font-[700]">
-                                <TrendingUp className="h-6 w-6" /> Active Bookings
-                            </p>
-                            <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                {kpiMetrics.activeBookings}
-                            </h3>
-                        </div>
-                        <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            Currently active
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-5 pt-5 pb-2">
-                            <p className="flex items-center gap-3 text-[#7B7B7A] text-[14px] font-[700]">
-                                <FileText className="h-6 w-6" /> This Month
-                            </p>
-                            <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                {kpiMetrics.thisMonthBookings}
-                            </h3>
-                        </div>
-                        <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            New bookings
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-5 pt-5 pb-2">
-                            <p className="flex items-center gap-3 text-[#7B7B7A] text-[14px] font-[700]">
-                                <Calendar className="h-6 w-6" /> Upcoming
-                            </p>
-                            <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                {kpiMetrics.upcomingTrips}
-                            </h3>
-                        </div>
-                        <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            Future trips
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-5 pt-5 pb-2">
-                            <p className="flex items-center gap-3 text-[#7B7B7A] text-[14px] font-[700]">
-                                <Clock className="h-6 w-6" /> Total Spent
-                            </p>
-                            <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                ${kpiMetrics.totalSpent.toFixed(0)}
-                            </h3>
-                        </div>
-                        <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            All time
-                        </div>
-                    </div>
-                </div>
-
-                
-
-                {/* Search & Filters */}
-                <div className="mb-6 md:mb-8 rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm">
-                    <div className="px-4 sm:px-6 py-4 sm:py-5">
-                        <div className="flex flex-col gap-4">
-                            {/* Filter Inputs Row - Same Row */}
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                            {/* Search */}
-                            <div className="relative flex-1 min-w-[250px]">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    value={q}
-                                    onChange={(e) => setQ(e.target.value)}
-                                    placeholder="Search bookings, reference numbers…"
-                                    className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-10 px-3 text-[13px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                />
-                                {q && (
-                                    <button
-                                        onClick={() => setQ("")}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Type select */}
-                            <div className="flex-1 min-w-[150px]">
-                                <select
-                                    value={bookingType}
-                                    onChange={(e) => setBookingType(e.target.value)}
-                                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                >
-                                    <option value="all">All Services</option>
-                                    <option value="vehicle">Vehicle Rentals</option>
-                                    <option value="tickets">All Tickets</option>
-                                    <option value="train">Train Tickets</option>
-                                    <option value="bus">Bus Tickets</option>
-                                    <option value="flight">Flight Tickets</option>
-                                    <option value="logistics">Logistics</option>
-                                    <option value="warehouse">Warehouse</option>
-                                    <option value="courier">Courier</option>
-                                    <option value="freight">Freight</option>
-                                </select>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-2 items-center flex-wrap">
-                                <button 
-                                    onClick={() => setShowFilters(!showFilters)}
-                                    className={`inline-flex items-center h-11 px-4 rounded-lg border text-[13px] font-medium transition-colors whitespace-nowrap ${
-                                        showFilters ? 'bg-[#0955AC] text-white border-[#0955AC]' : 'border-slate-300 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <Filter className="mr-2 h-4 w-4" /> Filters
-                                </button>
-                                <button 
-                                    onClick={() => setShowExportModal(true)}
-                                    className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 text-[13px] font-medium hover:bg-slate-50 whitespace-nowrap"
-                                >
-                                    <Download className="mr-2 h-4 w-4" /> Export
-                                </button>
-                                <button 
-                                    onClick={() => window.location.reload()}
-                                    className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 whitespace-nowrap"
-                                >
-                                    <RefreshCw className="h-4 w-4" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Advanced Filters Panel */}
-                        <AnimatePresence>
-                            {showFilters && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="overflow-hidden"
-                                >
-                                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-200">
-                                        <div className="grid gap-2 sm:gap-3 md:grid-cols-5">
-                                            {/* Status select */}
-                                            <div>
-                                                <label className="block text-[12px] font-medium text-slate-700 mb-1">Status</label>
-                                                <select
-                                                    value={statusFilter}
-                                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                                >
-                                                    <option value="all">All Statuses</option>
-                                                    <option value="confirmed">Confirmed</option>
-                                                    <option value="paid">Paid</option>
-                                                    <option value="pending">Pending</option>
-                                                    <option value="active">Active</option>
-                                                    <option value="in_transit">In Transit</option>
-                                                    <option value="completed">Completed</option>
-                                                    <option value="cancelled">Cancelled</option>
-                                                </select>
-                                            </div>
-
-                                            {/* Sort select */}
-                                            <div>
-                                                <label className="block text-[12px] font-medium text-slate-700 mb-1">Sort By</label>
-                                                <select
-                                                    value={sortBy}
-                                                    onChange={(e) => setSortBy(e.target.value)}
-                                                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                                >
-                                                    <option value="recent">Most Recent</option>
-                                                    <option value="upcoming">Upcoming First</option>
-                                                    <option value="amount">Highest Amount</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[12px] font-medium text-slate-700 mb-1">
-                                                    Start Date
-                                                </label>
-                                                <input
-                                                    type="date"
-                                                    value={dateRange.start}
-                                                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                                                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[12px] font-medium text-slate-700 mb-1">
-                                                    End Date
-                                                </label>
-                                                <input
-                                                    type="date"
-                                                    value={dateRange.end}
-                                                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                                                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                                />
-                                            </div>
-                                            <div className="flex items-end">
-                                                <button
-                                                    onClick={clearFilters}
-                                                    className="h-10 w-full inline-flex items-center justify-center gap-2 px-4 rounded-lg border border-slate-300 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
-                                                >
-                                                    <X className="h-4 w-4" /> Clear Filters
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 flex items-center gap-2 text-[12px] text-slate-600">
-                                            <AlertCircle className="h-4 w-4" />
-                                            <span>
-                                                Showing {filteredBookings.length} of {allBookings.length} bookings
-                                                {dateRange.start && dateRange.end && ` between ${dateRange.start} and ${dateRange.end}`}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Main Content Grid */}
-                <div className="mt-2 md:mt-4">
-                    <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-4">
-                    {/* Bookings List */}
-                    <div className="lg:col-span-3">
-                        <div className="mb-3 md:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                                <h2 className="text-[18px] sm:text-[20px] font-[600]">
-                                    All Bookings ({filteredBookings.length})
-                                </h2>
-                                {/* <div className="flex items-center gap-1 sm:gap-2">
-                                    <button
-                                        onClick={() => setViewMode('card')}
-                                        className={`p-2 rounded-lg border ${viewMode === 'card' ? 'bg-[#0955AC] text-white border-[#0955AC]' : 'border-slate-200 hover:bg-slate-50'}`}
-                                    >
-                                        <BarChart3 className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => setViewMode('table')}
-                                        className={`p-2 rounded-lg border ${viewMode === 'table' ? 'bg-[#0955AC] text-white border-[#0955AC]' : 'border-slate-200 hover:bg-slate-50'}`}
-                                    >
-                                        <FileText className="h-4 w-4" />
-                                    </button>
-                                </div> */}
-                            </div>
-                            <div className="text-[12px] text-slate-600">
-                                Showing 3 cards at a time
-                            </div>
-                        </div>
-
-                        {/* Bookings Cards */}
-                        <div className="h-[700px] md:h-[620px] overflow-y-auto pr-1 md:pr-2">
-                            <div className="space-y-4">
-                            {visibleBookings.length > 0 ? (
-                                visibleBookings.map((booking) => (
-                                    <motion.div
-                                        key={booking.id}
-                                        initial={{ opacity: 0, y: 8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.25 }}
-                                    >
-                                        <div className="group rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                                            <div className="p-4 sm:p-6 min-h-[190px] flex flex-col">
-                                                <div className="flex items-start gap-2 sm:gap-4 mb-3 sm:mb-4">
-                                                    <div className="flex flex-col sm:flex-row items-start justify-between flex-1 gap-3">
-                                                        <div className="flex items-start gap-2 sm:gap-4 flex-1 w-full">
-                                                            <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 flex-shrink-0">
-                                                                <BookingTypeIcon type={booking.booking_type} className="h-5 w-5 sm:h-6 sm:w-6 text-[#0955AC]" />
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                                    <h3 className="text-[14px] sm:text-[16px] font-semibold text-slate-900 break-words">
-                                                                        {booking.service_name || booking.vehicle_name || booking.title || 'Booking'}
-                                                                    </h3>
-                                                                    <span
-                                                                        className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                                                                            statusMap[booking.status?.toLowerCase()]?.tone || statusMap.pending.tone
-                                                                        }`}
-                                                                    >
-                                                                        {statusMap[booking.status?.toLowerCase()]?.label || booking.status || 'Pending'}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-[13px] text-slate-600 mb-2">
-                                                                    {booking.description || `${booking.booking_type?.toUpperCase()} Booking`}
-                                                                </p>
-                                                                <div className="flex items-center gap-4 text-[12px] text-slate-500 flex-wrap">
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Calendar className="h-3.5 w-3.5" />
-                                                                        <span>{new Date(booking.created_at || booking.booking_date).toLocaleDateString()}</span>
-                                                                    </div>
-                                                                    {(booking.booking_code || booking.reference_number) && (
-                                                                        <div className="flex items-center gap-1">
-                                                                            <FileText className="h-3.5 w-3.5" />
-                                                                            <span>{booking.booking_code || booking.reference_number}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {(booking.start_date || booking.departure_date || booking.pickup_date) && (
-                                                                        <div className="flex items-center gap-1">
-                                                                            <Clock className="h-3.5 w-3.5" />
-                                                                            <span>From: {new Date(booking.start_date || booking.departure_date || booking.pickup_date).toLocaleDateString()}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                {(booking.booking_type === 'courier' || booking.type === 'courier' || booking.type === 'shipment') && Boolean(booking.cod_enabled) && (
-                                                                    <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                                                                        <span>COD enabled</span>
-                                                                        {booking.cod_amount !== null && booking.cod_amount !== undefined && booking.cod_amount !== '' && Number.isFinite(Number(booking.cod_amount)) && (
-                                                                            <span>
-                                                                                • {Number(booking.cod_amount).toFixed(2)} {String(booking.currency || 'LKR').toUpperCase()}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                                {(booking.booking_type === 'courier' || booking.type === 'courier' || booking.type === 'shipment') && (
-                                                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                                                                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-semibold text-slate-700">
-                                                                            Payment: {toTitleLabel(booking.payment_status || booking.paymentStatus, 'Pending')}
-                                                                        </span>
-                                                                        <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
-                                                                            {toTitleLabel(booking.payment_method || booking.paymentMethod, 'Pending')}
-                                                                        </span>
-                                                                        {(booking.payment_reference || booking.paymentReference) && (
-                                                                            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
-                                                                                Ref: {booking.payment_reference || booking.paymentReference}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <div className="text-[20px] font-bold text-[#0955AC]">
-                                                                ${(parseFloat(booking.total_amount || booking.amount || 0) || 0).toFixed(2)}
-                                                            </div>
-                                                            <div className="text-[11px] text-slate-500 mt-1">
-                                                                {booking.currency || 'LKR'}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Action Buttons */}
-                                                <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 sm:pt-4 border-t border-slate-100">
-                                                    <button
-                                                        onClick={() => handleViewDetails(booking)}
-                                                        className="flex-1 min-w-[140px] h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl bg-[#0955AC] text-white text-[12px] sm:text-[13px] font-medium hover:bg-[#0744a0] inline-flex items-center justify-center gap-2 touch-manipulation"
-                                                    >
-                                                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                                        <span className="hidden sm:inline">View Details</span>
-                                                        <span className="sm:hidden">View</span>
-                                                    </button>
-                                                    {['confirmed', 'paid', 'active'].includes(booking.status?.toLowerCase()) && (
-                                                        <button className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-slate-200 text-slate-700 text-[12px] sm:text-[13px] font-medium hover:bg-slate-50 inline-flex items-center gap-2 touch-manipulation">
-                                                            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                                            <span className="hidden sm:inline">Manage</span>
-                                                        </button>
-                                                    )}
-                                                    {booking.booking_type === 'vehicle' && ['confirmed', 'paid', 'active'].includes(booking.status?.toLowerCase()) && (
-                                                        <button 
-                                                            onClick={() => {
-                                                                setBookingToCancell(booking);
-                                                                setShowCancellationModal(true);
-                                                            }}
-                                                            className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-red-200 text-red-600 text-[12px] sm:text-[13px] font-medium hover:bg-red-50 inline-flex items-center gap-2 touch-manipulation"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                                            <span className="hidden sm:inline">Booking Cancel</span>
-                                                        </button>
-                                                    )}
-                                                    <button 
-                                                        onClick={() => {
-                                                            handleViewDetails(booking);
-                                                            setTimeout(() => setShowReceiptModal(true), 300);
-                                                        }}
-                                                        className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-slate-200 text-slate-700 text-[12px] sm:text-[13px] font-medium hover:bg-slate-50 touch-manipulation"
-                                                    >
-                                                        <Download className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                ))
-                            ) : (
-                                <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white">
-                                    <div className="px-4 py-40 text-center">
-                                        <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                                        <p className="text-slate-500 text-[16px] font-medium">No bookings found</p>
-                                        <p className="text-slate-400 text-[13px] mt-1">Try adjusting your filters or make a new booking</p>
-                                    </div>
-                                </div>
-                            )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Sidebar: Quick Actions */}
-                    <div className="space-y-4 md:space-y-6">
-                        {/* Quick Actions */}
-                        <div className="rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm md:min-h-[660px]">
-                            <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-5 sm:pb-6">
-                                <h3 className="font-semibold leading-none tracking-tight text-[16px] sm:text-[18px]">
-                                    Quick Actions
-                                </h3>
-                                <p className="text-[12px] sm:text-[13px] text-slate-500 mt-1">
-                                    Book new services
-                                </p>
-                            </div>
-                            <div className="px-4 sm:px-6 pb-8 sm:pb-10 space-y-7 font-medium">
-                                <Link
-                                    href="/multiModel/plan-journey"
-                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <Car className="h-5 w-5 text-[#0955AC]" />
-                                    <span>Rent Vehicle</span>
-                                </Link>
-                                <Link
-                                    href="/ticketBooking?type=train"
-                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <Train className="h-5 w-5 text-[#0955AC]" />
-                                    <span>Book Train</span>
-                                </Link>
-                                <Link
-                                    href="/ticketBooking?type=bus"
-                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <Bus className="h-5 w-5 text-[#0955AC]" />
-                                    <span>Book Bus</span>
-                                </Link>
-                                <Link
-                                    href="/ticketBooking?type=flight"
-                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <Plane className="h-5 w-5 text-[#0955AC]" />
-                                    <span>Book Flight</span>
-                                </Link>
-                                <Link
-                                    href="/warehouse"
-                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <Warehouse className="h-5 w-5 text-[#0955AC]" />
-                                    <span>Book Warehouse</span>
-                                </Link>
-                                <Link
-                                    href="/courier-service"
-                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <Package className="h-5 w-5 text-[#0955AC]" />
-                                    <span>Book Courier</span>
-                                </Link>
-                                <Link
-                                    href="/cargo-freight"
-                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <Truck className="h-5 w-5 text-[#0955AC]" />
-                                    <span>Freight Quote</span>
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                </div>
-
-                {/* Charts Row */}
-                <div className="mt-4 md:mt-6">
-                    <div className="grid grid-cols-1 gap-4 md:gap-6">
-                    {/* Bar Chart */}
-                    <div className="bg-white rounded-xl shadow-sm">
-                        <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-4 md:pb-5">
-                            <div className="flex items-center justify-between">
+                        {walletBalance !== null && (
+                            <div className="inline-flex items-center gap-2.5 bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-sm">
+                                <span className="w-8 h-8 rounded-lg bg-[#EAF1FE] flex items-center justify-center">
+                                    <DollarSign className="w-4 h-4 text-[#0955AC]" />
+                                </span>
                                 <div>
-                                    <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                        Monthly Booking Trends
-                                    </h3>
-                                    <p className="text-[14px] text-slate-500 pt-1">
-                                        Vehicles • Tickets • Logistics (year to date)
+                                    <p className="text-[10.5px] text-slate-400 uppercase tracking-wide leading-none">Wallet Balance</p>
+                                    <p className="text-[14px] font-[700] text-slate-800 leading-tight">
+                                        {walletCurrency} {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
                                 </div>
                             </div>
-                        </div>
-                        <div className="px-4 sm:px-6 md:px-10 pb-6 md:pb-10">
-                            {/* Chart for md and up */}
-                            <div className="hidden md:block h-[250px] sm:h-[300px] md:h-[350px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData} margin={{ left: 0, right: 0, top: 10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                                        <YAxis tickLine={false} axisLine={false} />
-                                        <RTooltip />
-                                        <Legend />
-                                        <Bar dataKey="vehicle" name="Vehicles" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                                        <Bar dataKey="tickets" name="Tickets" fill="#0955AC" radius={[8, 8, 0, 0]} />
-                                        <Bar dataKey="logistics" name="Logistics" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                        )}
+                    </div>
+
+                    {/* Quick action cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+                        {quickActions.map((a) => (
+                            <Link
+                                key={a.label}
+                                href={a.href}
+                                className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all p-4 flex flex-col items-start gap-3"
+                            >
+                                <span className={`w-10 h-10 rounded-xl flex items-center justify-center ${a.tint}`}>
+                                    <a.icon className="w-[18px] h-[18px]" />
+                                </span>
+                                <span className="text-[13px] font-[600] text-slate-700 leading-tight">{a.label}</span>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* Stat cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+                        {statCards.map((s) => (
+                            <div key={s.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+                                <s.icon className={`w-5 h-5 mb-2 ${s.tone}`} />
+                                <p className="text-[19px] font-[700] text-slate-900 leading-tight">{s.value}</p>
+                                <p className="text-[11px] text-slate-500 mt-0.5">{s.label}</p>
                             </div>
-                            {/* Cards for mobile */}
-                            <div className="block md:hidden space-y-3">
-                                {chartData.map((item, index) => (
-                                    <div key={index} className="bg-gray-50 rounded-lg p-4 border">
-                                        <h4 className="font-semibold text-gray-800 mb-2">{item.month}</h4>
-                                        <div className="space-y-1 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-blue-600">Vehicles:</span>
-                                                <span className="font-medium">{item.vehicle}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#0955AC]">Tickets:</span>
-                                                <span className="font-medium">{item.tickets}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-purple-600">Logistics:</span>
-                                                <span className="font-medium">{item.logistics}</span>
-                                            </div>
-                                        </div>
+                        ))}
+                    </div>
+
+                    {/* Upcoming services + Action required */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-[15px] font-[700] text-slate-800">Upcoming Services</h3>
+                                <span className="text-[11px] font-[700] text-[#0955AC] bg-[#EAF1FE] px-2.5 py-1 rounded-full">{upcomingBookings.length}</span>
+                            </div>
+                            {upcomingBookings.length === 0 ? (
+                                <p className="text-[12.5px] text-slate-400 text-center py-8">No upcoming services scheduled.</p>
+                            ) : (
+                                <div className="space-y-1">
+                                    {upcomingBookings.map((b) => (
+                                        <button
+                                            key={b.id}
+                                            onClick={() => handleViewDetails(b)}
+                                            className="w-full flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-xl hover:bg-slate-50 transition-colors text-left"
+                                        >
+                                            <span className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+                                                <BookingTypeIcon type={b.booking_type} className="w-4 h-4 text-[#0955AC]" />
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block text-[13px] font-[600] text-slate-800 truncate">{b.service_name || b.vehicle_name || "Booking"}</span>
+                                                <span className="block text-[11.5px] text-slate-400">
+                                                    {new Date(b.start_date || b.departure_date || b.pickup_date).toLocaleDateString()}
+                                                </span>
+                                            </span>
+                                            <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-[15px] font-[700] text-slate-800">Action Required</h3>
+                                <span className="text-[11px] font-[700] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">{actionRequired.length}</span>
+                            </div>
+                            {actionRequired.length === 0 ? (
+                                <p className="text-[12.5px] text-slate-400 text-center py-8">Nothing needs your attention right now.</p>
+                            ) : (
+                                <div className="space-y-1">
+                                    {actionRequired.map((b) => (
+                                        <button
+                                            key={b.id}
+                                            onClick={() => handleViewDetails(b)}
+                                            className="w-full flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-xl hover:bg-amber-50/60 transition-colors text-left"
+                                        >
+                                            <span className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                                                <AlertCircle className="w-4 h-4 text-amber-600" />
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block text-[13px] font-[600] text-slate-800 truncate">{b.service_name || b.vehicle_name || "Booking"}</span>
+                                                <span className="block text-[11.5px] text-slate-400">Payment {toTitleLabel(b.status, "pending")}</span>
+                                            </span>
+                                            <span className="text-[11px] font-[700] text-[#0955AC]">Resolve →</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Payment overview + Monthly trends */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                            <h3 className="text-[15px] font-[700] text-slate-800 mb-4">Payment Overview</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-[11px] text-slate-400 uppercase tracking-wide">Total Revenue</p>
+                                    <p className="text-[24px] font-[700] text-[#0955AC]">${analytics.totalRevenue.toFixed(0)}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                                    <div>
+                                        <p className="text-[11px] text-slate-400">Paid</p>
+                                        <p className="text-[15px] font-[700] text-emerald-600">${paymentOverview.paidAmount.toFixed(0)}</p>
                                     </div>
-                                ))}
+                                    <div>
+                                        <p className="text-[11px] text-slate-400">Pending</p>
+                                        <p className="text-[15px] font-[700] text-amber-600">${paymentOverview.pendingAmount.toFixed(0)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-slate-400">Avg. Booking</p>
+                                        <p className="text-[15px] font-[700] text-slate-700">${analytics.avgBookingValue.toFixed(0)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-slate-400">Success Rate</p>
+                                        <p className="text-[15px] font-[700] text-slate-700">{analytics.completionRate.toFixed(0)}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                            <h3 className="text-[15px] font-[700] text-slate-800">Monthly Booking Trends</h3>
+                            <p className="text-[12px] text-slate-400 mb-2">Vehicle Rental • Ticket Booking • Courier • Warehouse • Freight (last 6 months)</p>
+                            <div className="h-[260px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={monthlyTrendData} margin={{ left: -20, right: 10, top: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} />
+                                        <YAxis tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
+                                        <RTooltip />
+                                        <Legend wrapperStyle={{ fontSize: "11.5px" }} />
+                                        {trendSeries.map((s) => (
+                                            <Line key={s.key} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={2.25} dot={{ r: 2.5 }} activeDot={{ r: 4 }} />
+                                        ))}
+                                    </LineChart>
+                                </ResponsiveContainer>
                             </div>
                         </div>
                     </div>
-                </div>
-                </div>
 
+                    {/* Recent Bookings + right rail */}
+                    <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5 items-start">
+                        <div className="space-y-4 min-w-0">
+                            {/* Search & Filters */}
+                            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4 sm:p-5">
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    <div className="relative flex-1 min-w-[220px]">
+                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            value={q}
+                                            onChange={(e) => setQ(e.target.value)}
+                                            placeholder="Search bookings, reference numbers…"
+                                            className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-10 px-3 text-[13px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                        />
+                                        {q && (
+                                            <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <select
+                                        value={bookingType}
+                                        onChange={(e) => setBookingType(e.target.value)}
+                                        className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                    >
+                                        <option value="all">All Services</option>
+                                        <option value="vehicle">Vehicle Rentals</option>
+                                        <option value="tickets">All Tickets</option>
+                                        <option value="train">Train Tickets</option>
+                                        <option value="bus">Bus Tickets</option>
+                                        <option value="flight">Flight Tickets</option>
+                                        <option value="logistics">Logistics</option>
+                                        <option value="warehouse">Warehouse</option>
+                                        <option value="courier">Courier</option>
+                                        <option value="freight">Freight</option>
+                                    </select>
+                                    <button
+                                        onClick={() => setShowFilters(!showFilters)}
+                                        className={`inline-flex items-center h-10 px-3.5 rounded-lg border text-[13px] font-medium transition-colors whitespace-nowrap ${
+                                            showFilters ? "bg-[#0955AC] text-white border-[#0955AC]" : "border-slate-300 hover:bg-slate-50"
+                                        }`}
+                                    >
+                                        <Filter className="mr-1.5 h-4 w-4" /> Filters
+                                    </button>
+                                    <button
+                                        onClick={() => setShowExportModal(true)}
+                                        className="inline-flex items-center h-10 px-3.5 rounded-lg border border-slate-300 text-[13px] font-medium hover:bg-slate-50 whitespace-nowrap"
+                                    >
+                                        <Download className="mr-1.5 h-4 w-4" /> Export
+                                    </button>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="inline-flex items-center h-10 px-3 rounded-lg border border-slate-300 hover:bg-slate-50"
+                                    >
+                                        <RefreshCw className="h-4 w-4" />
+                                    </button>
+                                </div>
+
+                                <AnimatePresence>
+                                    {showFilters && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="mt-3.5 pt-3.5 border-t border-slate-200">
+                                                <div className="grid gap-2.5 md:grid-cols-5">
+                                                    <div>
+                                                        <label className="block text-[11.5px] font-medium text-slate-700 mb-1">Status</label>
+                                                        <select
+                                                            value={statusFilter}
+                                                            onChange={(e) => setStatusFilter(e.target.value)}
+                                                            className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                        >
+                                                            <option value="all">All Statuses</option>
+                                                            <option value="confirmed">Confirmed</option>
+                                                            <option value="paid">Paid</option>
+                                                            <option value="pending">Pending</option>
+                                                            <option value="active">Active</option>
+                                                            <option value="in_transit">In Transit</option>
+                                                            <option value="completed">Completed</option>
+                                                            <option value="cancelled">Cancelled</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11.5px] font-medium text-slate-700 mb-1">Sort By</label>
+                                                        <select
+                                                            value={sortBy}
+                                                            onChange={(e) => setSortBy(e.target.value)}
+                                                            className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                        >
+                                                            <option value="recent">Most Recent</option>
+                                                            <option value="upcoming">Upcoming First</option>
+                                                            <option value="amount">Highest Amount</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11.5px] font-medium text-slate-700 mb-1">Start Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={dateRange.start}
+                                                            onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value }))}
+                                                            className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11.5px] font-medium text-slate-700 mb-1">End Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={dateRange.end}
+                                                            onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value }))}
+                                                            className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-end">
+                                                        <button
+                                                            onClick={clearFilters}
+                                                            className="h-9 w-full inline-flex items-center justify-center gap-2 px-3 rounded-lg border border-slate-300 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50"
+                                                        >
+                                                            <X className="h-3.5 w-3.5" /> Clear
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3 flex items-center gap-2 text-[11.5px] text-slate-500">
+                                                    <AlertCircle className="h-3.5 w-3.5" />
+                                                    <span>
+                                                        Showing {filteredBookings.length} of {allBookings.length} bookings
+                                                        {dateRange.start && dateRange.end && ` between ${dateRange.start} and ${dateRange.end}`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Bulk action bar */}
+                            {selectedBookings.length > 0 && (
+                                <div className="rounded-xl bg-[#0955AC] text-white px-4 py-3 flex items-center justify-between gap-3">
+                                    <span className="text-[13px] font-[600]">{selectedBookings.length} selected</span>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleBulkAction("export")} className="text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5">
+                                            Export
+                                        </button>
+                                        <button onClick={() => handleBulkAction("archive")} className="text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5">
+                                            Archive
+                                        </button>
+                                        <button onClick={() => setSelectedBookings([])} className="text-[12.5px] font-[600] hover:bg-white/15 rounded-lg px-2.5 py-1.5">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Recent Bookings table */}
+                            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100">
+                                    <h3 className="text-[15px] font-[700] text-slate-800">Recent Bookings ({filteredBookings.length})</h3>
+                                </div>
+                                {visibleBookings.length === 0 ? (
+                                    <div className="px-4 py-16 text-center">
+                                        <Calendar className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                                        <p className="text-slate-500 text-[14px] font-medium">No bookings found</p>
+                                        <p className="text-slate-400 text-[12.5px] mt-1">Try adjusting your filters or make a new booking</p>
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50/70 text-[11px] uppercase tracking-wide text-slate-400">
+                                                    <th className="px-4 py-2.5 w-8">
+                                                        <button onClick={handleSelectAll} className="flex items-center">
+                                                            {selectedBookings.length === visibleBookings.length ? (
+                                                                <CheckSquare className="w-4 h-4 text-[#0955AC]" />
+                                                            ) : (
+                                                                <Square className="w-4 h-4 text-slate-300" />
+                                                            )}
+                                                        </button>
+                                                    </th>
+                                                    <th className="px-2 py-2.5 font-[600]">Service</th>
+                                                    <th className="px-2 py-2.5 font-[600] hidden sm:table-cell">Date</th>
+                                                    <th className="px-2 py-2.5 font-[600]">Status</th>
+                                                    <th className="px-2 py-2.5 font-[600] text-right">Amount</th>
+                                                    <th className="px-4 py-2.5 font-[600] text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {visibleBookings.map((booking) => (
+                                                    <tr key={booking.id} className="border-t border-slate-50 hover:bg-slate-50/60 transition-colors">
+                                                        <td className="px-4 py-3">
+                                                            <button onClick={() => handleSelectBooking(booking.id)} className="flex items-center">
+                                                                {selectedBookings.includes(booking.id) ? (
+                                                                    <CheckSquare className="w-4 h-4 text-[#0955AC]" />
+                                                                ) : (
+                                                                    <Square className="w-4 h-4 text-slate-300" />
+                                                                )}
+                                                            </button>
+                                                        </td>
+                                                        <td className="px-2 py-3">
+                                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                                <span className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+                                                                    <BookingTypeIcon type={booking.booking_type} className="w-4 h-4 text-[#0955AC]" />
+                                                                </span>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-[13px] font-[600] text-slate-800 truncate max-w-[220px]">
+                                                                        {booking.service_name || booking.vehicle_name || booking.title || "Booking"}
+                                                                    </p>
+                                                                    <p className="text-[11px] text-slate-400 truncate max-w-[220px]">
+                                                                        {booking.booking_code || booking.reference_number || `#${booking.id}`}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-2 py-3 text-[12.5px] text-slate-500 hidden sm:table-cell whitespace-nowrap">
+                                                            {new Date(booking.created_at || booking.booking_date).toLocaleDateString()}
+                                                        </td>
+                                                        <td className="px-2 py-3">
+                                                            <span
+                                                                className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${
+                                                                    statusMap[booking.status?.toLowerCase()]?.tone || statusMap.pending.tone
+                                                                }`}
+                                                            >
+                                                                {statusMap[booking.status?.toLowerCase()]?.label || booking.status || "Pending"}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-2 py-3 text-right whitespace-nowrap">
+                                                            <span className="text-[13px] font-[700] text-[#0955AC]">
+                                                                ${(parseFloat(booking.total_amount || booking.amount || 0) || 0).toFixed(2)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center justify-end gap-1.5">
+                                                                <button
+                                                                    onClick={() => handleViewDetails(booking)}
+                                                                    title="View details"
+                                                                    className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        handleViewDetails(booking);
+                                                                        setTimeout(() => setShowReceiptModal(true), 300);
+                                                                    }}
+                                                                    title="Download receipt"
+                                                                    className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                                                                >
+                                                                    <Download className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                {booking.booking_type === "vehicle" && ["confirmed", "paid", "active"].includes(booking.status?.toLowerCase()) && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setBookingToCancell(booking);
+                                                                            setShowCancellationModal(true);
+                                                                        }}
+                                                                        title="Cancel booking"
+                                                                        className="w-8 h-8 rounded-lg border border-red-200 flex items-center justify-center text-red-600 hover:bg-red-50"
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <DashboardRightPanel notifications={notifications} />
+                    </div>
+                </div>
+            </div>
+
+
+            <div className="contents">
                 {/* Export Modal */}
                 <AnimatePresence>
                     {showExportModal && (

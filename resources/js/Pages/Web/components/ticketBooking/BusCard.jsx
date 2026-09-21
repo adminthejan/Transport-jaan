@@ -1,10 +1,36 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
-import { MapPin, ArrowLeftRight, CalendarDays, Search, Bus as BusIcon } from "lucide-react";
+import { MapPin, ArrowLeftRight, CalendarDays, Search } from "lucide-react";
 import { useLocale } from "../../context/LocaleContext";
 import PassengerSelector from "./PassengerSelector";
-import CardHeader from "./shared/CardHeader";
+import TripRouteMap from "./TripRouteMap";
 import { AutoCompleteField, DateField, SubmitButton, SegmentedControl, SwapButton } from "./shared/FormElements";
+
+// Approximate coordinates for each bus station — placeholder data so the
+// search form can preview the route on a map before results load (no
+// geocoding backend yet).
+const BUS_STATION_COORDS = {
+    "Colombo Central Bus Stand": { lat: 6.9319, lng: 79.8478 },
+    "Pettah Bus Station": { lat: 6.9358, lng: 79.8500 },
+    "Kandy Bus Terminal": { lat: 7.2924, lng: 80.6337 },
+    "Galle Bus Station": { lat: 6.0329, lng: 80.2168 },
+    "Matara Bus Station": { lat: 5.9549, lng: 80.5540 },
+    "Anuradhapura Bus Station": { lat: 8.3114, lng: 80.4037 },
+    "Kurunegala Bus Station": { lat: 7.4867, lng: 80.3647 },
+    "Ratnapura Bus Station": { lat: 6.6828, lng: 80.3992 },
+    "Badulla Bus Station": { lat: 6.9934, lng: 81.0550 },
+    "Jaffna Bus Station": { lat: 9.6615, lng: 80.0255 },
+    "Negombo Bus Station": { lat: 7.2083, lng: 79.8358 },
+    "Gampaha Bus Station": { lat: 7.0917, lng: 80.0000 },
+    "Kalutara Bus Station": { lat: 6.5854, lng: 79.9607 },
+    "Hambantota Bus Station": { lat: 6.1246, lng: 81.1185 },
+    "Trincomalee Bus Station": { lat: 8.5711, lng: 81.2335 },
+    "Batticaloa Bus Station": { lat: 7.7170, lng: 81.7000 },
+    "Polonnaruwa Bus Station": { lat: 7.9403, lng: 81.0188 },
+    "Nuwara Eliya Bus Station": { lat: 6.9497, lng: 80.7891 },
+    "Bandarawela Bus Station": { lat: 6.8333, lng: 80.9833 },
+    "Chilaw Bus Station": { lat: 7.5750, lng: 79.7953 },
+};
 
 const BusCard = () => {
     const { t } = useLocale();
@@ -53,6 +79,18 @@ const BusCard = () => {
         setBusTo(busFrom);
     };
 
+    // Preview route on a map once both stations are picked and recognized —
+    // uses the placeholder coordinates above since there's no geocoding yet.
+    const previewRoute = useMemo(() => {
+        const origin = BUS_STATION_COORDS[busFrom];
+        const destination = BUS_STATION_COORDS[busTo];
+        if (!origin || !destination) return null;
+        return {
+            origin: { ...origin, label: busFrom },
+            destination: { ...destination, label: busTo },
+        };
+    }, [busFrom, busTo]);
+
     const onSubmitBus = (e) => {
         e.preventDefault();
 
@@ -80,80 +118,126 @@ const BusCard = () => {
     };
 
     return (
-        <div className="bg-white rounded-[22px] shadow-[0_20px_60px_rgba(9,85,172,0.14)] border border-black/5 overflow-hidden">
-            <CardHeader icon={BusIcon} title={t("find_your_buses", "Find Your Buses")} subtitle="Every route, every operator — one search." />
-
-            <form onSubmit={onSubmitBus} className="p-6 sm:p-8">
-                <SegmentedControl
-                    value={tripType}
-                    onChange={setTripType}
-                    options={[
-                        { value: "oneway", label: t("one_way", "One way") },
-                        { value: "roundtrip", label: t("round_trip", "Round Trip") },
-                    ]}
-                />
-
-                {/* From / To with swap button */}
-                <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-14 mb-4">
-                    <AutoCompleteField
-                        label={t("from", "FROM").toUpperCase()}
-                        id="busFrom"
-                        value={busFrom}
-                        onChange={setBusFrom}
-                        placeholder="Search departure station"
-                        error={errors.busFrom && "Departure station is required"}
-                        icon={MapPin}
-                        iconColor="text-[#0955AC]"
-                        options={stationOptions}
+        <div className="figtree bg-white p-4 sm:p-5 lg:p-6 rounded-[20px] border border-black/5 shadow-[0_12px_32px_rgba(9,85,172,0.10)]">
+            <form onSubmit={onSubmitBus}>
+                {/* Trip Type Segmented Control */}
+                <div className="flex items-center justify-between gap-3 mb-3.5">
+                    <SegmentedControl
+                        value={tripType}
+                        onChange={setTripType}
+                        variant="boxed"
+                        options={[
+                            { value: "oneway", label: t("one_way", "One way") },
+                            { value: "roundtrip", label: t("round_trip", "Round Trip") },
+                            { value: "multicity", label: t("multi_city", "Multi-city") },
+                        ]}
                     />
-                    <AutoCompleteField
-                        label={t("to", "TO").toUpperCase()}
-                        id="busTo"
-                        value={busTo}
-                        onChange={setBusTo}
-                        placeholder="Search destination station"
-                        error={errors.busTo && "Destination station is required"}
-                        icon={MapPin}
-                        iconBg="bg-[#FDEDEA]"
-                        iconColor="text-[#EF3826]"
-                        options={stationOptions}
-                    />
-                    <SwapButton onClick={swapStations} icon={ArrowLeftRight} />
                 </div>
 
-                {/* Dates */}
-                <div className={`grid gap-4 mb-6 ${tripType === 'roundtrip' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-                    <DateField
-                        label={t("journey_date", "JOURNEY DATE").toUpperCase()}
-                        id="busDate"
-                        value={busDate}
-                        onChange={(e) => setBusDate(e.target.value)}
-                        error={errors.busDate && "Journey date is required"}
-                        icon={CalendarDays}
-                        iconColor="text-[#0955AC]"
-                        min={new Date().toISOString().split('T')[0]}
-                    />
+                {/* All Search Contents in ONE Horizontal Row */}
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-start gap-2.5 sm:gap-3">
+                    {/* From Station */}
+                    <div className="flex-1 min-w-0">
+                        <AutoCompleteField
+                            label={t("from", "FROM").toUpperCase()}
+                            id="busFrom"
+                            value={busFrom}
+                            onChange={setBusFrom}
+                            placeholder="Departure station"
+                            error={errors.busFrom && "Required"}
+                            icon={MapPin}
+                            iconColor="text-[#0955AC]"
+                            variant="outline"
+                            options={stationOptions}
+                        />
+                    </div>
 
-                    {tripType === 'roundtrip' && (
-                        <DateField
-                            label={t("return_date", "RETURN DATE").toUpperCase()}
-                            id="returnDate"
-                            value={returnDate}
-                            onChange={(e) => setReturnDate(e.target.value)}
-                            error={errors.returnDate && "Return date is required"}
-                            icon={CalendarDays}
+                    {/* Swap Button */}
+                    <div className="hidden lg:flex items-center justify-center pt-5 shrink-0">
+                        <button
+                            type="button"
+                            onClick={swapStations}
+                            title="Swap departure and destination"
+                            className="w-8 h-8 rounded-full border border-gray-200 bg-white hover:bg-[#EAF1FE] text-[#0955AC] flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
+                        >
+                            <ArrowLeftRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+
+                    {/* To Station */}
+                    <div className="flex-1 min-w-0">
+                        <AutoCompleteField
+                            label={t("to", "TO").toUpperCase()}
+                            id="busTo"
+                            value={busTo}
+                            onChange={setBusTo}
+                            placeholder="Destination station"
+                            error={errors.busTo && "Required"}
+                            icon={MapPin}
                             iconBg="bg-[#FDEDEA]"
                             iconColor="text-[#EF3826]"
-                            min={busDate || new Date().toISOString().split('T')[0]}
+                            variant="outline"
+                            options={stationOptions}
                         />
+                    </div>
+
+                    {/* Journey Date */}
+                    <div className={`w-full ${tripType === 'roundtrip' ? 'lg:w-[145px] xl:w-[160px]' : 'lg:w-[160px] xl:w-[180px]'} shrink-0`}>
+                        <DateField
+                            label={t("journey_date", "JOURNEY DATE").toUpperCase()}
+                            id="busDate"
+                            value={busDate}
+                            onChange={(e) => setBusDate(e.target.value)}
+                            error={errors.busDate && "Required"}
+                            icon={CalendarDays}
+                            iconColor="text-[#0955AC]"
+                            variant="outline"
+                            min={new Date().toISOString().split('T')[0]}
+                        />
+                    </div>
+
+                    {/* Return Date if Round Trip */}
+                    {tripType === 'roundtrip' && (
+                        <div className="w-full lg:w-[145px] xl:w-[160px] shrink-0">
+                            <DateField
+                                label={t("return_date", "RETURN DATE").toUpperCase()}
+                                id="returnDate"
+                                value={returnDate}
+                                onChange={(e) => setReturnDate(e.target.value)}
+                                error={errors.returnDate && "Required"}
+                                icon={CalendarDays}
+                                iconBg="bg-[#FDEDEA]"
+                                iconColor="text-[#EF3826]"
+                                variant="outline"
+                                min={busDate || new Date().toISOString().split('T')[0]}
+                            />
+                        </div>
                     )}
+
+                    {/* Passengers */}
+                    <div className={`w-full ${tripType === 'roundtrip' ? 'lg:w-[145px] xl:w-[160px]' : 'lg:w-[160px] xl:w-[180px]'} shrink-0`}>
+                        <PassengerSelector value={passengers} onChange={setPassengers} />
+                    </div>
+
+                    {/* Search Buses Button */}
+                    <div className="w-full lg:w-auto shrink-0 flex flex-col justify-end pt-5 lg:pt-0">
+                        <div className="hidden lg:block h-[18px]" /> {/* Spacer aligning with field label */}
+                        <button
+                            type="submit"
+                            title={t("search_buses", "Search Buses")}
+                            aria-label={t("search_buses", "Search Buses")}
+                            className="bg-[#0955AC] text-white font-bold h-[46px] sm:h-[48px] w-full lg:w-[48px] flex items-center justify-center rounded-[10px] focus:outline-none cursor-pointer hover:bg-[#074494] transition-colors shadow-[0_8px_18px_rgba(9,85,172,0.25)] shrink-0"
+                        >
+                            <Search className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
-                <div className="mb-7">
-                    <PassengerSelector value={passengers} onChange={setPassengers} />
-                </div>
-
-                <SubmitButton icon={Search} iconPosition="left">{t("search_buses", "Search Buses")}</SubmitButton>
+                {previewRoute && (
+                    <div className="mt-3.5">
+                        <TripRouteMap route={previewRoute} className="h-[200px]" />
+                    </div>
+                )}
             </form>
         </div>
     );

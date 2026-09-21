@@ -1,12 +1,74 @@
-import React from "react";
-import { Head, usePage } from "@inertiajs/react";
+import React, { useMemo } from "react";
+import { Head, usePage, router } from "@inertiajs/react";
 import Header from "../client/ClientHeader";
 import { ModuleTabs, TicketSubTabs } from "../../components/ModuleTabs";
 import FlightForm from "../../components/ticketBooking/FlightForm";
-import { CheckCircle2, AlertCircle, PlaneTakeoff } from "lucide-react";
+import { CheckCircle2, AlertCircle, PlaneTakeoff, PlaneLanding, CalendarDays, Users, ArrowRight, Sparkles } from "lucide-react";
+
+// Illustrative example routes only — this platform runs on a "request a
+// quote" model (no live flight inventory), so these are clearly labeled as
+// examples rather than presented as bookable search results. Mirrors the
+// shape of the flight entry already used in TicketBooking.jsx's popular
+// routes list.
+const EXAMPLE_ROUTES = [
+    {
+        operator: "Cinnamon Air",
+        badge: "Scenic Seaplane",
+        from: "Colombo (Waters Edge)",
+        to: "Castlereagh (Hatton)",
+        duration: "30m",
+        price: "from USD 180",
+        amenities: ["Seaplane", "Luggage 20kg", "VIP Lounge"],
+    },
+    {
+        operator: "Charter Aviation Partner",
+        badge: "Domestic Air",
+        from: "Colombo (Ratmalana)",
+        to: "Jaffna",
+        duration: "~1h 15m",
+        price: "from USD 220",
+        amenities: ["Twin-Engine Aircraft", "6 Seats", "Door-to-Door Transfer"],
+    },
+    {
+        operator: "Charter Aviation Partner",
+        badge: "Domestic Air",
+        from: "Colombo (BIA)",
+        to: "Trincomalee",
+        duration: "~1h",
+        price: "from USD 250",
+        amenities: ["Private Charter", "Flexible Schedule", "Priority Check-in"],
+    },
+];
 
 const FlightBooking = () => {
-    const { flash } = usePage().props;
+    const { props: { flash }, url } = usePage();
+
+    // Read back what was searched (if the visitor arrived via a search card)
+    // to show a Skyscanner-style trip summary above the quote form.
+    const search = useMemo(() => {
+        if (typeof window === "undefined") return null;
+        const sp = new URLSearchParams(window.location.search || "");
+        const departure = sp.get("departure_airport");
+        const arrival = sp.get("arriving_airport");
+        if (!departure && !arrival) return null;
+        return {
+            departure,
+            arrival,
+            departureDate: sp.get("departure_date"),
+            returnDate: sp.get("return_date"),
+            tripType: sp.get("trip_type") || "oneway",
+            travellers: sp.get("travellers_summary"),
+        };
+    }, [url]);
+
+    const requestRouteQuote = (route) => {
+        router.get("/flightBooking", {
+            departure_airport: route.from,
+            arriving_airport: route.to,
+            subject: `${route.operator} — ${route.badge}`,
+        });
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    };
 
     return (
         <div className="bg-[#F6F7F9] min-h-screen">
@@ -37,6 +99,81 @@ const FlightBooking = () => {
             </div>
 
             <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-10">
+                {/* Trip summary — echoes back what was searched, if the visitor arrived via a search card */}
+                {search && (
+                    <div className="mb-6 bg-white rounded-[18px] border border-black/5 shadow-[0_2px_10px_rgba(15,23,42,0.05)] p-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+                        <div className="flex items-center gap-2">
+                            <PlaneTakeoff className="w-4 h-4 text-[#0955AC] flex-shrink-0" />
+                            <span className="text-[14px] font-[700] text-[#0F172A]">{search.departure || "?"}</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
+                        <div className="flex items-center gap-2">
+                            <PlaneLanding className="w-4 h-4 text-[#EF3826] flex-shrink-0" />
+                            <span className="text-[14px] font-[700] text-[#0F172A]">{search.arrival || "?"}</span>
+                        </div>
+                        {search.departureDate && (
+                            <div className="flex items-center gap-2 text-[13px] text-[#64748B] font-[600]">
+                                <CalendarDays className="w-4 h-4 text-[#0955AC] flex-shrink-0" />
+                                {search.departureDate}{search.returnDate ? ` — ${search.returnDate}` : ""}
+                            </div>
+                        )}
+                        {search.travellers && (
+                            <div className="flex items-center gap-2 text-[13px] text-[#64748B] font-[600]">
+                                <Users className="w-4 h-4 text-[#0955AC] flex-shrink-0" />
+                                {search.travellers}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Example routes — illustrative only (no live inventory), not search results */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Sparkles className="w-4 h-4 text-[#0955AC]" />
+                        <h2 className="text-[12px] font-[700] text-[#64748B] uppercase tracking-widest">
+                            Popular Charter Routes — For Illustration
+                        </h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {EXAMPLE_ROUTES.map((route, i) => (
+                            <div
+                                key={i}
+                                className="bg-white rounded-[16px] border border-black/5 shadow-sm p-4 flex flex-col justify-between hover:shadow-md transition-shadow duration-200"
+                            >
+                                <div>
+                                    <span className="inline-flex items-center gap-1 bg-[#EAF1FE] text-[#0955AC] text-[10.5px] font-[700] px-2.5 py-1 rounded-full mb-3">
+                                        {route.badge}
+                                    </span>
+                                    <p className="text-[12px] text-[#64748B] font-[600] mb-1.5">{route.operator}</p>
+                                    <div className="flex items-center gap-1.5 text-[13px] font-[700] text-[#0F172A] mb-1">
+                                        <span className="truncate">{route.from}</span>
+                                        <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] flex-shrink-0" />
+                                        <span className="truncate">{route.to}</span>
+                                    </div>
+                                    <p className="text-[11px] text-[#94A3B8] mb-3">{route.duration}</p>
+                                    <div className="flex flex-wrap gap-1 mb-3">
+                                        {route.amenities.map((a) => (
+                                            <span key={a} className="text-[10px] font-[600] text-[#475569] bg-[#F8FAFC] border border-black/5 px-1.5 py-0.5 rounded">
+                                                {a}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between mt-2 pt-3 border-t border-[#F1F5F9]">
+                                    <span className="text-[14px] font-[800] text-[#0955AC]">{route.price}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => requestRouteQuote(route)}
+                                        className="text-[11.5px] font-[700] text-[#0955AC] hover:underline cursor-pointer flex items-center gap-1"
+                                    >
+                                        Request Quote <ArrowRight className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Success message */}
                 {flash?.success && (
                     <div className="mb-6 flex items-start gap-3 rounded-2xl bg-white border border-emerald-100 shadow-[0_2px_10px_rgba(15,23,42,0.05)] p-5">

@@ -34,6 +34,7 @@ import {
 import CompanyLogo from "../../components/CompanyLogo";
 import DashboardSearchModal from "@/Components/search/DashboardSearchModal";
 import { buildClientDashboardSearchEntries } from "@/search/dashboardSearchCatalog";
+import TrackWidget from "../../components/track/TrackWidget";
 
 const SidebarLink = ({ href, icon: Icon, label, active, onClick }) => (
     <Link
@@ -100,6 +101,7 @@ const ClientHeader = () => {
     const { auth } = usePage().props;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isTrackOpen, setIsTrackOpen] = useState(false);
     const [actionModalState, setActionModalState] = useState({ isOpen: false });
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -107,6 +109,7 @@ const ClientHeader = () => {
         vehicle: false,
         ticket: false,
         courier: false,
+        track: false,
     });
 
     const clientSearchItems = useMemo(() => buildClientDashboardSearchEntries(), []);
@@ -138,6 +141,7 @@ const ClientHeader = () => {
             vehicle: key === "vehicle" ? !prev.vehicle : false,
             ticket: key === "ticket" ? !prev.ticket : false,
             courier: key === "courier" ? !prev.courier : false,
+            track: key === "track" ? !prev.track : false,
         }));
     };
 
@@ -320,14 +324,28 @@ const ClientHeader = () => {
 
                     {/* Desktop-only action items */}
                     <div className="hidden md:flex items-center gap-3">
-                        <Link
-                            href="/track"
-                            className="h-[48px] px-4 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center gap-2"
-                            title="Track any order"
-                        >
-                            <PackageSearch className="w-[18px] h-[18px] text-[#0955AC]" />
-                            <span className="text-[13px] font-[700] text-[#0955AC] whitespace-nowrap">Track</span>
-                        </Link>
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setIsTrackOpen((prev) => !prev)}
+                                className="h-[48px] px-4 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center gap-2"
+                                title="Track any order"
+                            >
+                                <PackageSearch className="w-[18px] h-[18px] text-[#0955AC]" />
+                                <span className="text-[13px] font-[700] text-[#0955AC] whitespace-nowrap">Track</span>
+                                <ChevronDown className={`w-3.5 h-3.5 text-[#0955AC] transition-transform ${isTrackOpen ? "rotate-180" : ""}`} />
+                            </button>
+
+                            {isTrackOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setIsTrackOpen(false)} />
+                                    <div className="absolute right-0 mt-2 w-[320px] bg-white rounded-xl shadow-lg border border-gray-100 z-50 p-4">
+                                        <p className="text-sm font-semibold text-gray-800 mb-3">Track a booking</p>
+                                        <TrackWidget onNavigate={() => setIsTrackOpen(false)} />
+                                    </div>
+                                </>
+                            )}
+                        </div>
                         {auth?.user && (
                             <button
                                 type="button"
@@ -508,12 +526,17 @@ const ClientHeader = () => {
 
                         {/* Navigation */}
                         <nav className="flex-1 overflow-y-auto scrollbar-hide px-5 pt-5 pb-3 flex flex-col gap-1">
-                            <SidebarLink
-                                href="/track"
-                                icon={SearchIcon}
-                                label="Track Any Order"
-                                onClick={toggleMenu}
-                            />
+                            <SidebarAccordion
+                                icon={PackageSearch}
+                                label="Track a Booking"
+                                isOpen={openDropdown.track}
+                                onToggle={() => toggleDropdown("track")}
+                                panelId="track-dropdown"
+                            >
+                                <div className="pr-2 py-1">
+                                    <TrackWidget onNavigate={toggleMenu} />
+                                </div>
+                            </SidebarAccordion>
 
                             <SidebarAccordion
                                 icon={Car}
@@ -522,9 +545,9 @@ const ClientHeader = () => {
                                 onToggle={() => toggleDropdown("vehicle")}
                                 panelId="vehicle-dropdown"
                             >
-                                <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=land" label="Land" onClick={toggleMenu} />
-                                <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=air" label="Air" onClick={toggleMenu} />
-                                <SidebarSubLink href="/multiModel/plan-journey?tab=rental&subTab=sea" label="Sea" onClick={toggleMenu} />
+                                <SidebarSubLink href="/vehicleList" label="Land" onClick={toggleMenu} />
+                                <SidebarSubLink href="/airVehicleList" label="Air" onClick={toggleMenu} />
+                                <SidebarSubLink href="/seaVehicleList" label="Sea" onClick={toggleMenu} />
                                 <SidebarSubLink href="/track-vehicle-booking" label="Track Booking" onClick={toggleMenu} />
                             </SidebarAccordion>
 
@@ -535,9 +558,9 @@ const ClientHeader = () => {
                                 onToggle={() => toggleDropdown("ticket")}
                                 panelId="ticket-dropdown"
                             >
-                                <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=flight" label="Flight" onClick={toggleMenu} />
-                                <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=train" label="Train" onClick={toggleMenu} />
-                                <SidebarSubLink href="/multiModel/plan-journey?tab=ticket&subTab=bus" label="Bus" onClick={toggleMenu} />
+                                <SidebarSubLink href="/ticketBooking?type=flight" label="Flight" onClick={toggleMenu} />
+                                <SidebarSubLink href="/trainTicketBookingDetails" label="Train" onClick={toggleMenu} />
+                                <SidebarSubLink href="/busTicketBookingDetails" label="Bus" onClick={toggleMenu} />
                                 <SidebarSubLink href="/track-ticket-booking" label="Track Booking" onClick={toggleMenu} />
                             </SidebarAccordion>
 

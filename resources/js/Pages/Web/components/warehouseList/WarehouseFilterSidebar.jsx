@@ -167,22 +167,41 @@ const ProvinceGroup = ({ province, selectedDistricts, onToggleDistrict, defaultO
   );
 };
 
-const FilterSection = ({ icon, title, subtitle, count, children }) => (
-  <div className="filter-section mb-7 pb-6 border-b border-[#00000014] last:border-b-0 last:mb-0 last:pb-0">
-    <div className="flex items-center gap-2 mb-1">
-      {icon}
-      <h3 className="bebas-neue text-[18px] text-[#0F0F0F] tracking-wide">{title}</h3>
-      {count > 0 && (
-        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0955AC1A] text-[#0955AC] text-[10px] font-[700]">
-          {count}
-        </span>
-      )}
+const FilterSection = ({ icon, title, count = 0, defaultOpen = true, children }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen || count > 0);
+
+  useEffect(() => {
+    if (count > 0) setIsOpen(true);
+  }, [count]);
+
+  return (
+    <div className="filter-section mb-4 pb-4 border-b border-[#00000014] last:border-b-0 last:mb-0 last:pb-0">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full text-left py-1 group cursor-pointer focus:outline-none"
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="bebas-neue text-[17px] text-[#0F0F0F] tracking-wide group-hover:text-[#0955AC] transition-colors">
+            {title}
+          </h3>
+          {count > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0955AC1A] text-[#0955AC] text-[10px] font-[700]">
+              {count}
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 group-hover:text-[#0955AC] ${
+            isOpen ? "rotate-180 text-[#0955AC]" : ""
+          }`}
+        />
+      </button>
+      {isOpen && <div className="pt-2">{children}</div>}
     </div>
-    {subtitle && <p className="text-[10px] text-[#0F0F0F66] mb-3">{subtitle}</p>}
-    {!subtitle && <div className="mb-3" />}
-    {children}
-  </div>
-);
+  );
+};
 
 const WarehouseFilterSidebar = ({ searchParams }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -264,10 +283,11 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
 
       {/* Sidebar */}
       <div
-        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[15px] shadow-lg shadow-[#00000014] border border-[#0000000D] p-5
-          fixed xl:sticky xl:top-6
+        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[20px] shadow-[0_8px_24px_rgba(11,27,52,0.08)] border border-black/5 p-4 sm:p-5
+          fixed xl:sticky xl:top-4
           top-0 left-0
           h-full xl:h-auto
+          xl:max-h-[calc(100vh-2rem)]
           overflow-y-auto
           w-[283px] xl:w-[260px] xl:shrink-0
           transform transition-transform duration-300 ease-in-out
@@ -282,10 +302,10 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#00000014]">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#00000014]">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-[#0955AC]" />
-            <h2 className="bebas-neue text-[22px] text-[#0F0F0F] tracking-wide">FILTERS</h2>
+            <h2 className="bebas-neue text-[20px] text-[#0F0F0F] tracking-wide">FILTERS</h2>
           </div>
           {activeCount > 0 && (
             <button
@@ -293,7 +313,7 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
               onClick={clearAll}
               className="text-[11px] font-[600] text-[#0955AC] hover:underline cursor-pointer"
             >
-              Clear All
+              Clear All ({activeCount})
             </button>
           )}
         </div>
@@ -301,7 +321,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
         <FilterSection
           icon={<Warehouse className="w-4 h-4 text-[#0955AC]" />}
           title="WAREHOUSE TYPE"
-          subtitle="The kind of facility."
           count={selectedTypes.length}
         >
           {WAREHOUSE_TYPES.map((type) => (
@@ -317,7 +336,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
         <FilterSection
           icon={<PackageSearch className="w-4 h-4 text-[#0955AC]" />}
           title="SERVICES"
-          subtitle="What can be booked on top of storage."
           count={selectedServices.length}
         >
           {SERVICES.map((service) => (
@@ -333,7 +351,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
         <FilterSection
           icon={<MapPin className="w-4 h-4 text-[#0955AC]" />}
           title="LOCATION"
-          subtitle="Province and district."
           count={selectedDistricts.length}
         >
           {PROVINCES.map((province) => (

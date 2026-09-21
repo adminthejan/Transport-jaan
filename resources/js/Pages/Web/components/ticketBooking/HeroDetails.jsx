@@ -4,6 +4,7 @@ import { Clock, Users, TrainFront, ArrowUpDown, Snowflake, Droplet, Tv, Usb, Cam
 import TrainCard from "./TrainCard";
 import LocaleSelector from "./LocaleSelector";
 import TripRouteMap from "./TripRouteMap";
+import TransportCompareCard from "./TransportCompareCard";
 import { LocaleProvider, useLocale } from "../../context/LocaleContext";
 
 // Trains store facilities as short codes (see trains.facilities migration
@@ -235,6 +236,18 @@ function HeroDetailsInner({
     const sortedOutboundSchedules = sortSchedules(outboundSchedules.filter(matchesDepartureTimeFilter), sortBy);
     const sortedReturnSchedules = sortSchedules(returnSchedules.filter(matchesDepartureTimeFilter), sortBy);
 
+    // Own-mode (train) summary for the compare card — no extra request needed
+    // since the results are already loaded.
+    const ownSummary = useMemo(() => {
+        if (!outboundSchedules || outboundSchedules.length === 0) return null;
+        const cheapest = [...outboundSchedules].sort((a, b) => a.price - b.price)[0];
+        const fastest = [...outboundSchedules].sort((a, b) => parseDurationMinutes(a.duration) - parseDurationMinutes(b.duration))[0];
+        return {
+            cheapest: { price: cheapest.price, duration: cheapest.duration },
+            fastest: { price: fastest.price, duration: fastest.duration },
+        };
+    }, [outboundSchedules]);
+
     // Which facility icons actually show up in this result set, so the
     // legend only explains icons the passenger is actually seeing.
     const facilitiesInView = useMemo(() => {
@@ -395,6 +408,18 @@ function HeroDetailsInner({
 
             <div className={`grid grid-cols-1 gap-6 items-start flex-1 min-w-0 ${route ? 'lg:grid-cols-3' : ''}`}>
             <div className={`min-w-0 ${route ? 'lg:col-span-2' : ''}`}>
+
+            {/* Compare with Bus — same route/date, matched by city since bus
+                and train stations are separate named datasets. */}
+            {(!isRoundTrip || activeLeg === 'outbound') && (
+                <TransportCompareCard
+                    mode="train"
+                    fromCity={searchParams.fromCity}
+                    toCity={searchParams.toCity}
+                    date={searchParams.departureDate}
+                    ownSummary={ownSummary}
+                />
+            )}
 
             {/* Nearby dates — browse a few extra days without re-searching. */}
             {nearbyDates.length > 0 && (!isRoundTrip || activeLeg === 'outbound') && (
