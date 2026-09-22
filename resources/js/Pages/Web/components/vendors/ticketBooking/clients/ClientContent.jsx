@@ -12,7 +12,7 @@ import ClientTable from "./ClientTable";
 import UserDropdown from "../../UserDropdown";
 
 const ClientContent = () => {
-    const { auth } = usePage().props;
+    const { auth, server_error } = usePage().props;
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
 
@@ -40,6 +40,12 @@ const ClientContent = () => {
                 </div>
             </div>
             {/* end of header section */}
+
+            {server_error && (
+                <div className="mt-6 w-full rounded-[10px] border border-[#FF0000] bg-[#FF00000D] px-5 py-4 text-[14px] font-[600] text-[#FF0000]">
+                    {server_error}
+                </div>
+            )}
 
             <div
                 className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-5 lg:px-10 py-10"

@@ -613,6 +613,25 @@ class WarehouseBookingController extends Controller
                 throw new \Exception('Selected warehouse is no longer available.');
             }
 
+            // Prevent overselling the same physical space to overlapping bookings.
+            // The row lock above serializes concurrent requests for this warehouse,
+            // so the sum read here is safe from a race with another request's insert.
+            $capacity = (float) ($warehouse->capacity ?? 0);
+            if ($capacity > 0) {
+                $requestedEndDate = $validated['end_date']
+                    ?? \Carbon\Carbon::parse($validated['start_date'])->addMonths($validated['duration_months'] ?? 1)->toDateString();
+
+                $overlappingSpace = (float) WarehouseBooking::where('warehouse_unit_id', $warehouse->id)
+                    ->whereIn('status', ['pending', 'confirmed', 'active'])
+                    ->where('start_date', '<', $requestedEndDate)
+                    ->where('end_date', '>', $validated['start_date'])
+                    ->sum('required_space');
+
+                if ($overlappingSpace + $validated['required_space'] > $capacity) {
+                    throw new \Exception('Not enough available space in this warehouse for the selected dates.');
+                }
+            }
+
             // Generate a unique booking reference
             $bookingReference = 'WH-' . strtoupper(substr(md5(time() . Auth::id()), 0, 8));
             

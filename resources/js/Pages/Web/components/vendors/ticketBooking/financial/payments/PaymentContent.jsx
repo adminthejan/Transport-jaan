@@ -1,226 +1,85 @@
-import React, { useState } from "react";
-import { usePage, Link } from "@inertiajs/react";
+import React, { useMemo, useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-
-import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../../../assets/vendors/dashboard/proPic.svg";
-import logOutLogo from "../../../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
-
-import upArrow from "../../../../../assets/vendors/dashboard/icons/upArrow.svg";
 import wallet from "../../../../../assets/financial/expenses/wallet.svg";
 import income from "../../../../../assets/financial/expenses/income.svg";
 import expenses from "../../../../../assets/financial/expenses/expenses.svg";
-import dotThree from "../../../../../assets/financial/expenses/dots3.svg";
 import filterIcon from "../../../../../assets/vendors/dashboard/icons/filterIcon.svg";
 import miniSearchIcon from "../../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import miniDownArrow from "../../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 import downloadLogo from "../../../../../assets/financial/expenses/download.svg";
-import calendar from "../../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
+import upArrow from "../../../../../assets/vendors/dashboard/icons/upArrow.svg";
 
-import UserDropdown from "../../../UserDropdown";
+const PAYMENT_STATUS_STYLES = {
+  Paid: { color: "#50AE31", bg: "#6DB4464D" },
+  Pending: { color: "#F0BB0D", bg: "#FFCD294D" },
+  Failed: { color: "#FF0000", bg: "#FF00004D" },
+  Refunded: { color: "#7B7B7A", bg: "#CCCCCC4D" },
+};
+
+const getPaymentStatusStyle = (status) =>
+  PAYMENT_STATUS_STYLES[status] || { color: "#7B7B7A", bg: "#CCCCCC4D" };
+
+const formatCurrency = (value) => {
+  const amount = Number(value) || 0;
+  return `Rs. ${amount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const formatDate = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
 
 const PaymentContent = () => {
-  const { auth } = usePage().props;
+  const {
+    auth,
+    transactions: propsTransactions,
+    stats,
+    server_error,
+  } = usePage().props;
   const user = auth?.user;
-  const isVerified = user?.status === 'verified' || user?.status === 'Verified';
 
-  const transactions = [
-    {
-      id: "JV-L001",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L002",
-      client: "Alice Jhonson",
-      car: "Tucson Hyundai",
-      rentPerDay: "$2000",
-      days: "04",
-      amount: "$2000",
-      dueDate: "2025.08.10",
-      status: "Pending",
-      statusColor: "#F0BB0D",
-      statusBg: "#FFCD294D",
-    },
-    {
-      id: "JV-L003",
-      client: "Alice Jhonson",
-      car: "Tucson Hyundai",
-      rentPerDay: "$2000",
-      days: "04",
-      amount: "$2000",
-      dueDate: "2025.08.10",
-      status: "Pending",
-      statusColor: "#F0BB0D",
-      statusBg: "#FFCD294D",
-    },
-    {
-      id: "JV-L004",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L005",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L006",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L007",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L008",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L009",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L0010",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L0011",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L0012",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L0013",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L0014",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-    {
-      id: "JV-L0015",
-      client: "Bob Smith",
-      car: "Tucson Hyundai",
-      rentPerDay: "$100",
-      days: "03",
-      amount: "$100",
-      dueDate: "2025.08.10",
-      status: "Completed",
-      statusColor: "#50AE31",
-      statusBg: "#6DB4464D",
-    },
-  ];
+  const transactions = useMemo(() => propsTransactions || [], [propsTransactions]);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  const filteredTransactions = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return transactions.filter((txn) => {
+      const matchesSearch =
+        !term ||
+        txn.id?.toLowerCase().includes(term) ||
+        txn.clientName?.toLowerCase().includes(term) ||
+        txn.unitName?.toLowerCase().includes(term) ||
+        txn.route?.toLowerCase().includes(term);
+      const matchesStatus =
+        !statusFilter || txn.paymentStatus === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [transactions, searchTerm, statusFilter]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedRows, setSelectedRows] = useState(new Set());
   const perPageOptions = [5, 10, 20, 50];
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
   const startIdx = (currentPage - 1) * itemsPerPage;
   const endIdx = startIdx + itemsPerPage;
-  const currentTransactions = transactions.slice(startIdx, endIdx);
+  const currentTransactions = filteredTransactions.slice(startIdx, endIdx);
 
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
@@ -235,7 +94,13 @@ const PaymentContent = () => {
       if (currentPage <= 3) {
         pages.push(1, 2, 3, "...", totalPages);
       } else if (currentPage >= totalPages - 2) {
-        pages.push(1, "...", totalPages - 2, totalPages - 1, totalPages);
+        pages.push(
+          1,
+          "...",
+          totalPages - 2,
+          totalPages - 1,
+          totalPages
+        );
       } else {
         pages.push(
           1,
@@ -278,28 +143,30 @@ const PaymentContent = () => {
     doc.setFontSize(18);
     doc.text("Recent Transactions", 14, 20);
 
-    const tableData = transactions.map((txn) => [
+    const tableData = filteredTransactions.map((txn) => [
       txn.id,
-      txn.client,
-      txn.car,
-      txn.rentPerDay,
-      txn.days,
-      txn.amount,
-      txn.dueDate,
+      txn.bookingType === "train" ? "Train" : "Bus",
+      txn.clientName,
+      txn.unitName,
+      txn.route,
+      formatDate(txn.travelDate),
+      formatCurrency(txn.amount),
       txn.status,
+      txn.paymentStatus,
     ]);
 
     autoTable(doc, {
       head: [
         [
           "Invoice Id",
+          "Type",
           "Client Name",
-          "Car Model",
-          "Rent Per Day",
-          "Days",
+          "Unit",
+          "Route",
+          "Travel Date",
           "Amount",
-          "DueDate",
           "Status",
+          "Payment",
         ],
       ],
       body: tableData,
@@ -312,29 +179,19 @@ const PaymentContent = () => {
       },
       styles: {
         cellPadding: 2,
-        fontSize: 10,
+        fontSize: 9,
         textColor: [0, 0, 0],
         lineWidth: 0.1,
         lineColor: [0, 0, 0],
       },
-      columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 25 },
-        4: { cellWidth: 15 },
-        5: { cellWidth: 25 },
-        6: { cellWidth: 25 },
-        7: { cellWidth: 20 },
-      },
     });
 
-    doc.save("transactions.pdf");
+    doc.save("ticket-booking-transactions.pdf");
   };
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [itemsPerPage]);
+  }, [itemsPerPage, searchTerm, statusFilter]);
 
   return (
     <div className="flex flex-col gap-10 w-full h-auto px-5 py-10 mt-5 xl:mt-0 pt-6 pb-12">
@@ -343,17 +200,95 @@ const PaymentContent = () => {
         <h1 className="figtree text-[35px] font-[700]">
           Ticket Booking Payment
         </h1>
-        {/* <div className="flex flex-row gap-5 relative items-center">
-          <div className="flex flex-row gap-5 relative items-center">
-            <UserDropdown settingsRoute={route("ticketBooking.settingsPage")} />
-          </div>
-        </div> */}
       </div>
 
-      {/* mini 4 cards */}
-      {/* ... unchanged cards ... */}
+      {server_error && (
+        <div className="w-full rounded-[10px] border border-[#FF0000] bg-[#FF00000D] px-5 py-4 text-[14px] font-[600] text-[#FF0000]">
+          {server_error}
+        </div>
+      )}
 
-      {/* I’ll skip card markup for brevity; you keep your existing card code here */}
+      {/* mini 3 cards */}
+      <div className="flex flex-col md:flex-row gap-5 w-full">
+        {/* card 1 */}
+        <div
+          className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+          style={{ boxShadow: "4px 4px 4px #0000001A" }}
+        >
+          <div className="flex flex-row gap-5 justify-center items-center">
+            <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+              <img src={wallet} alt="wallet" />
+            </div>
+            <div>
+              <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
+                Total Revenue
+              </h1>
+              <h1 className="text-[20px] font-[700]">
+                {formatCurrency(stats?.total_revenue)}
+              </h1>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+              <img src={upArrow} className="size-[19px]" alt="up" />
+              <h1>Paid</h1>
+            </div>
+            <h1 className="text-[#7B7B7A]">all-time paid revenue</h1>
+          </div>
+        </div>
+
+        {/* card 2 */}
+        <div
+          className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+          style={{ boxShadow: "4px 4px 4px #0000001A" }}
+        >
+          <div className="flex flex-row gap-5 justify-center items-center">
+            <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+              <img src={income} alt="income" />
+            </div>
+            <div>
+              <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
+                Paid Bookings
+              </h1>
+              <h1 className="text-[20px] font-[700]">
+                {stats?.paid_count ?? 0}
+              </h1>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+            <div className="w-[100px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+              <h1>{stats?.paid_count ?? 0} Payments</h1>
+            </div>
+            <h1 className="text-[#7B7B7A]">paid transactions</h1>
+          </div>
+        </div>
+
+        {/* card 3 */}
+        <div
+          className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+          style={{ boxShadow: "4px 4px 4px #0000001A" }}
+        >
+          <div className="flex flex-row gap-5 justify-center items-center">
+            <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+              <img src={expenses} alt="expenses" />
+            </div>
+            <div>
+              <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
+                Pending
+              </h1>
+              <h1 className="text-[20px] font-[700]">
+                {formatCurrency(stats?.total_pending)}
+              </h1>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+            <div className="w-[100px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
+              <h1>{stats?.pending_count ?? 0} Payments</h1>
+            </div>
+            <h1 className="text-[#7B7B7A]">awaiting payment</h1>
+          </div>
+        </div>
+      </div>
 
       <div
         className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
@@ -369,26 +304,25 @@ const PaymentContent = () => {
               <img src={miniSearchIcon} alt="Search" />
               <input
                 type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                placeholder="Search client name, car, etc."
+                placeholder="Search client name, unit, route..."
               />
             </div>
-            <div className="w-full lg:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+            <div className="w-full lg:w-[150px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
               <img src={filterIcon} className="size-[12px]" alt="Filter" />
-              <input
-                type="text"
-                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                placeholder="Status"
-              />
-              <img src={miniDownArrow} alt="Dropdown" />
-            </div>
-            <div className="w-full lg:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-              <img src={calendar} className="size-[17px]" alt="Calendar" />
-              <input
-                type="text"
-                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                placeholder="25th May"
-              />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none text-[14px]"
+              >
+                <option value="">All Status</option>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+                <option value="Failed">Failed</option>
+                <option value="Refunded">Refunded</option>
+              </select>
               <img src={miniDownArrow} alt="Dropdown" />
             </div>
             <button
@@ -405,7 +339,7 @@ const PaymentContent = () => {
         {/* DESKTOP/TABLET TABLE */}
         <div className="hidden md:block overflow-x-auto">
           {/* table headings */}
-          <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-5 lg:px-10 mt-10 min-w-[1000px]">
+          <div className="figtree grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-5 lg:px-10 mt-10 min-w-[1000px]">
             <div className="flex flex-row gap-3 items-center">
               <input
                 type="checkbox"
@@ -430,21 +364,21 @@ const PaymentContent = () => {
               </div>
             </div>
             <div className="flex flex-row gap-2 items-center">
-              <h1>Car Model</h1>
+              <h1>Unit</h1>
               <div className="flex flex-col justify-center items-center">
                 <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
                 <img src={miniDown} className="w-[6px] h-[4px]" alt="Down" />
               </div>
             </div>
-            <div className="flex flex-row gap-2 items-center ml-5">
-              <h1>Rent Per Day</h1>
+            <div className="flex flex-row gap-2 items-center">
+              <h1>Route</h1>
               <div className="flex flex-col justify-center items-center">
                 <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
                 <img src={miniDown} className="w-[6px] h-[4px]" alt="Down" />
               </div>
             </div>
-            <div className="flex flex-row gap-2 items-center ml-10">
-              <h1>Days</h1>
+            <div className="flex flex-row gap-2 items-center">
+              <h1>Travel Date</h1>
               <div className="flex flex-col justify-center items-center">
                 <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
                 <img src={miniDown} className="w-[6px] h-[4px]" alt="Down" />
@@ -458,13 +392,6 @@ const PaymentContent = () => {
               </div>
             </div>
             <div className="flex flex-row gap-2 items-center">
-              <h1>DueDate</h1>
-              <div className="flex flex-col justify-center items-center">
-                <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
-                <img src={miniDown} className="w-[6px] h-[4px]" alt="Down" />
-              </div>
-            </div>
-            <div className="flex flex-row gap-2 items-center">
               <h1>Status</h1>
               <div className="flex flex-col justify-center items-center">
                 <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
@@ -472,7 +399,7 @@ const PaymentContent = () => {
               </div>
             </div>
             <div className="flex flex-row gap-2 items-center">
-              <h1>Action</h1>
+              <h1>Payment</h1>
               <div className="flex flex-col justify-center items-center">
                 <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
                 <img src={miniDown} className="w-[6px] h-[4px]" alt="Down" />
@@ -480,53 +407,62 @@ const PaymentContent = () => {
             </div>
           </div>
 
-          {currentTransactions.map((txn, idx) => (
-            <div
-              key={startIdx + idx}
-              className="grid grid-cols-9 h-[100px] justify-center items-center text-[15px] font-[500] px-5 lg:px-10 border-b-[1.5px] border-[#00000033] min-w-[1000px]"
-              style={{
-                backgroundColor: selectedRows.has(startIdx + idx)
-                  ? "#CCCCCC4F"
-                  : "transparent",
-              }}
-            >
-              <div className="flex flex-row items-center gap-5">
-                <input
-                  type="checkbox"
-                  className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                  checked={selectedRows.has(startIdx + idx)}
-                  onChange={() => handleRowSelection(idx)}
-                />
-                <h1>{txn.id}</h1>
-              </div>
-              <div>{txn.client}</div>
-              <div>{txn.car}</div>
-              <div className="ml-2 lg:ml-5">{txn.rentPerDay}</div>
-              <div className="ml-5 lg:ml-10">{txn.days}</div>
-              <div>{txn.amount}</div>
-              <div>{txn.dueDate}</div>
-              <div>
-                <div
-                  className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
-                  style={{
-                    border: `1px solid ${txn.statusColor}`,
-                    background: txn.statusBg,
-                    color: txn.statusColor,
-                  }}
-                >
-                  {txn.status}
+          {currentTransactions.map((txn, idx) => {
+            const paymentStyle = getPaymentStatusStyle(txn.paymentStatus);
+            return (
+              <div
+                key={txn.rawId ? `${txn.bookingType}-${txn.rawId}` : startIdx + idx}
+                className="grid grid-cols-8 h-[100px] justify-center items-center text-[14px] font-[500] px-5 lg:px-10 border-b-[1.5px] border-[#00000033] min-w-[1000px]"
+                style={{
+                  backgroundColor: selectedRows.has(startIdx + idx)
+                    ? "#CCCCCC4F"
+                    : "transparent",
+                }}
+              >
+                <div className="flex flex-row items-center gap-5">
+                  <input
+                    type="checkbox"
+                    className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                    checked={selectedRows.has(startIdx + idx)}
+                    onChange={() => handleRowSelection(idx)}
+                  />
+                  <div className="flex flex-col">
+                    <h1>{txn.id}</h1>
+                    <span className="text-[11px] text-[#7B7B7A] capitalize">
+                      {txn.bookingType}
+                    </span>
+                  </div>
+                </div>
+                <div className="truncate">{txn.clientName}</div>
+                <div className="flex flex-col">
+                  <span className="truncate">{txn.unitName}</span>
+                  <span className="text-[11px] text-[#7B7B7A]">{txn.unitNumber}</span>
+                </div>
+                <div className="truncate">{txn.route}</div>
+                <div>{formatDate(txn.travelDate)}</div>
+                <div>{formatCurrency(txn.amount)}</div>
+                <div className="text-[13px]">{txn.status}</div>
+                <div>
+                  <div
+                    className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
+                    style={{
+                      border: `1px solid ${paymentStyle.color}`,
+                      background: paymentStyle.bg,
+                      color: paymentStyle.color,
+                    }}
+                  >
+                    {txn.paymentStatus}
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-row justify-center items-center gap-2">
-                <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
-                  Edit
-                </div>
-                <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
-                  Delete
-                </div>
-              </div>
+            );
+          })}
+
+          {currentTransactions.length === 0 && (
+            <div className="flex justify-center items-center py-16 text-[#00000080] text-[14px] font-[600]">
+              No transactions found.
             </div>
-          ))}
+          )}
         </div>
 
         {/* MOBILE VIEW – cards, no horizontal scroll */}
@@ -534,16 +470,16 @@ const PaymentContent = () => {
           {currentTransactions.map((txn, idx) => {
             const globalIndex = startIdx + idx;
             const isSelected = selectedRows.has(globalIndex);
+            const paymentStyle = getPaymentStatusStyle(txn.paymentStatus);
 
             return (
               <div
-                key={globalIndex}
+                key={txn.rawId ? `${txn.bookingType}-${txn.rawId}-mobile` : globalIndex}
                 className="w-full rounded-[10px] border border-[#00000026] bg-white p-4"
                 style={{
                   backgroundColor: isSelected ? "#CCCCCC4F" : "white",
                 }}
               >
-                {/* Top: checkbox + invoice id */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <input
@@ -561,85 +497,79 @@ const PaymentContent = () => {
                       </span>
                     </div>
                   </div>
+                  <span className="text-[11px] text-[#7B7B7A] capitalize">
+                    {txn.bookingType}
+                  </span>
                 </div>
 
-                {/* Client */}
                 <div className="mb-2">
                   <span className="block text-[12px] font-[600] text-[#00000080]">
                     Client Name
                   </span>
-                  <span className="text-[13px]">{txn.client}</span>
+                  <span className="text-[13px]">{txn.clientName}</span>
                 </div>
 
-                {/* Car */}
                 <div className="mb-2">
                   <span className="block text-[12px] font-[600] text-[#00000080]">
-                    Car Model
+                    Unit
                   </span>
-                  <span className="text-[13px]">{txn.car}</span>
+                  <span className="text-[13px]">{txn.unitName} ({txn.unitNumber})</span>
                 </div>
 
-                {/* Rent per day / Days */}
-                <div className="flex justify-between gap-4 mb-2">
-                  <div>
-                    <span className="block text-[12px] font-[600] text-[#00000080]">
-                      Rent Per Day
-                    </span>
-                    <span className="text-[13px]">{txn.rentPerDay}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-[12px] font-[600] text-[#00000080]">
-                      Days
-                    </span>
-                    <span className="text-[13px]">{txn.days}</span>
-                  </div>
+                <div className="mb-2">
+                  <span className="block text-[12px] font-[600] text-[#00000080]">
+                    Route
+                  </span>
+                  <span className="text-[13px]">{txn.route}</span>
                 </div>
 
-                {/* Amount / Due date */}
                 <div className="flex justify-between gap-4 mb-2">
                   <div>
                     <span className="block text-[12px] font-[600] text-[#00000080]">
                       Amount
                     </span>
-                    <span className="text-[13px]">{txn.amount}</span>
+                    <span className="text-[13px]">{formatCurrency(txn.amount)}</span>
                   </div>
                   <div className="text-right">
                     <span className="block text-[12px] font-[600] text-[#00000080]">
-                      Due Date
+                      Travel Date
                     </span>
-                    <span className="text-[13px]">{txn.dueDate}</span>
+                    <span className="text-[13px]">{formatDate(txn.travelDate)}</span>
                   </div>
                 </div>
 
-                {/* Status */}
-                <div className="mb-3">
-                  <span className="block text-[12px] font-[600] text-[#00000080] mb-1">
-                    Status
-                  </span>
-                  <div
-                    className="inline-flex px-2 py-[2px] rounded-[4px] text-[11px] font-[700]"
-                    style={{
-                      border: `1px solid ${txn.statusColor}`,
-                      background: txn.statusBg,
-                      color: txn.statusColor,
-                    }}
-                  >
-                    {txn.status}
+                <div className="flex justify-between gap-4">
+                  <div>
+                    <span className="block text-[12px] font-[600] text-[#00000080] mb-1">
+                      Status
+                    </span>
+                    <span className="text-[13px]">{txn.status}</span>
                   </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-center gap-3">
-                  <button className="px-3 py-1 border border-[#0955AC] rounded-[4px] text-[11px] text-[#0955AC] font-[600]">
-                    Edit
-                  </button>
-                  <button className="px-3 py-1 border border-[#FF0000] rounded-[4px] text-[11px] text-[#FF0000] font-[600]">
-                    Delete
-                  </button>
+                  <div className="text-right">
+                    <span className="block text-[12px] font-[600] text-[#00000080] mb-1">
+                      Payment
+                    </span>
+                    <div
+                      className="inline-flex px-2 py-[2px] rounded-[4px] text-[11px] font-[700]"
+                      style={{
+                        border: `1px solid ${paymentStyle.color}`,
+                        background: paymentStyle.bg,
+                        color: paymentStyle.color,
+                      }}
+                    >
+                      {txn.paymentStatus}
+                    </div>
+                  </div>
                 </div>
               </div>
             );
           })}
+
+          {currentTransactions.length === 0 && (
+            <div className="flex justify-center items-center py-10 text-[#00000080] text-[14px] font-[600]">
+              No transactions found.
+            </div>
+          )}
         </div>
 
         {/* Pagination Controls and Results per page inline */}

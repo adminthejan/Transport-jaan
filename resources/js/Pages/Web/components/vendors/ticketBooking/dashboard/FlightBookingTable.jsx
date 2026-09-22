@@ -52,7 +52,7 @@ const FlightBookingTable = ({ bookings }) => {
 
         return [currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
     };
-    
+
     if (tableData.length === 0) {
         return (
             <div className="py-10 w-full flex flex-col items-center justify-center text-gray-500">
@@ -82,28 +82,28 @@ const FlightBookingTable = ({ bookings }) => {
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
-                        <h1>Passenger Name</h1>
+                        <h1>Client Name</h1>
                         <div className="flex flex-col justify-center items-center">
                             <ArrowUp className="w-[6px] h-[10px]" />
                             <ArrowDown className="w-[6px] h-[10px]" />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
-                        <h1>Flight (No. & Route)</h1>
+                        <h1>Unit (Type & No.)</h1>
                         <div className="flex flex-col justify-center items-center">
                             <ArrowUp className="w-[6px] h-[10px]" />
                             <ArrowDown className="w-[6px] h-[10px]" />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
-                        <h1>Cabin / Duration</h1>
+                        <h1>Route</h1>
                         <div className="flex flex-col justify-center items-center">
                             <ArrowUp className="w-[6px] h-[10px]" />
                             <ArrowDown className="w-[6px] h-[10px]" />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
-                        <h1>Travel Dates</h1>
+                        <h1>Travel Date & Seats</h1>
                         <div className="flex flex-col justify-center items-center">
                             <ArrowUp className="w-[6px] h-[10px]" />
                             <ArrowDown className="w-[6px] h-[10px]" />
@@ -135,23 +135,23 @@ const FlightBookingTable = ({ bookings }) => {
                             <div>{row.date}</div>
                             <div>{row.customer}</div>
                             <div className="flex flex-col gap-2">
-                                <h1>{row.transport}</h1>
+                                <h1>{row.unitName}</h1>
                                 <div className="p-2 rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[11px]">
-                                    {row.details}
+                                    {row.unitLabel}
                                 </div>
                             </div>
-                            <div>{row.duration}</div>
+                            <div>{row.route}</div>
                             <div className="text-[14px] font-[500] text-[#939392] space-y-2">
                                 <div className="flex flex-row gap-2 justify-start items-center">
-                                    <h1>Start</h1>
+                                    <h1>Date</h1>
                                     <div className="p-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[8px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                        {row.startDate}
+                                        {row.travelDate}
                                     </div>
                                 </div>
                                 <div className="flex flex-row gap-4 justify-start items-center">
-                                    <h1>End</h1>
+                                    <h1>Seats</h1>
                                     <div className="p-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[8px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                        {row.endDate}
+                                        {row.seatsLabel}
                                     </div>
                                 </div>
                             </div>
@@ -198,33 +198,33 @@ const FlightBookingTable = ({ bookings }) => {
                             <span className="text-gray-600">{row.date}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="font-[600]">Passenger</span>
+                            <span className="font-[600]">Client</span>
                             <span className="text-gray-600">{row.customer}</span>
                         </div>
                         <div className="space-y-1">
-                            <span className="font-[600]">Flight</span>
+                            <span className="font-[600]">Unit</span>
                             <div className="flex flex-col gap-1">
-                                <span className="text-gray-600">{row.transport}</span>
-                                <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
-                                    {row.details}
+                                <span className="text-gray-600">{row.unitName}</span>
+                                <div className="w-[140px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                    {row.unitLabel}
                                 </div>
                             </div>
                         </div>
                         <div className="flex justify-between">
-                            <span className="font-[600]">Duration</span>
-                            <span className="text-gray-600">{row.duration}</span>
+                            <span className="font-[600]">Route</span>
+                            <span className="text-gray-600">{row.route}</span>
                         </div>
                         <div className="space-y-1 text-[#939392]">
                             <div className="flex justify-between items-center">
-                                <span className="font-[600] text-black">Start</span>
+                                <span className="font-[600] text-black">Travel Date</span>
                                 <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                    {row.startDate}
+                                    {row.travelDate}
                                 </div>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="font-[600] text-black">End</span>
+                                <span className="font-[600] text-black">Seats</span>
                                 <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                    {row.endDate}
+                                    {row.seatsLabel}
                                 </div>
                             </div>
                         </div>

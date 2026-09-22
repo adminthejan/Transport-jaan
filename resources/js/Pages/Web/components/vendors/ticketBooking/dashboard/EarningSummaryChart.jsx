@@ -1,20 +1,5 @@
 import React, { useState } from "react";
 
-const defaultEarningData = [
-  { name: "Jan", value: 5000 },
-  { name: "Feb", value: 7000 },
-  { name: "Mar", value: 6000 },
-  { name: "Apr", value: 23456 }, // Highlighted point
-  { name: "May", value: 8000 },
-  { name: "Jun", value: 4000 },
-  { name: "Jul", value: 9000 },
-  { name: "Aug", value: 12000 },
-  { name: "Sep", value: 10000 },
-  { name: "Oct", value: 9500 },
-  { name: "Nov", value: 15000 },
-  { name: "Dec", value: 21000 },
-];
-
 const chartHeight = 230;
 const chartWidth = 650;
 const padding = 40;
@@ -38,13 +23,13 @@ function generateSmoothPath(points) {
 }
 
 const EarningSummaryChart = ({ data = [] }) => {
-  const earningData = data && data.length > 0 ? data : defaultEarningData;
-  
-  if (!earningData || earningData.length === 0) {
+  const earningData = Array.isArray(data) ? data : [];
+
+  if (earningData.length === 0) {
     return <div className="w-full h-[250px] flex items-center justify-center text-gray-500">No data available</div>;
   }
-  
-  const maxValue = Math.max(...earningData.map(d => d.value || 0), 24000);
+
+  const maxValue = Math.max(...earningData.map(d => d.value || 0), 1);
 
   function getX(index) {
     return padding + (index * (chartWidth - 2 * padding)) / Math.max(earningData.length - 1, 1);

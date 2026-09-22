@@ -14,13 +14,14 @@ function getFirstDayOfMonth(year, month) {
   return new Date(year, month, 1).getDay();
 }
 
-const CalendarMonthPicker = () => {
-  // October 2024 as default
-  const [year, setYear] = useState(2024);
-  const [month, setMonth] = useState(9); // 0-indexed, 9 = October
-  const [selectedDay, setSelectedDay] = useState(6);
-
-  // For dropdown
+/**
+ * Controlled month picker. `month` is 0-indexed, driven by the parent
+ * (which in turn is driven by the backend's currentMonth/currentYear).
+ * Navigating months calls `onMonthChange(month, year)` so the parent can
+ * re-fetch that month's real schedules from the server.
+ */
+const CalendarMonthPicker = ({ month, year, eventDates = [], onMonthChange }) => {
+  const [selectedDay, setSelectedDay] = useState(null);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
 
@@ -62,36 +63,40 @@ const CalendarMonthPicker = () => {
     });
   }
 
+  const hasEvent = (day) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    const dateStr = `${year}-${pad(month + 1)}-${pad(day)}`;
+    return eventDates.includes(dateStr);
+  };
+
   // Navigation handlers
   const handlePrevMonth = () => {
-    if (month === 0) {
-      setMonth(11);
-      setYear(year - 1);
-    } else {
-      setMonth(month - 1);
-    }
     setSelectedDay(null);
+    if (month === 0) {
+      onMonthChange?.(11, year - 1);
+    } else {
+      onMonthChange?.(month - 1, year);
+    }
   };
   const handleNextMonth = () => {
-    if (month === 11) {
-      setMonth(0);
-      setYear(year + 1);
-    } else {
-      setMonth(month + 1);
-    }
     setSelectedDay(null);
+    if (month === 11) {
+      onMonthChange?.(0, year + 1);
+    } else {
+      onMonthChange?.(month + 1, year);
+    }
   };
 
   // Dropdown handlers
   const handleYearSelect = (y) => {
-    setYear(y);
     setShowYearDropdown(false);
     setSelectedDay(null);
+    onMonthChange?.(month, y);
   };
   const handleMonthSelect = (m) => {
-    setMonth(m);
     setShowMonthDropdown(false);
     setSelectedDay(null);
+    onMonthChange?.(m, year);
   };
 
   // Years for dropdown
@@ -141,7 +146,7 @@ const CalendarMonthPicker = () => {
             >
               {months[month]}
             </button>
-            {/* {showMonthDropdown && (
+            {showMonthDropdown && (
               <div className="absolute z-10 bg-white border rounded w-[120px] max-h-[180px] overflow-y-auto mt-1">
                 {months.map((m, idx) => (
                   <div
@@ -153,7 +158,7 @@ const CalendarMonthPicker = () => {
                   </div>
                 ))}
               </div>
-            )} */}
+            )}
           </div>
           <button
             className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100"
@@ -176,10 +181,10 @@ const CalendarMonthPicker = () => {
             </div>
           ))}
         </div>
-        {calendarDays.map(({ day, current, key }, idx) => (
+        {calendarDays.map(({ day, current, key }) => (
           <div
             key={key}
-            className={`flex items-center justify-center text-[12px] font-[400] h-10 w-10 m-auto my-1 rounded-full cursor-pointer
+            className={`relative flex items-center justify-center text-[12px] font-[400] h-10 w-10 m-auto my-1 rounded-full cursor-pointer
               ${current ? "text-[#424242]" : "text-gray-300"}
               ${current && day === selectedDay ? "bg-[#0955AC] text-[#FFFFFF] font-[700]" : ""}
               ${current && day !== selectedDay ? "hover:bg-[#E5EFFF]" : ""}
@@ -187,6 +192,9 @@ const CalendarMonthPicker = () => {
             onClick={() => current && setSelectedDay(day)}
           >
             {day}
+            {current && hasEvent(day) && day !== selectedDay && (
+              <span className="absolute bottom-1 w-[4px] h-[4px] rounded-full bg-[#0955AC]" />
+            )}
           </div>
         ))}
       </div>
@@ -194,4 +202,4 @@ const CalendarMonthPicker = () => {
   );
 };
 
-export default CalendarMonthPicker; 
+export default CalendarMonthPicker;

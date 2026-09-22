@@ -84,5 +84,16 @@ class DatabaseSeeder extends Seeder
             SuperAdminCourierRbacSeeder::class ,
             LocationDataSeeder::class ,
         ]);
+
+        // Safety net for fresh installs: BusSeeder/TrainSeeder run before the
+        // vendor_id column's data-migration ever sees vendor@example.com exist
+        // (DemoUsersSeeder runs first, but the migration itself ran earlier
+        // still, before any seeder). Catch any still-unowned fleet here so
+        // the vendor dashboard always has real data to show.
+        $vendorId = User::where('email', 'vendor@example.com')->value('id');
+        if ($vendorId) {
+            \App\Models\Bus::whereNull('vendor_id')->update(['vendor_id' => $vendorId]);
+            \App\Models\Train::whereNull('vendor_id')->update(['vendor_id' => $vendorId]);
+        }
     }
 }

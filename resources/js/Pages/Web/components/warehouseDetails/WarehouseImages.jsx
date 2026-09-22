@@ -32,7 +32,10 @@ const WarehouseImages = ({ images: imagesProp, primaryImageUrl: primaryProp }) =
     if (typeof m === "string") {
       u = m.startsWith('/storage/') ? m : `/storage/${m}`;
     } else {
-      u = m?.url || (m?.image_path ? `/storage/${m.image_path}` : null) || (m?.path ? `/storage/${m.path}` : null);
+      u = m?.url
+        || (m?.file_path ? `/storage/${m.file_path}` : null)
+        || (m?.image_path ? `/storage/${m.image_path}` : null)
+        || (m?.path ? `/storage/${m.path}` : null);
     }
     if (u && !urls.includes(u)) urls.push(u);
   });

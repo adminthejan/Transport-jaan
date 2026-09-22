@@ -913,59 +913,13 @@ class WarehouseUnitController extends Controller
         ]);
     }
 
-    // Admin approval methods
-    public function approve(Request $request, $id)
-    {
-        $unit = WarehouseUnit::findOrFail($id);
-
-        $unit->update([
-            'approval_status' => 'approved',
-            'approved_at' => now(),
-            'approved_by' => Auth::id(),
-            'rejection_reason' => null,
-            'is_active' => true, // Automatically activate when approved
-        ]);
-
-        return response()->json([
-            'message' => 'Warehouse unit approved and activated successfully',
-            'unit' => [
-                'id' => $unit->id,
-                'approval_status' => $unit->approval_status,
-                'is_active' => $unit->is_active,
-                'status' => $this->getUnitStatus($unit),
-                'availability_status' => $this->getAvailabilityStatus($unit),
-            ]
-        ]);
-    }
-
-    public function reject(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'rejection_reason' => ['required', 'string', 'max:1000'],
-        ]);
-
-        $unit = WarehouseUnit::findOrFail($id);
-
-        $unit->update([
-            'approval_status' => 'rejected',
-            'approved_at' => null,
-            'approved_by' => null,
-            'rejection_reason' => $validated['rejection_reason'],
-            'is_active' => false, // Deactivate when rejected
-        ]);
-
-        return response()->json([
-            'message' => 'Warehouse unit rejected successfully',
-            'unit' => [
-                'id' => $unit->id,
-                'approval_status' => $unit->approval_status,
-                'is_active' => $unit->is_active,
-                'rejection_reason' => $unit->rejection_reason,
-                'status' => $this->getUnitStatus($unit),
-                'availability_status' => $this->getAvailabilityStatus($unit),
-            ]
-        ]);
-    }
+    // NOTE: approve()/reject() used to live here, writing to
+    // approval_status/approved_at/approved_by/rejection_reason columns that
+    // don't exist on warehouse_units (approval is normalized into the
+    // warehouse_approvals table). They were unreferenced by any frontend code
+    // and superseded by the working SuperAdmin\WarehouseController::updateStatus
+    // path — removed rather than fixed, to avoid two competing approval
+    // mechanisms writing to different places.
 
     public function destroy($id)
     {

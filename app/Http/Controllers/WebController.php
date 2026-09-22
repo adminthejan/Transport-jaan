@@ -805,29 +805,31 @@ class WebController extends Controller
             }
         }
 
-        // Price filter
+        // Price filter (monthly_rate is the field actually shown to customers
+        // on the list/details pages; `price` is not a column on warehouse_units)
         if (isset($searchParams['price']) && !empty($searchParams['price'])) {
             switch ($searchParams['price']) {
                 case '0-5000':
-                    $query->where('price', '<=', 5000);
+                    $query->where('monthly_rate', '<=', 5000);
                     break;
                 case '5000-15000':
-                    $query->whereBetween('price', [5000, 15000]);
+                    $query->whereBetween('monthly_rate', [5000, 15000]);
                     break;
                 case '15000-30000':
-                    $query->whereBetween('price', [15000, 30000]);
+                    $query->whereBetween('monthly_rate', [15000, 30000]);
                     break;
                 case '30000plus':
-                    $query->where('price', '>=', 30000);
+                    $query->where('monthly_rate', '>=', 30000);
                     break;
             }
         }
 
-        // Features filter (amenities in database)
+        // Features filter — amenities live in the normalized warehouse_amenities
+        // table, not a JSON column on warehouse_units.
         if (isset($searchParams['features']) && !empty($searchParams['features'])) {
             $features = is_array($searchParams['features']) ? $searchParams['features'] : [$searchParams['features']];
             foreach ($features as $feature) {
-                $query->whereJsonContains('amenities', $feature);
+                $query->whereHas('amenities', fn ($q) => $q->available()->where('name', $feature));
             }
         }
 

@@ -1,11 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import { usePage, Link } from "@inertiajs/react";
-
-import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
-import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
+import React, { useState, useMemo, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 
@@ -19,15 +13,25 @@ import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearc
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
 import CarBookingTableTwo from "../../../../components/vendors/ticketBooking/bookings/CarBookingTableTwo";
-import BookingBarChart from "./BookingBarChart";
+import BookingBarChart, { aggregateMonthly } from "./BookingBarChart";
 
+const statusColors = {
+    Pending: { bg: "#FFCD294D", text: "#7A5B00" },
+    Confirmed: { bg: "#ACE199", text: "#3B8F31" },
+    Cancelled: { bg: "#FF60608C", text: "#8A1F1F" },
+    Completed: { bg: "#0955AC", text: "#FFFFFF" },
+};
 
-import UserDropdown from "../../UserDropdown";
+const paymentStatusColors = {
+    Pending: { color: "#FFCD29", bg: "#FFCD294D" },
+    Paid: { color: "#3B8F31", bg: "#ACE199" },
+    Failed: { color: "#FF6060", bg: "#FF60608C" },
+    Refunded: { color: "#7B7B7A", bg: "#E8E8EF" },
+};
 
 const BookingContent = () => {
-    const { auth } = usePage().props;
-    const user = auth?.user;
-    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const { initialBookings = [], server_error } = usePage().props;
+
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
     useEffect(() => {
@@ -35,227 +39,29 @@ const BookingContent = () => {
             setIsMobile(window.innerWidth < 768); // md breakpoint
         };
         checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
-    // Screen restricted to Flights only
-    const bookingType = "Flight";
-    const paymentStatusColors = {
-        Paid: { color: "#3B8F31", bg: "#ACE199" },
-        Pending: { color: "#FF60608C", bg: "#FF60608C" },
-    };
+    const [bookings, setBookings] = useState(initialBookings);
 
-    const statusColors = {
-        Ongoing: { bg: "#FFCD29", text: "#000000" },
-        Returned: { bg: "#3B8F31", text: "#FFCD29" },
-    };
+    // Keep local state in sync if Inertia re-renders this page with fresh props
+    // (e.g. after a full page navigation back to /ticketBooking/bookings).
+    useEffect(() => {
+        setBookings(initialBookings);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialBookings]);
 
-    const [flightBookings, setFlightBookings] = useState([
-        {
-            id: "F-AX2101",
-            bookingDate: "Aug 15, 2025",
-            clientName: "Amani Perera",
-            airline: "SriLankan Airlines",
-            flightNo: "UL 315",
-            from: "CMB",
-            to: "SIN",
-            startDate: "Aug 20, 2025",
-            endDate: "Aug 20, 2025",
-            payment: "$320",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "F-DXB7782",
-            bookingDate: "Aug 16, 2025",
-            clientName: "Kasun Fernando",
-            airline: "Emirates",
-            flightNo: "EK 349",
-            from: "CMB",
-            to: "DXB",
-            startDate: "Aug 25, 2025",
-            endDate: "Aug 25, 2025",
-            payment: "$540",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "F-SIN3321",
-            bookingDate: "Aug 18, 2025",
-            clientName: "Dilini Weerasinghe",
-            airline: "Singapore Airlines",
-            flightNo: "SQ 469",
-            from: "CMB",
-            to: "SIN",
-            startDate: "Aug 28, 2025",
-            endDate: "Aug 28, 2025",
-            payment: "$375",
-            paymentStatus: "Pending",
-            paymentStatusColor: paymentStatusColors.Pending.color,
-            paymentStatusBg: paymentStatusColors.Pending.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "F-LHR1190",
-            bookingDate: "Aug 12, 2025",
-            clientName: "Shenal Jayasuriya",
-            airline: "Qatar Airways",
-            flightNo: "QR 653",
-            from: "CMB",
-            to: "LHR",
-            startDate: "Aug 30, 2025",
-            endDate: "Aug 30, 2025",
-            payment: "$815",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "F-DXB7782",
-            bookingDate: "Aug 16, 2025",
-            clientName: "Kasun Fernando",
-            airline: "Emirates",
-            flightNo: "EK 349",
-            from: "CMB",
-            to: "DXB",
-            startDate: "Aug 25, 2025",
-            endDate: "Aug 25, 2025",
-            payment: "$540",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "F-SIN3321",
-            bookingDate: "Aug 18, 2025",
-            clientName: "Dilini Weerasinghe",
-            airline: "Singapore Airlines",
-            flightNo: "SQ 469",
-            from: "CMB",
-            to: "SIN",
-            startDate: "Aug 28, 2025",
-            endDate: "Aug 28, 2025",
-            payment: "$375",
-            paymentStatus: "Pending",
-            paymentStatusColor: paymentStatusColors.Pending.color,
-            paymentStatusBg: paymentStatusColors.Pending.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "F-LHR1190",
-            bookingDate: "Aug 12, 2025",
-            clientName: "Shenal Jayasuriya",
-            airline: "Qatar Airways",
-            flightNo: "QR 653",
-            from: "CMB",
-            to: "LHR",
-            startDate: "Aug 30, 2025",
-            endDate: "Aug 30, 2025",
-            payment: "$815",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-    ]);
+    const stats = useMemo(() => {
+        const upcoming = bookings.filter((b) => b.status === "Pending" || b.status === "Confirmed").length;
+        const pending = bookings.filter((b) => b.status === "Pending").length;
+        const cancelled = bookings.filter((b) => b.status === "Cancelled").length;
+        const completed = bookings.filter((b) => b.status === "Completed").length;
+        return { upcoming, pending, cancelled, completed };
+    }, [bookings]);
 
-    const bookings = flightBookings;
-    const setBookings = setFlightBookings;
-
-    const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
-    const [newBooking, setNewBooking] = useState({
-        id: "",
-        bookingDate: "",
-        clientName: "",
-        from: "",
-        to: "",
-        startDate: "",
-        endDate: "",
-        payment: "",
-        paymentStatus: "Pending",
-        status: "Ongoing",
-        carModel: "",
-        carPlate: "",
-        plan: "",
-    });
-
-    // Handle input changes for the form
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewBooking((prev) => ({ ...prev, [name]: value }));
-    };
-
-    // Handle form submission to add new booking
-    const handleAddBooking = () => {
-        const baseVisual = {
-            paymentStatusColor:
-                paymentStatusColors[newBooking.paymentStatus]?.color ||
-                "#FF6060",
-            paymentStatusBg:
-                paymentStatusColors[newBooking.paymentStatus]?.bg || "#FF6060",
-            statusBg: statusColors[newBooking.status]?.bg || "#FFCD29",
-            statusText: statusColors[newBooking.status]?.text || "#000000",
-        };
-
-        const mappedFields = {
-            airline: newBooking.carModel,
-            flightNo: newBooking.carPlate,
-            from: newBooking.from,
-            to: newBooking.to,
-        };
-
-        const newBookingEntry = {
-            id: newBooking.id,
-            bookingDate: newBooking.bookingDate,
-            clientName: newBooking.clientName,
-            startDate: newBooking.startDate,
-            endDate: newBooking.endDate,
-            payment: newBooking.payment,
-            paymentStatus: newBooking.paymentStatus,
-            status: newBooking.status,
-            ...baseVisual,
-            ...mappedFields,
-        };
-
-        setBookings((prev) => [...prev, newBookingEntry]);
-        setIsAddPopupOpen(false);
-        setNewBooking({
-            id: "",
-            bookingDate: "",
-            clientName: "",
-            from: "",
-            to: "",
-            startDate: "",
-            endDate: "",
-            payment: "",
-            paymentStatus: "Pending",
-            status: "Ongoing",
-            carModel: "",
-            carPlate: "",
-            plan: "",
-        });
-    };
+    const monthlyAggregate = useMemo(() => aggregateMonthly(bookings), [bookings]);
+    const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     return (
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pb-12">
@@ -264,9 +70,14 @@ const BookingContent = () => {
                 <h1 className="figtree text-[35px] sm:text-[28px] font-[700]">
                     Ticket Bookings
                 </h1>
-
             </div>
             {/* end of header section */}
+
+            {server_error && (
+                <div className="w-full bg-red-50 border border-red-200 text-red-700 rounded-[8px] px-5 py-3 text-[14px] mb-6">
+                    {server_error}
+                </div>
+            )}
 
             <div className="flex flex-col xl:flex-row gap-10 justify-between w-full">
                 {/* mini left */}
@@ -286,19 +97,8 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-wrap">
                                     Upcoming Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
+                                <h1 className="text-[26px] font-[700]">{stats.upcoming}</h1>
                             </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                    alt="Increase"
-                                />
-                                <h1 className="">+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
                     </div>
                     {/* end of card 1 */}
@@ -317,19 +117,8 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-wrap">
                                     Pending Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">234</h1>
+                                <h1 className="text-[26px] font-[700]">{stats.pending}</h1>
                             </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                    alt="Increase"
-                                />
-                                <h1 className="">+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
                     </div>
                     {/* end of card 2 */}
@@ -348,19 +137,8 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-wrap">
                                     Cancelled Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">24</h1>
+                                <h1 className="text-[26px] font-[700]">{stats.cancelled}</h1>
                             </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                    alt="Increase"
-                                />
-                                <h1 className="">+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
                     </div>
                     {/* end of card 3 */}
@@ -379,19 +157,8 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-wrap">
                                     Completed Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
+                                <h1 className="text-[26px] font-[700]">{stats.completed}</h1>
                             </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                    alt="Increase"
-                                />
-                                <h1 className="">+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
                     </div>
                     {/* end of card 4 */}
@@ -404,53 +171,50 @@ const BookingContent = () => {
                 >
                     {isMobile ? (
                         <div className="w-full p-4">
-                            <div className="flex flex-col gap-2">
-                                {[
-                                    { name: "Jan", done: 320, cancelled: 220 },
-                                    { name: "Feb", done: 380, cancelled: 270 },
-                                    { name: "Mar", done: 250, cancelled: 150 },
-                                    { name: "Apr", done: 500, cancelled: 230 },
-                                    { name: "May", done: 310, cancelled: 410 },
-                                    { name: "Jun", done: 370, cancelled: 180 },
-                                    { name: "Jul", done: 420, cancelled: 210 },
-                                    { name: "Aug", done: 480, cancelled: 380 },
-                                    { name: "Sep", done: 270, cancelled: 320 },
-                                    { name: "Oct", done: 390, cancelled: 210 },
-                                    { name: "Nov", done: 320, cancelled: 170 },
-                                    { name: "Dec", done: 500, cancelled: 250 },
-                                ].map((item, index) => (
-                                    <div key={index} className="bg-gray-50 rounded-md p-3">
-                                        <div className="font-medium text-gray-700 mb-2">{item.name}</div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-bold text-blue-600 text-sm">{item.done} done</span>
-                                            <span className="font-bold text-red-600 text-sm">{item.cancelled} cancelled</span>
+                            {monthlyAggregate.length === 0 ? (
+                                <div className="text-center text-[#7B7B7A] text-[14px] py-8">
+                                    No booking data yet.
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    {monthlyAggregate.map((item) => (
+                                        <div key={item.key} className="bg-gray-50 rounded-md p-3">
+                                            <div className="font-medium text-gray-700 mb-2">
+                                                {MONTH_NAMES[item.month]} {item.year}
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-bold text-blue-600 text-sm">
+                                                    {item.done} done
+                                                </span>
+                                                <span className="font-bold text-red-600 text-sm">
+                                                    {item.cancelled} cancelled
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ) : (
-                        <BookingBarChart />
+                        <BookingBarChart bookings={bookings} />
                     )}
                 </div>
             </div>
 
-            {/* car booking section */}
+            {/* booking table section */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
                 <div className="flex xl:flex-row flex-col justify-between">
-                    <h1 className="text-[24px] font-[700]">Flight Booking</h1>
+                    <h1 className="text-[24px] font-[700]">Bus & Train Bookings</h1>
                     <div className="flex xl:flex-row flex-col gap-5 mt-5 xl:mt-0">
                         <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="Search" />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] truncate"
-                                placeholder={
-                                    "Search client name, airline, etc."
-                                }
+                                placeholder={"Search client name, unit, etc."}
                             />
                         </div>
                         <div className="xl:w-[155px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
@@ -475,220 +239,14 @@ const BookingContent = () => {
                             </h1>
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
-                        <button
-                            className="xl:w-[125px] xl:h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] py-2 px-5"
-                            onClick={() => setIsAddPopupOpen(true)}
-                        >
-                            Add Booking
-                        </button>
                     </div>
                 </div>
-
-                {/* Add Booking Popup */}
-                {isAddPopupOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                        <div className="bg-white p-5 sm:p-10 rounded-[10px] w-full max-w-[600px] shadow-lg">
-                            <h2 className="text-[18px] font-[700] mb-4">
-                                Add New Booking
-                            </h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Booking ID
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="id"
-                                        value={newBooking.id}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. C-JV1001"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Booking Date
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="bookingDate"
-                                        value={newBooking.bookingDate}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. May 4, 2025"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Client Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="clientName"
-                                        value={newBooking.clientName}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. Steve Gibson"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Airline
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="carModel"
-                                        value={newBooking.carModel}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. SriLankan Airlines"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Flight Number
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="carPlate"
-                                        value={newBooking.carPlate}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. UL315 / SL-45 / IC-90"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Class
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="plan"
-                                        value={newBooking.plan}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. Economy"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        From
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="from"
-                                        value={newBooking.from}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder={"e.g. CMB"}
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        To
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="to"
-                                        value={newBooking.to}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder={"e.g. SIN"}
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Start Date
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="startDate"
-                                        value={newBooking.startDate}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. May 10, 2025"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        End Date
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="endDate"
-                                        value={newBooking.endDate}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. May 17, 2025"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Payment Amount
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="payment"
-                                        value={newBooking.payment}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. $450"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Payment Status
-                                    </label>
-                                    <select
-                                        name="paymentStatus"
-                                        value={newBooking.paymentStatus}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                    >
-                                        <option value="Paid">Paid</option>
-                                        <option value="Pending">Pending</option>
-                                    </select>
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Status
-                                    </label>
-                                    <select
-                                        name="status"
-                                        value={newBooking.status}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                    >
-                                        <option value="Ongoing">Ongoing</option>
-                                        <option value="Returned">
-                                            Returned
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    onClick={() => setIsAddPopupOpen(false)}
-                                    className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleAddBooking}
-                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[14px] font-[700]"
-                                >
-                                    Add Booking
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 <CarBookingTableTwo
                     bookings={bookings}
                     setBookings={setBookings}
                     statusColors={statusColors}
-                    bookingType="Flight"
+                    paymentStatusColors={paymentStatusColors}
                 />
             </div>
             {/* end */}

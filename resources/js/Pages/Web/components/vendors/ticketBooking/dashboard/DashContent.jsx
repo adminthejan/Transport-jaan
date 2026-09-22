@@ -37,24 +37,34 @@ import {
     ArrowDown,
 } from "lucide-react";
 
-const getTransportIcon = (name, size = 18) => {
-    return <Plane size={size} />;
+const STATUS_STYLES = {
+    Confirmed: { statusBg: "#D8E4F2", statusBorder: "#0000004D", statusText: "#000000" },
+    Completed: { statusBg: "transparent", statusBorder: "#D8E4F2", statusText: "#3B82F6" },
+    Pending: { statusBg: "#FFF3C4", statusBorder: "#D4A80099", statusText: "#7A5B00" },
+    Cancelled: { statusBg: "#F87171", statusBorder: "#B91C1C", statusText: "#FFFFFF" },
 };
 
-const transportTypes = [
-    { name: "Economy", percent: 45 },
-    { name: "Business", percent: 35 },
-    { name: "First Class", percent: 20 },
-    { name: "Economy", percent: 55 },
-    { name: "Business", percent: 65 },
-    { name: "First Class", percent: 40 },
-];
+const PAYMENT_STYLES = {
+    Paid: { paymentColor: "#3B8F314D", paymentBg: "#ACE19957" },
+    Pending: { paymentColor: "#FF6060", paymentBg: "#FF60608C" },
+    Failed: { paymentColor: "#B91C1C", paymentBg: "#F8717157" },
+    Refunded: { paymentColor: "#7B7B7A4D", paymentBg: "#D9D9D957" },
+};
+
+const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return "-";
+    const parsed = new Date(dateStr);
+    if (Number.isNaN(parsed.getTime())) return dateStr;
+    return parsed.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+};
 
 const DashContent = () => {
-    const { auth, ticketStats } = usePage().props;
+    const { auth, ticketStats, recentBookings, revenueChart, server_error } = usePage().props;
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
     const stats = ticketStats ?? {};
+    const bookings = Array.isArray(recentBookings) ? recentBookings : [];
+    const revenueSeries = Array.isArray(revenueChart) ? revenueChart : [];
 
     const [isMobile, setIsMobile] = useState(true);
     const [showExportMenu, setShowExportMenu] = useState(false);
@@ -113,53 +123,62 @@ const DashContent = () => {
         return source.slice(-months);
     };
 
-    // Chart data with all months
-    const bookingOverviewData = [
-        { name: "Jan", bookings: 450 },
-        { name: "Feb", bookings: 670 },
-        { name: "Mar", bookings: 540 },
-        { name: "Apr", bookings: 900 },
-        { name: "May", bookings: 800 },
-        { name: "Jun", bookings: 200 },
-        { name: "Jul", bookings: 340 },
-        { name: "Aug", bookings: 859 },
-        { name: "Sep", bookings: 670 },
-        { name: "Oct", bookings: 570 },
-        { name: "Nov", bookings: 400 },
-        { name: "Dec", bookings: 900 },
-    ];
+    // Booking counts per month, derived from the recent bookings we do have,
+    // bucketed against the same 6 months the backend gives us revenue for.
+    const bookingOverviewData = revenueSeries.map((month) => {
+        const count = bookings.filter((b) => {
+            const d = b.bookingDate ? new Date(b.bookingDate) : null;
+            if (!d || Number.isNaN(d.getTime())) return false;
+            return d.toLocaleString("en-US", { month: "short" }) === month.name;
+        }).length;
+        return { name: month.name, bookings: count };
+    });
 
-    const earningSummaryData = [
-        { name: "Jan", value: 5000 },
-        { name: "Feb", value: 7000 },
-        { name: "Mar", value: 6000 },
-        { name: "Apr", value: 23456 },
-        { name: "May", value: 8000 },
-        { name: "Jun", value: 4000 },
-        { name: "Jul", value: 9000 },
-        { name: "Aug", value: 12000 },
-        { name: "Sep", value: 10000 },
-        { name: "Oct", value: 9500 },
-        { name: "Nov", value: 15000 },
-        { name: "Dec", value: 21000 },
-    ];
+    // Earnings summary comes straight from the backend's 6-month revenue series.
+    const earningSummaryData = revenueSeries.map((month) => ({
+        name: month.name,
+        value: Number(month.revenue ?? 0),
+    }));
 
     // Filtered data based on period selection
     const filteredBookingData = applyPeriodToSeries(bookingOverviewData, boPeriod);
     const filteredEarningsData = applyPeriodToSeries(earningSummaryData, esPeriod);
 
-    // Export flight bookings to CSV
+    // Booking status breakdown, derived from the recent bookings list.
+    const statusBreakdown = (() => {
+        const total = bookings.length;
+        if (total === 0) {
+            return [
+                { name: "Confirmed", value: 0, color: "#3DD0FF" },
+                { name: "Pending", value: 0, color: "#0955AC" },
+                { name: "Cancelled", value: 0, color: "#C4C4C4" },
+            ];
+        }
+        const counts = bookings.reduce((acc, b) => {
+            const key = b.status === "Completed" ? "Confirmed" : b.status;
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+        return [
+            { name: "Confirmed", value: Math.round(((counts.Confirmed || 0) / total) * 100), color: "#3DD0FF" },
+            { name: "Pending", value: Math.round(((counts.Pending || 0) / total) * 100), color: "#0955AC" },
+            { name: "Cancelled", value: Math.round(((counts.Cancelled || 0) / total) * 100), color: "#C4C4C4" },
+        ];
+    })();
+
+    // Export ticket bookings to CSV
     const exportToCSV = () => {
         try {
-            const headers = ["Booking ID", "Booking Date", "Passenger", "Flight Route", "Cabin/Duration", "Start Date", "End Date", "Price", "Payment Status", "Status"];
+            const headers = ["Booking ID", "Booking Date", "Client Name", "Type", "Unit", "Route", "Travel Date", "Seats", "Amount", "Payment Status", "Status"];
             const data = filteredFlightBookings.map(booking => [
                 booking.id,
                 booking.date,
                 booking.customer,
-                booking.transport,
-                booking.details + " / " + booking.duration,
-                booking.startDate,
-                booking.endDate,
+                booking.type,
+                booking.unitLabel,
+                booking.route,
+                booking.travelDate,
+                booking.seatsLabel,
                 booking.price,
                 booking.paymentStatus,
                 booking.status
@@ -174,7 +193,7 @@ const DashContent = () => {
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
-            link.setAttribute("download", `flight-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
+            link.setAttribute("download", `ticket-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
             link.style.visibility = "hidden";
             document.body.appendChild(link);
             link.click();
@@ -186,7 +205,7 @@ const DashContent = () => {
         setShowExportMenu(false);
     };
 
-    // Export flight bookings to PDF
+    // Export ticket bookings to PDF
     const exportToPDF = () => {
         try {
             const doc = new jsPDF();
@@ -194,19 +213,20 @@ const DashContent = () => {
                 booking.id,
                 booking.date,
                 booking.customer,
-                booking.transport,
-                booking.details + " / " + booking.duration,
-                booking.startDate,
-                booking.endDate,
+                booking.type,
+                booking.unitLabel,
+                booking.route,
+                booking.travelDate,
+                booking.seatsLabel,
                 booking.price,
                 booking.paymentStatus,
                 booking.status
             ]);
 
-            const headers = [["Booking ID", "Booking Date", "Passenger", "Flight Route", "Cabin/Duration", "Start Date", "End Date", "Price", "Payment Status", "Status"]];
+            const headers = [["Booking ID", "Booking Date", "Client Name", "Type", "Unit", "Route", "Travel Date", "Seats", "Amount", "Payment Status", "Status"]];
 
             doc.setFontSize(16);
-            doc.text("Flight Bookings Report", 14, 10);
+            doc.text("Ticket Bookings Report", 14, 10);
             doc.setFontSize(10);
             doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
 
@@ -230,7 +250,7 @@ const DashContent = () => {
                 }
             });
 
-            doc.save(`flight-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
+            doc.save(`ticket-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
         } catch (error) {
             console.error("Error exporting to PDF:", error);
             alert("Error exporting to PDF. Please try again.");
@@ -238,11 +258,11 @@ const DashContent = () => {
         setShowExportMenu(false);
     };
 
-    // Export flight bookings to XLSX
+    // Export ticket bookings to XLSX
     const exportToXLSX = () => {
         try {
             const data = [
-                ["Booking ID", "Booking Date", "Passenger", "Flight Route", "Cabin/Duration", "Start Date", "End Date", "Price", "Payment Status", "Status"]
+                ["Booking ID", "Booking Date", "Client Name", "Type", "Unit", "Route", "Travel Date", "Seats", "Amount", "Payment Status", "Status"]
             ];
 
             filteredFlightBookings.forEach(booking => {
@@ -250,10 +270,11 @@ const DashContent = () => {
                     booking.id,
                     booking.date,
                     booking.customer,
-                    booking.transport,
-                    booking.details + " / " + booking.duration,
-                    booking.startDate,
-                    booking.endDate,
+                    booking.type,
+                    booking.unitLabel,
+                    booking.route,
+                    booking.travelDate,
+                    booking.seatsLabel,
                     booking.price,
                     booking.paymentStatus,
                     booking.status
@@ -262,24 +283,25 @@ const DashContent = () => {
 
             const worksheet = XLSX.utils.aoa_to_sheet(data);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Flight Bookings");
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Ticket Bookings");
 
             // Auto-size columns
             const colWidths = [
                 { wch: 15 }, // Booking ID
                 { wch: 15 }, // Booking Date
-                { wch: 18 }, // Passenger
-                { wch: 20 }, // Flight Route
-                { wch: 22 }, // Cabin/Duration
-                { wch: 15 }, // Start Date
-                { wch: 15 }, // End Date
-                { wch: 12 }, // Price
+                { wch: 18 }, // Client Name
+                { wch: 10 }, // Type
+                { wch: 18 }, // Unit
+                { wch: 20 }, // Route
+                { wch: 15 }, // Travel Date
+                { wch: 15 }, // Seats
+                { wch: 12 }, // Amount
                 { wch: 15 }, // Payment Status
                 { wch: 12 }  // Status
             ];
             worksheet['!cols'] = colWidths;
 
-            XLSX.writeFile(workbook, `flight-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
+            XLSX.writeFile(workbook, `ticket-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
         } catch (error) {
             console.error("Error exporting to XLSX:", error);
             alert("Error exporting to XLSX. Please try again.");
@@ -296,107 +318,42 @@ const DashContent = () => {
         setFlightDateToFilter("");
     };
 
-    // Filtered flight bookings data
-    const flightBookingsData = [
-        {
-            id: "BKG-1001",
-            date: "Aug 28, 2025",
-            customer: "Alice Johnson",
-            transport: "UL 215 (CMB → DXB)",
-            details: "Economy Class",
-            duration: "5h 10m",
-            startDate: "Aug 30, 2025",
-            endDate: "Aug 30, 2025",
-            price: "$350",
-            paymentStatus: "Paid",
-            paymentColor: "#3B8F314D",
-            paymentBg: "#ACE19957",
-            status: "Confirmed",
-            statusBg: "#D8E4F2",
-            statusBorder: "#0000004D",
-            statusText: "#000000",
-        },
-        {
-            id: "BKG-1002",
-            date: "Sep 01, 2025",
-            customer: "Bob Smith",
-            transport: "UL 123 (CMB → SIN)",
-            details: "Business Class",
-            duration: "3h 35m",
-            startDate: "Sep 03, 2025",
-            endDate: "Sep 03, 2025",
-            price: "$520",
-            paymentStatus: "Pending",
-            paymentColor: "#FF6060",
-            paymentBg: "#FF60608C",
-            status: "Confirmed",
-            statusBg: "#D8E4F2",
-            statusBorder: "#0000004D",
-            statusText: "#000000",
-        },
-        {
-            id: "BKG-1003",
-            date: "Sep 05, 2025",
-            customer: "Clara Lee",
-            transport: "SQ 469 (CMB → SIN)",
-            details: "Economy Flexi",
-            duration: "3h 45m",
-            startDate: "Sep 07, 2025",
-            endDate: "Sep 07, 2025",
-            price: "$410",
-            paymentStatus: "Paid",
-            paymentColor: "#3B8F314D",
-            paymentBg: "#ACE19957",
-            status: "Completed",
-            statusBg: "transparent",
-            statusBorder: "#D8E4F2",
-            statusText: "#3B82F6",
-        },
-        {
-            id: "BKG-1004",
-            date: "Sep 10, 2025",
-            customer: "David Kim",
-            transport: "QR 669 (CMB → DOH)",
-            details: "Business Class",
-            duration: "5h 15m",
-            startDate: "Sep 12, 2025",
-            endDate: "Sep 12, 2025",
-            price: "$780",
-            paymentStatus: "Paid",
-            paymentColor: "#3B8F314D",
-            paymentBg: "#ACE19957",
-            status: "Confirmed",
-            statusBg: "#D8E4F2",
-            statusBorder: "#0000004D",
-            statusText: "#000000",
-        },
-        {
-            id: "BKG-1005",
-            date: "Sep 15, 2025",
-            customer: "Eva Green",
-            transport: "UL 403 (CMB → BKK)",
-            details: "Premium Economy",
-            duration: "3h 20m",
-            startDate: "Sep 17, 2025",
-            endDate: "Sep 17, 2025",
-            price: "$460",
-            paymentStatus: "Paid",
-            paymentColor: "#3B8F314D",
-            paymentBg: "#ACE19957",
-            status: "Cancelled",
-            statusBg: "#F87171",
-            statusBorder: "#B91C1C",
-            statusText: "#FFFFFF",
-        },
-    ];
+    // Real ticket bookings, mapped from the `recentBookings` prop into the shape
+    // the table/exports need (formatted dates, style tokens for status/payment badges).
+    const flightBookingsData = bookings.map((b) => {
+        const statusStyle = STATUS_STYLES[b.status] || STATUS_STYLES.Confirmed;
+        const paymentStyle = PAYMENT_STYLES[b.paymentStatus] || PAYMENT_STYLES.Pending;
+        const type = b.bookingType === "train" ? "Train" : "Bus";
+        return {
+            id: b.id,
+            rawId: b.rawId,
+            date: formatDisplayDate(b.bookingDate),
+            rawDate: b.bookingDate,
+            customer: b.clientName,
+            customerEmail: b.clientEmail,
+            type,
+            unitName: b.unitName,
+            unitLabel: `${type} · ${b.unitNumber ?? "-"}`,
+            route: b.route,
+            travelDate: formatDisplayDate(b.travelDate),
+            seatsLabel: Array.isArray(b.seats) && b.seats.length ? b.seats.join(", ") : "-",
+            passengerCount: b.passengerCount,
+            price: `$${Number(b.amount ?? 0).toLocaleString()}`,
+            paymentStatus: b.paymentStatus,
+            ...paymentStyle,
+            status: b.status,
+            ...statusStyle,
+        };
+    });
 
-    // Apply filters to flight bookings
+    // Apply filters to ticket bookings
     const filteredFlightBookings = flightBookingsData.filter((booking) => {
         // Search filter
         const matchesSearch = !flightSearchQuery ||
             booking.id?.toLowerCase().includes(flightSearchQuery.toLowerCase()) ||
             booking.customer?.toLowerCase().includes(flightSearchQuery.toLowerCase()) ||
-            booking.transport?.toLowerCase().includes(flightSearchQuery.toLowerCase());
+            booking.unitName?.toLowerCase().includes(flightSearchQuery.toLowerCase()) ||
+            booking.route?.toLowerCase().includes(flightSearchQuery.toLowerCase());
 
         // Status filter
         const matchesStatus = flightStatusFilter === "All" || booking.status?.toLowerCase() === flightStatusFilter.toLowerCase();
@@ -404,10 +361,10 @@ const DashContent = () => {
         // Payment filter
         const matchesPayment = flightPaymentFilter === "All" || booking.paymentStatus?.toLowerCase() === flightPaymentFilter.toLowerCase();
 
-        // Date filters
-        const bookingDate = new Date(booking.date);
-        const matchesFromDate = !flightDateFromFilter || bookingDate >= new Date(flightDateFromFilter);
-        const matchesToDate = !flightDateToFilter || bookingDate <= new Date(flightDateToFilter);
+        // Date filters (against the raw booking date)
+        const bookingDate = booking.rawDate ? new Date(booking.rawDate) : null;
+        const matchesFromDate = !flightDateFromFilter || (bookingDate && bookingDate >= new Date(flightDateFromFilter));
+        const matchesToDate = !flightDateToFilter || (bookingDate && bookingDate <= new Date(flightDateToFilter));
 
         return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
     });
@@ -421,6 +378,12 @@ const DashContent = () => {
                 </h1>
             </div>
             {/* end of header section */}
+
+            {server_error && (
+                <div className="w-full mb-6 px-4 py-3 rounded-[8px] bg-[#FEE2E2] border border-[#F87171] text-[#B91C1C] text-[14px] font-[500]">
+                    {server_error}
+                </div>
+            )}
 
             {/* === REST OF THE DASHBOARD (UNCHANGED) === */}
             <div className="flex flex-col gap-5">
@@ -510,7 +473,7 @@ const DashContent = () => {
                             </div>
                             <div>
                                 <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
-                                    Rented Cars
+                                    Confirmed Bookings
                                 </h1>
                                 <h1 className="text-[20px] font-[700]">
                                     {stats.confirmedBookings ?? 0} Bookings
@@ -566,6 +529,29 @@ const DashContent = () => {
                         </div>
                     </div>
                     {/* end of card 4 */}
+
+                    {/* card 5 */}
+                    <div
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        style={{
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <div className="flex flex-row gap-5 justify-center items-center">
+                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                <img src={icon2} />
+                            </div>
+                            <div>
+                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
+                                    Fleet Size
+                                </h1>
+                                <h1 className="text-[20px] font-[700]">
+                                    {stats.fleetCount ?? 0} Units
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+                    {/* end of card 5 */}
                 </div>
 
                 {/* Bottom Section: Flight Bookings, Overview & Earnings */}
@@ -589,7 +575,7 @@ const DashContent = () => {
                                                 value={flightSearchQuery}
                                                 onChange={(e) => setFlightSearchQuery(e.target.value)}
                                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                                placeholder="Search passenger, flight no., route..."
+                                                placeholder="Search client, unit no., route..."
                                             />
                                         </div>
 
@@ -683,6 +669,8 @@ const DashContent = () => {
                                                     <option value="All">All</option>
                                                     <option value="Paid">Paid</option>
                                                     <option value="Pending">Pending</option>
+                                                    <option value="Failed">Failed</option>
+                                                    <option value="Refunded">Refunded</option>
                                                 </select>
                                             </div>
 
@@ -815,97 +803,17 @@ const DashContent = () => {
                 </div>
 
                 <div className="flex flex-col xl:flex-row gap-5 justify-between">
-                    {/* <div
-                        className="xl:w-[500px] w-full h-auto xl:h-[858px] bg-[#FFFFFF] rounded-[10px] px-5 sm:px-10 py-10 flex flex-col gap-5"
+                    <div
+                        className="w-full xl:max-w-[420px] h-auto bg-[#FFFFFF] rounded-[10px] px-5 sm:px-10 py-10 flex flex-col gap-5"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">
                             <h1 className="text-[24px] font-[700]">
-                                Cabin classes
+                                Booking Status
                             </h1>
-                            <h1 className="text-[24px] font-[700]">...</h1>
                         </div>
-
-                        {transportTypes.map((type, idx) => (
-                            <div
-                                key={idx}
-                                className="w-full h-[107px] border-[1px] border-[#00000080] rounded-[9px] flex flex-row"
-                            >
-                                <div className="h-[107px] w-[80px] sm:w-[172px] flex items-center justify-center">
-                                    {getTransportIcon(type.name, 36)}
-                                </div>
-                                <div className="flex flex-col justify-center gap-3 flex-1 px-5">
-                                    <div className="flex flex-col md:flex-row justify-between items-center text-[15px] font-[500]">
-                                        <h1 className="text-[#00000080] flex items-center gap-2">
-                                            {type.name}
-                                        </h1>
-                                        <h1 className="pr-5">
-                                            {type.percent}%
-                                        </h1>
-                                    </div>
-                                    <div className="w-full h-[20px] rounded-[4px] bg-[#D8E4F2] relative overflow-hidden">
-                                        <div
-                                            className="h-full rounded-[4px] absolute top-0 left-0"
-                                            style={{
-                                                width: `${type.percent}%`,
-                                                backgroundColor:
-                                                    type.percent <= 20
-                                                        ? "#F51D1D"
-                                                        : "#0955AC",
-                                                transition: "width 0.5s",
-                                            }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div> */}
-                    {/* <div
-                        className="w-full h-auto xl:w-[553px] xl:h-[858px] bg-[#0F0F0F08] rounded-[10px] px-5 md:px-10 py-10"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row justify-between items-center">
-                            <h1 className="text-[22px] font-[700]">
-                                Recent Activities
-                            </h1>
-                            <h1 className="text-[22px] font-[700]">...</h1>
-                        </div>
-                        <h1 className="text-[18px] font-[600] text-[#0F0F0F80] py-3">
-                            Today
-                        </h1>
-
-                        <div className="flex flex-row justify-center items-start gap-5 md:gap-10">
-                            <div className="flex flex-col items-center py-5">
-                                <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
-                                    <CalendarIcon />
-                                </div>
-                                <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
-                                    <Plane />
-                                </div>
-                            </div>
-                            <div className="flex flex-col py-5 gap-10 md:text-[20px] text-[16px] font-[700]">
-                                <div>
-                                    <h1>
-                                        Alice Johnson completed a flight booking
-                                        (UL 215, CMB → DXB)
-                                    </h1>
-                                    <h1 className="font-[600] text-[#0F0F0F80]">
-                                        10:45 AM
-                                    </h1>
-                                </div>
-                                <div>
-                                    <h1>
-                                        Bob Smith's flight booking (UL 123, CMB
-                                        → SIN) is pending payment
-                                    </h1>
-                                    <h1 className="font-[600] text-[#0F0F0F80]">
-                                        15:45 PM
-                                    </h1>
-                                </div>
-                            </div>
-                        </div>
-                    </div> */}
+                        <RealStatusPieChart data={statusBreakdown} />
+                    </div>
                 </div>
             </div>
         </div>

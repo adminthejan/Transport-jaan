@@ -10,6 +10,7 @@ class Bus extends Model
     use HasFactory;
 
     protected $fillable = [
+        'vendor_id',
         'name',
         'bus_number',
         'bus_type',
@@ -24,6 +25,11 @@ class Bus extends Model
         'facilities' => 'array',
     ];
 
+    public function vendor()
+    {
+        return $this->belongsTo(User::class, 'vendor_id');
+    }
+
     public function schedules()
     {
         return $this->hasMany(BusSchedule::class);
@@ -32,5 +38,10 @@ class Bus extends Model
     public function bookings()
     {
         return $this->hasManyThrough(BusBooking::class, BusSchedule::class);
+    }
+
+    public function scopeForVendor($query, $vendorId)
+    {
+        return $query->where('vendor_id', $vendorId);
     }
 }

@@ -15,25 +15,12 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 function BookingOverviewBarChart({ data = [] }) {
-  const chartData = data && data.length > 0 ? data : [
-    { name: "Jan", bookings: 450 },
-    { name: "Feb", bookings: 670 },
-    { name: "Mar", bookings: 540 },
-    { name: "Apr", bookings: 900 },
-    { name: "May", bookings: 800 },
-    { name: "Jun", bookings: 200 },
-    { name: "Jul", bookings: 340 },
-    { name: "Aug", bookings: 859 },
-    { name: "Sep", bookings: 670 },
-    { name: "Oct", bookings: 570 },
-    { name: "Nov", bookings: 400 },
-    { name: "Dec", bookings: 900 },
-  ];
-  
-  if (!chartData || chartData.length === 0) {
+  const chartData = Array.isArray(data) ? data : [];
+
+  if (chartData.length === 0) {
     return <div className="w-full h-[300px] flex items-center justify-center text-gray-500">No data available</div>;
   }
-  
+
   const maxBookings = Math.max(...chartData.map(d => d.bookings || 0), 1000);
   const colors = chartData.map((d, i) => i === 7 ? '#39CEF3' : '#2957C6');
   

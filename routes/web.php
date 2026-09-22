@@ -850,13 +850,16 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     Route::delete('/api/expenses/{id}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'destroy'])->name('api.expenses.destroy');
 });
 
-// Admin routes for warehouse approval (requires admin role)
-Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admin.warehouse.')->group(function () {
-    Route::patch('/api/units/{id}/approve', [WarehouseUnitController::class, 'approve'])->name('api.units.approve');
-    Route::patch('/api/units/{id}/reject', [WarehouseUnitController::class, 'reject'])->name('api.units.reject');
-
-    Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/warehouse/UnitDetails'))->name('unitDetails');
-});
+// NOTE: a duplicate/dead "admin/warehouse" approval route group used to live
+// here (PATCH .../units/{id}/approve|reject via WarehouseUnitController).
+// It wrote to approval_status/approved_at/approved_by/rejection_reason columns
+// that don't exist on warehouse_units (normalized into the warehouse_approvals
+// table instead) — Eloquent's fillable guard silently dropped those writes, so
+// only is_active ever actually changed. It was also unreferenced by any
+// frontend code; the real, working approval path is
+// SuperAdmin\WarehouseController::updateStatus (PUT /superadmin/warehouses/{id}/status),
+// which correctly upserts a WarehouseApproval row. Removed rather than fixed,
+// to avoid two competing approval mechanisms.
 
 // Payments page (Legacy route for backward compatibility)
 Route::redirect('/SuperAdmin/payments', '/superadmin/payments')->name('payments.index');
@@ -1178,70 +1181,36 @@ Route::middleware(['auth', 'vendor.verified'])->group(function () {
 
 // vendor dashboard - warehouse (all protected under auth + role:vendor in group above)
 
-// vendor dashboard - ticket booking
-Route::get('/ticketBooking/bookings', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/Booking');
-})->name('ticketBooking.bookings');
+// vendor dashboard - ticket booking (bus + train fleet, real per-vendor data)
+Route::middleware(['auth', 'vendor.verified'])->prefix('ticketBooking')->name('ticketBooking.')->group(function () {
+    $ticketUnit = \App\Http\Controllers\Vendor\TicketBooking\UnitController::class;
+    $ticketBooking = \App\Http\Controllers\Vendor\TicketBooking\BookingController::class;
 
-Route::get('/ticketBooking/units', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/Unit');
-})->name('ticketBooking.units');
+    Route::get('/dashboard', [$ticketBooking, 'dashboard'])->name('dashboard');
 
-Route::get('/ticketBooking/dashboard', function () {
-    $userId = \Illuminate\Support\Facades\Auth::id();
-    $baseQuery = \App\Models\FlightBooking::query();
+    Route::get('/units', [$ticketUnit, 'index'])->name('units');
+    Route::get('/addUnit', [$ticketUnit, 'addUnitPage'])->name('addUnit');
+    Route::post('/units', [$ticketUnit, 'store'])->name('units.store');
+    Route::put('/units/{type}/{id}', [$ticketUnit, 'update'])->name('units.update');
+    Route::delete('/units/{type}/{id}', [$ticketUnit, 'destroy'])->name('units.destroy');
+    Route::get('/unitDetails/{type}/{id}', [$ticketUnit, 'unitDetailsPage'])->name('unitDetails');
 
-    if ($userId) {
-        $baseQuery->where('user_id', $userId);
-    }
+    Route::post('/units/{type}/{id}/schedules', [$ticketUnit, 'storeSchedule'])->name('schedules.store');
+    Route::put('/units/{type}/{id}/schedules/{scheduleId}', [$ticketUnit, 'updateSchedule'])->name('schedules.update');
+    Route::delete('/units/{type}/{id}/schedules/{scheduleId}', [$ticketUnit, 'destroySchedule'])->name('schedules.destroy');
 
-    $totalBookings = (clone $baseQuery)->count();
-    $newBookings = (clone $baseQuery)
-        ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
-        ->count();
-    $confirmedBookings = (clone $baseQuery)->where('status', 'confirmed')->count();
+    Route::get('/bookings', [$ticketBooking, 'bookingsPage'])->name('bookings');
+    Route::patch('/api/bookings/{bookingType}/{bookingId}', [$ticketBooking, 'updateBooking'])->name('api.bookings.update');
+    Route::post('/bookings/{bookingType}/{bookingId}/cancel', [$ticketBooking, 'cancelBooking'])->name('bookings.cancel');
 
-    return Inertia::render('Web/home/vendors/ticketBooking/Dashboard', [
-        'ticketStats' => [
-            'totalRevenue' => 0,
-            'newBookings' => $newBookings,
-            'confirmedBookings' => $confirmedBookings,
-            'totalBookings' => $totalBookings,
-        ],
-    ]);
-})->name('ticketBooking.dashboard');
+    Route::get('/clients', [$ticketBooking, 'clientsPage'])->name('clients');
+    Route::get('/payment', [$ticketBooking, 'paymentsPage'])->name('payment');
+    Route::get('/calendar', [$ticketBooking, 'calendarPage'])->name('calendar');
 
-Route::get('/ticketBooking/clients', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/Client');
-})->name('ticketBooking.clients');
-
-Route::get('/ticketBooking/expenses', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/Expenses');
-})->name('ticketBooking.expenses');
-
-Route::get('/ticketBooking/payment', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/Payment');
-})->name('ticketBooking.payment');
-
-Route::get('/ticketBooking/tracking', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/Tracking');
-})->name('ticketBooking.tracking');
-
-Route::get('/ticketBooking/calendar', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/Calendar');
-})->name('ticketBooking.calendar');
-
-Route::get('/ticketBooking/addUnit', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/AddUnit');
-})->name('ticketBooking.addUnit');
-
-Route::get('/ticketBooking/unitDetails', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/UnitDetails');
-})->name('ticketBooking.unitDetails');
-
-Route::get('/ticketBooking/settingsPage', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/SettingsPage');
-})->name('ticketBooking.settingsPage');
+    Route::get('/expenses', fn () => Inertia::render('Web/home/vendors/ticketBooking/Expenses'))->name('expenses');
+    Route::get('/tracking', fn () => Inertia::render('Web/home/vendors/ticketBooking/Tracking'))->name('tracking');
+    Route::get('/settingsPage', fn () => Inertia::render('Web/home/vendors/ticketBooking/SettingsPage'))->name('settingsPage');
+});
 
 
 
@@ -2341,15 +2310,15 @@ Route::get('/warehouseBookingDashboard', function () {
 |  — generated compactly (no routes removed)
 |--------------------------------------------------------------------------
 */
-// NOTE: 'warehouse' intentionally omitted — every warehouse vendor page now has
-// an explicit, auth + vendor.verified-protected route defined above. This loop's
-// "skip if already registered" guard (Route::has()) cannot see routes named via
-// the standard fluent ->name() chain earlier in this same file (Laravel only
-// refreshes the route-collection name lookup on real HTTP dispatch, not while
-// the route file itself is still being loaded), so leaving 'warehouse' in this
-// list would silently re-register unauthenticated duplicates of those routes.
+// NOTE: 'warehouse' and 'ticketBooking' intentionally omitted — every one of
+// their vendor pages now has an explicit, auth + vendor.verified-protected
+// route defined above. This loop's "skip if already registered" guard
+// (Route::has()) cannot see routes named via the standard fluent ->name()
+// chain earlier in this same file (Laravel only refreshes the route-collection
+// name lookup on real HTTP dispatch, not while the route file itself is still
+// being loaded), so leaving either in this list would silently re-register
+// unauthenticated duplicates of those routes.
 $sections = [
-    'ticketBooking' => 'Web/home/vendors/ticketBooking',
     'freight'       => 'Web/home/vendors/freight',
     'multimodal'    => 'Web/home/vendors/multimodal',
 ];
@@ -2390,8 +2359,9 @@ foreach ($sections as $slug => $baseView) {
 |--------------------------------------------------------------------------
 */
 Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
-// Warehouse Booking Dashboard - public access
-Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
+// Warehouse Booking Dashboard - duplicate of the route defined earlier in this
+// file (same name, same props-less render); that one wins registration order,
+// so this one was dead/unreachable. Removed.
 // Freight Booking Dashboard - moved to protected routes above (requires auth)
 
 /*

@@ -152,7 +152,8 @@ class WarehouseReservationController extends Controller
             
             // Base query for vendor's reservations
             $baseQuery = function() use ($user) {
-                return WarehouseBooking::query();
+                return WarehouseBooking::query()
+                    ->whereHas('warehouseUnit', fn ($q) => $q->where('user_id', $user->id));
             };
             
             // Calculate current week stats using optimized queries
@@ -238,6 +239,7 @@ class WarehouseReservationController extends Controller
                     DB::raw('COUNT(CASE WHEN status IN ("confirmed", "completed", "active") THEN 1 END) as confirmed'),
                     DB::raw('COUNT(CASE WHEN status = "cancelled" THEN 1 END) as cancelled')
                 ])
+                ->whereHas('warehouseUnit', fn ($q) => $q->where('user_id', $user->id))
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->groupBy('year', 'month')
                 ->orderBy('year', 'asc')
@@ -719,6 +721,7 @@ class WarehouseReservationController extends Controller
     {
         return WarehouseBooking::query()
             ->with(['user:id,name,email', 'warehouseUnit:id,name,user_id,type,total_area,capacity,capacity_unit'])
+            ->whereHas('warehouseUnit', fn ($q) => $q->where('user_id', $user->id))
             ->where('booking_reference', $reservationId)
             ->first();
     }
