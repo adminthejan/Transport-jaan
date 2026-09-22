@@ -47,6 +47,7 @@ const SERVICE_CONFIG = {
         drivers: () => route("vendors.drivers"),
         payment: () => route("vendors.payment"),
         expenses: () => route("vendors.expenses"),
+        earnings: () => route("vendors.earnings"),
         settings: () => route(""),
         profile: () => route(""),
     },
@@ -583,6 +584,17 @@ const VendorShellLayout = ({
                                                         onClick={() => navigate(cfg.expenses)}
                                                     >
                                                         Expenses
+                                                    </div>
+                                                )}
+                                                {cfg.earnings && hasCourierPermission("courier.finance.view") && (
+                                                    <div
+                                                        className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.earnings)
+                                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                                            : "text-[#00000066] hover:bg-gray-50"
+                                                            }`}
+                                                        onClick={() => navigate(cfg.earnings)}
+                                                    >
+                                                        Earnings
                                                     </div>
                                                 )}
                                             </div>

@@ -7,7 +7,6 @@ import gear from "../../assets/landVehicleDetails/carSpec/gear.svg";
 import seatsIcon from "../../assets/landVehicleDetails/carSpec/seats.svg";
 import modelIcon from "../../assets/landVehicleDetails/carSpec/model.svg";
 import doorsIcon from "../../assets/landVehicleDetails/carSpec/doors.svg";
-import airBag from "../../assets/landVehicleDetails/carSpec/airBag.svg"; // fallback only (no field in DB)
 import liters from "../../assets/landVehicleDetails/carSpec/liters.svg";
 import car from "../../assets/landVehicleDetails/car.svg";
 import proPic from "../../assets/landVehicleDetails/proPic.svg";
@@ -34,10 +33,18 @@ const CarDetailsTab = ({ vehicle }) => {
       fuel: ucfirst(land?.fuel_type),
       transmission: ucfirst(land?.transmission_type),
       seats: land?.seats ? `${land.seats} Seats` : "—",
-      airbags: "— Air Bags", // not in your DB; keep as fallback or remove the card
+      gears: land?.gears ? `${land.gears} Gears` : "—",
       brand: vehicle?.manufacturer || "—",
       doors: land?.doors ? `${land.doors} Doors` : "—",
       tank: land?.fuel_tank_capacity_l ? `${fmtFloat(land.fuel_tank_capacity_l, 1)} L` : "—",
+      industryCategory: ucfirst(land?.industry_category),
+      portPass: land?.has_port_pass ? "Port Pass" : "No Port Pass",
+      condition: ucfirst(vehicle?.condition),
+      colour: vehicle?.colour || "—",
+      ownershipType: vehicle?.ownership_type
+        ? vehicle.ownership_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        : "—",
+      insuranceProvider: vehicle?.insurance_provider || "—",
       description:
         vehicle?.description ||
         "No description provided for this vehicle.",
@@ -76,12 +83,38 @@ const CarDetailsTab = ({ vehicle }) => {
               <SpecCard icon={seatsIcon} label={specs.seats} />
             </div>
             <div className="flex flex-col xl:flex-row justify-center items-center gap-10">
-              {/* Airbags not present in DB: keep as fallback or remove */}
-              <SpecCard icon={airBag} label={specs.airbags} />
+              <SpecCard icon={gear} label={specs.gears} />
               <SpecCard icon={modelIcon} label={specs.brand} />
               <SpecCard icon={doorsIcon} label={specs.doors} />
               <SpecCard icon={liters} label={specs.tank} />
             </div>
+            <div className="flex flex-col xl:flex-row justify-center items-center gap-10">
+              <SpecCard icon={modelIcon} label={specs.industryCategory} />
+              <SpecCard icon={doorsIcon} label={specs.portPass} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Vehicle Details */}
+      <div className="pb-10">
+        <h1 className="text-[15px] font-[600] mb-5">Vehicle Details</h1>
+        <div className="flex flex-wrap gap-x-10 gap-y-4 text-[13px]">
+          <div>
+            <span className="text-[#7B7B7A] mr-2">Condition:</span>
+            <span className="font-[600]">{specs.condition}</span>
+          </div>
+          <div>
+            <span className="text-[#7B7B7A] mr-2">Colour:</span>
+            <span className="font-[600]">{specs.colour}</span>
+          </div>
+          <div>
+            <span className="text-[#7B7B7A] mr-2">Ownership:</span>
+            <span className="font-[600]">{specs.ownershipType}</span>
+          </div>
+          <div>
+            <span className="text-[#7B7B7A] mr-2">Insured by:</span>
+            <span className="font-[600]">{specs.insuranceProvider}</span>
           </div>
         </div>
       </div>

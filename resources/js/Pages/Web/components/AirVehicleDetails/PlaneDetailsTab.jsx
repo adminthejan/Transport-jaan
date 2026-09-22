@@ -7,7 +7,6 @@ import gear from "../../assets/landVehicleDetails/carSpec/gear.svg";
 import seatsIcon from "../../assets/landVehicleDetails/carSpec/seats.svg";
 import modelIcon from "../../assets/landVehicleDetails/carSpec/model.svg";
 import doorsIcon from "../../assets/landVehicleDetails/carSpec/doors.svg";
-import airBag from "../../assets/landVehicleDetails/carSpec/airBag.svg"; // fallback only (no field in DB)
 import liters from "../../assets/landVehicleDetails/carSpec/liters.svg";
 import car from "../../assets/landVehicleDetails/car.svg";
 import proPic from "../../assets/landVehicleDetails/proPic.svg";
@@ -30,14 +29,23 @@ const PlaneDetailsTab = ({ vehicle }) => {
 
   const specs = useMemo(() => {
     return {
-      mileage: fmtInt(vehicle?.mileage_km), // km total
+      aircraftType: ucfirst(air?.aircraft_type),
+      icaoType: air?.icao_type_designator || "—",
+      baseAirport: air?.base_airport_iata || air?.base_airport_icao || "—",
       fuel: ucfirst(air?.fuel_type),
-      transmission: ucfirst(air?.transmission_type),
       seats: air?.seats ? `${air.seats} Seats` : "—",
-      airbags: "— Air Bags", // not in your DB; keep as fallback or remove the card
+      crewRequired: air?.crew_required ? `${air.crew_required} Crew` : "—",
+      range: air?.range_km ? `${fmtInt(air.range_km)} km Range` : "—",
+      mtow: air?.mtow_kg ? `${fmtInt(air.mtow_kg)} kg MTOW` : "—",
+      cruisingSpeed: air?.cruising_speed_kts ? `${fmtInt(air.cruising_speed_kts)} kts` : "—",
+      flightHours: air?.flight_hours_total ? `${fmtInt(air.flight_hours_total)} Flight Hrs` : "—",
       brand: vehicle?.manufacturer || "—",
-      doors: air?.doors ? `${air.doors} Doors` : "—",
-      tank: air?.fuel_tank_capacity_l ? `${fmtFloat(air.fuel_tank_capacity_l, 1)} L` : "—",
+      condition: ucfirst(vehicle?.condition),
+      colour: vehicle?.colour || "—",
+      ownershipType: vehicle?.ownership_type
+        ? vehicle.ownership_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        : "—",
+      insuranceProvider: vehicle?.insurance_provider || "—",
       description:
         vehicle?.description ||
         "No description provided for this vehicle.",
@@ -70,18 +78,45 @@ const PlaneDetailsTab = ({ vehicle }) => {
         <div className="py-10 text-[12px] font-[700]">
           <div className="flex flex-col justify-center items-center gap-10">
             <div className="flex flex-col xl:flex-row gap-10 justify-center items-center">
-              <SpecCard icon={miles} label={specs.mileage} />
-              <SpecCard icon={fuel} label={specs.fuel} />
-              <SpecCard icon={gear} label={specs.transmission} />
+              <SpecCard icon={modelIcon} label={specs.aircraftType} />
+              <SpecCard icon={doorsIcon} label={specs.icaoType} />
+              <SpecCard icon={miles} label={specs.baseAirport} />
               <SpecCard icon={seatsIcon} label={specs.seats} />
             </div>
             <div className="flex flex-col xl:flex-row justify-center items-center gap-10">
-              {/* Airbags not present in DB: keep as fallback or remove */}
-              <SpecCard icon={airBag} label={specs.airbags} />
-              <SpecCard icon={modelIcon} label={specs.brand} />
-              <SpecCard icon={doorsIcon} label={specs.doors} />
-              <SpecCard icon={liters} label={specs.tank} />
+              <SpecCard icon={gear} label={specs.crewRequired} />
+              <SpecCard icon={miles} label={specs.range} />
+              <SpecCard icon={gear} label={specs.mtow} />
+              <SpecCard icon={gear} label={specs.cruisingSpeed} />
             </div>
+            <div className="flex flex-col xl:flex-row justify-center items-center gap-10">
+              <SpecCard icon={fuel} label={specs.fuel} />
+              <SpecCard icon={liters} label={specs.flightHours} />
+              <SpecCard icon={modelIcon} label={specs.brand} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Vehicle Details */}
+      <div className="pb-10">
+        <h1 className="text-[15px] font-[600] mb-5">Aircraft Details</h1>
+        <div className="flex flex-wrap gap-x-10 gap-y-4 text-[13px]">
+          <div>
+            <span className="text-[#7B7B7A] mr-2">Condition:</span>
+            <span className="font-[600]">{specs.condition}</span>
+          </div>
+          <div>
+            <span className="text-[#7B7B7A] mr-2">Colour:</span>
+            <span className="font-[600]">{specs.colour}</span>
+          </div>
+          <div>
+            <span className="text-[#7B7B7A] mr-2">Ownership:</span>
+            <span className="font-[600]">{specs.ownershipType}</span>
+          </div>
+          <div>
+            <span className="text-[#7B7B7A] mr-2">Insured by:</span>
+            <span className="font-[600]">{specs.insuranceProvider}</span>
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\AirVehicleBookings;
 use App\Models\SeaVehicleBookings;
 use App\Models\Notification;
+use App\Models\CommissionEarning;
 use App\Services\VehicleBookingCancellationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -184,7 +185,7 @@ class BookingController extends Controller
                         'paymentStatus' => $paymentStatus,
                         'status'        => $status,
                         'bookingType'   => 'air',
-                        'editable'      => false,
+                        'editable'      => true,
                         'canCancel'     => true,
                         'policyUrl'     => '/vendors/bookings/air/' . $b->id . '/vendor/cancellation-policy',
                         'cancelUrl'     => '/vendors/bookings/air/' . $b->id . '/vendor/cancel-booking',
@@ -253,7 +254,7 @@ class BookingController extends Controller
                         'paymentStatus' => $paymentStatus,
                         'status'        => $status,
                         'bookingType'   => 'sea',
-                        'editable'      => false,
+                        'editable'      => true,
                         'canCancel'     => true,
                         'policyUrl'     => '/vendors/bookings/sea/' . $b->id . '/vendor/cancellation-policy',
                         'cancelUrl'     => '/vendors/bookings/sea/' . $b->id . '/vendor/cancel-booking',
@@ -626,6 +627,109 @@ class BookingController extends Controller
         }
     }
 
+    /**
+     * Vendor-facing view of their own commission earnings/payout breakdown.
+     * Commission rows are created (status=paid) when a booking is confirmed
+     * and reversed (status=failed) if it's later cancelled — see
+     * VehicleCommissionService / BookingObserver.
+     */
+    public function earnings(Request $request)
+    {
+        try {
+            $vendor   = Auth::user();
+            $vendorId = $vendor?->id;
+
+            $earnings = CommissionEarning::query()
+                ->byVendor($vendorId)
+                ->byServiceType('vehicle')
+                ->latest('created_at')
+                ->take(200)
+                ->get();
+
+            $labelBookingRef = function (CommissionEarning $e): string {
+                $prefix = match ($e->booking_type) {
+                    'air' => 'ABK-',
+                    'sea' => 'SBK-',
+                    default => 'BKG-',
+                };
+                return $prefix . str_pad((string) $e->booking_id, 5, '0', STR_PAD_LEFT);
+            };
+
+            $rows = $earnings->map(fn (CommissionEarning $e) => [
+                'id'                    => $e->id,
+                'bookingRef'            => $labelBookingRef($e),
+                'bookingType'           => ucfirst($e->booking_type),
+                'bookingAmount'         => (float) $e->booking_amount,
+                'commissionPercentage'  => (float) $e->commission_percentage,
+                'totalCommission'       => (float) $e->total_commission,
+                'vendorAmount'          => (float) $e->vendor_amount,
+                'vendorPercentage'      => (float) $e->vendor_percentage,
+                'status'                => ucfirst($e->status),
+                'paidAt'                => $e->paid_at?->format('Y-m-d H:i'),
+                'createdAt'             => $e->created_at?->format('Y-m-d'),
+            ])->values();
+
+            $paid    = $earnings->where('status', 'paid');
+            $pending = $earnings->where('status', 'pending');
+            $failed  = $earnings->where('status', 'failed');
+
+            $stats = [
+                'total_earned'    => (float) $paid->sum('vendor_amount'),
+                'total_pending'   => (float) $pending->sum('vendor_amount'),
+                'total_reversed'  => (float) $failed->sum('vendor_amount'),
+                'paid_count'      => $paid->count(),
+                'pending_count'   => $pending->count(),
+                'reversed_count'  => $failed->count(),
+                'total_bookings'  => $earnings->count(),
+            ];
+
+            // Monthly earnings for the last 6 months (paid only)
+            $monthlyEarnings = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
+                $monthEnd   = Carbon::now()->subMonths($i)->endOfMonth();
+
+                $amount = CommissionEarning::query()
+                    ->byVendor($vendorId)
+                    ->byServiceType('vehicle')
+                    ->where('status', 'paid')
+                    ->whereBetween('paid_at', [$monthStart, $monthEnd])
+                    ->sum('vendor_amount');
+
+                $monthlyEarnings[] = [
+                    'month'   => $monthStart->format('M'),
+                    'amount'  => (float) $amount,
+                ];
+            }
+
+            $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
+
+            return Inertia::render('Web/home/vendors/Earnings', [
+                'earnings'            => $rows,
+                'stats'               => $stats,
+                'monthlyEarnings'     => $monthlyEarnings,
+                'unreadNotifications' => $unreadNotifications,
+            ]);
+        } catch (Throwable $e) {
+            report($e);
+
+            return Inertia::render('Web/home/vendors/Earnings', [
+                'earnings' => [],
+                'stats' => [
+                    'total_earned'   => 0,
+                    'total_pending'  => 0,
+                    'total_reversed' => 0,
+                    'paid_count'     => 0,
+                    'pending_count'  => 0,
+                    'reversed_count' => 0,
+                    'total_bookings' => 0,
+                ],
+                'monthlyEarnings' => [],
+                'server_error' => 'Failed to load earnings data. Check logs.',
+            ]);
+        }
+    }
+
     public function calendar(Request $request)
     {
         try {
@@ -882,11 +986,23 @@ class BookingController extends Controller
     }
 
     /**
-     * Update booking status and payment information
+     * Update booking status and payment information.
+     *
+     * Routed both as /api/bookings/{bookingId} (land, back-compat, $a = bookingId)
+     * and /api/bookings/{bookingType}/{bookingId} (land/air/sea, $a = bookingType, $b = bookingId).
      */
-    public function update(Request $request, $bookingId)
+    public function update(Request $request, $a, $b = null)
     {
         try {
+            $bookingType = $b !== null ? strtolower((string) $a) : 'land';
+            $bookingId   = $b !== null ? $b : $a;
+
+            $modelClass = match ($bookingType) {
+                'air' => AirVehicleBookings::class,
+                'sea' => SeaVehicleBookings::class,
+                default => Booking::class,
+            };
+
             $validated = $request->validate([
                 'status' => 'required|in:pending,confirmed,completed,cancelled',
                 'payment_status' => 'required|in:paid,pending',
@@ -897,7 +1013,7 @@ class BookingController extends Controller
             $vendorId = $vendor?->id;
 
             // Find the booking
-            $booking = Booking::with('vehicle')->find($bookingId);
+            $booking = $modelClass::with('vehicle')->find($bookingId);
 
             if (!$booking) {
                 return response()->json([

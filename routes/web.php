@@ -755,13 +755,6 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 });
 
 
-// vendor routes
-Route::middleware(['auth', 'vendor.verified'])->prefix('vendors')->name('vendors.')->group(function () {
-    Route::get('/mainDashboard', function () {
-        return Inertia::render('Web/home/vendors/MainDashboard');
-    })->name('mainDashboard');
-});
-
 // Warehouse (vendor-only) under /vendors/warehouse/*
 Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
     Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/warehouse/Dashboard'))->name('dashboard');
@@ -873,27 +866,15 @@ Route::middleware(['auth', 'vendor.verified'])->get('/warehouse/{path}', functio
     return redirect('/vendors/warehouse/' . ltrim($path, '/'));
 })->where('path', '.*');
 
-// Bookings page with DB-fed props (table + chart)
-Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
-
-// Clients page with actual booking data
-Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients.public');
-
-// Payment page with actual transaction data
-Route::get('/payment', [VendorBookingController::class, 'payments'])->name('payment.public');
+// NOTE: bare /bookings, /clients, /payment, /expenses, /tracking, /calendar, /units,
+// /addUnit and /unitDetails used to be redefined here without auth middleware,
+// shadowing both the properly-protected /vendors/* routes below and the
+// "Legacy redirects" block further down in this file. Removed so those
+// redirects (units.legacy, bookings.legacy, etc.) take effect again and the
+// vendor-only pages can no longer be reached without the vendor.verified check.
 
 // Other pages (shells)
 Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
-Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
-Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
-Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
-
-// Units UI
-Route::get('/units', fn() => Inertia::render('Web/home/vendors/Unit'))->name('units');
-Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/AddUnit'))->name('addUnit');
-Route::get('/addUnit/{vehicle}', [VehicleController::class, 'edit'])->name('addUnit.edit');
-Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/UnitDetails'))->name('unitDetails');
-Route::get('/unitDetails/{vehicle}', [VehicleController::class, 'detailsPage'])->name('unitDetails.show');
 
 // Warehouse UI
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
@@ -926,14 +907,21 @@ Route::middleware(['auth', 'vendor.verified'])
         // Bookings page with DB-fed props (table + chart)
         Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
         
-        // API endpoint to update booking
+        // API endpoint to update booking status/payment (land, back-compat)
         Route::patch('/api/bookings/{bookingId}', [VendorBookingController::class, 'update'])->name('api.bookings.update');
+        // API endpoint to update booking status/payment for any vehicle type (land/air/sea)
+        Route::patch('/api/bookings/{bookingType}/{bookingId}', [VendorBookingController::class, 'update'])
+            ->where('bookingType', 'land|air|sea')
+            ->name('api.bookings.update.type');
 
         // Clients page with actual booking data filtered by vehicle type
         Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients');
 
         // Payment page with actual transaction data
         Route::get('/payment', [VendorBookingController::class, 'payments'])->name('payment');
+
+        // Vendor's own commission earnings / payout breakdown
+        Route::get('/earnings', [VendorBookingController::class, 'earnings'])->name('earnings');
 
         // Vendor booking cancellation API routes
         Route::get('/bookings/{booking}/vendor/cancellation-policy', [ClientBookingController::class, 'getVendorCancellationPolicy'])->name('bookings.vendor.cancellation-policy');
@@ -1115,14 +1103,6 @@ Route::redirect('/SuperAdmin/settings/website', '/superadmin/settings/website')-
 Route::redirect('/SuperAdmin/settings/cod-settlement', '/superadmin/settings/cod-settlement')->name('SuperAdmin.settings.cod-settlement.legacy');
 Route::redirect('/SuperAdmin/CourierOperations', '/superadmin/courier-operations')->name('SuperAdmin.CourierOperations.legacy');
 Route::redirect('/SuperAdmin/PricingGovernance', '/superadmin/pricing-governance')->name('SuperAdmin.PricingGovernance.legacy');
-// Route::get('/mainDashboard', function () {
-//     return Inertia::render('Web/home/vendors/MainDashboard');
-// })->name('mainDashboard');
-
-Route::get('/unitDetails', function () {
-    return Inertia::render('Web/home/vendors/UnitDetails');
-})->name('unitDetails');
-
 Route::middleware(['auth'])->group(function () {
     Route::get('/settingsPage', [VendorSettingsController::class, 'show'])->name('settingsPage');
     Route::post('/settingsPage', [VendorSettingsController::class, 'update'])->name('vendor.settings.update');
