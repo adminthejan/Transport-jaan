@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
+import { Wallet as WalletIcon, AlertTriangle } from "lucide-react";
 import seaVehicle from "../../assets/seaVehicle/seaVehicle.jpg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
 import icon2 from "../../assets/vehicleCheckout/icon2.svg";
@@ -53,23 +54,18 @@ const Payments = () => {
   const total = n(booking.total_amount);
   const advance = n(booking.advance_amount);
 
-  const [selectedPayment, setSelectedPayment] = useState("Credit Card");
+  // Wallet balance (for the "Pay with Wallet" option)
+  const wallet = props?.wallet || { balance: 0, currency: "LKR" };
+  const walletBalance = Number(wallet.balance ?? 0);
+
+  const [selectedPayment, setSelectedPayment] = useState("PayHere");
   const [paymentOption, setPaymentOption] = useState("full");
-  const [slipNumber, setSlipNumber] = useState("");
-  const [slipPdf, setSlipPdf] = useState(null);
   const [agreed, setAgreed] = useState(false);
-  // include slipPdf in errors so checks are consistent
-  const [error, setError] = useState({ slipNumber: "", slipPdf: "" });
-  const slipNumberRegex = /^(\d+|[a-zA-Z]+\d+|[a-zA-Z]+-\d+)$/;
+  const [walletError, setWalletError] = useState("");
 
   const handlePaymentMethodChange = (m) => {
     setSelectedPayment(m);
-    // clear slip fields & errors when not using bank transfer
-    if (m !== "Bank Transfer") {
-      setSlipNumber("");
-      setSlipPdf(null);
-      setError((prev) => ({ ...prev, slipNumber: "", slipPdf: "" }));
-    }
+    setWalletError("");
   };
 
   // NEW: in-window popup instead of alert for T&C message
@@ -81,46 +77,31 @@ const Payments = () => {
       return;
     }
 
-    // Only require slip number and slip PDF when Bank Transfer is selected
-    if (selectedPayment === "Bank Transfer") {
-      if (!slipNumber || !slipNumberRegex.test(slipNumber)) {
-        setError((prev) => ({
-          ...prev,
-          slipNumber: "Please enter a valid slip number",
-        }));
+    // Wallet balance pre-check (server re-validates with a row lock regardless)
+    if (selectedPayment === "Wallet") {
+      const payNowAmount = paymentOption === "full" ? total : Math.min(advance, total);
+      if (walletBalance < payNowAmount) {
+        setWalletError("Insufficient wallet balance for this payment.");
         return;
-      } else {
-        setError((prev) => ({ ...prev, slipNumber: "" }));
       }
-
-      if (!slipPdf) {
-        setError((prev) => ({
-          ...prev,
-          slipPdf: "Please upload the bank slip file (PDF or image).",
-        }));
-        return;
-      } else {
-        setError((prev) => ({ ...prev, slipPdf: "" }));
-      }
-    } else {
-      // Clear any slip-related errors when another payment is selected
-      setError((prev) => ({ ...prev, slipNumber: "", slipPdf: "" }));
     }
+    setWalletError("");
 
     if (!agreed) {
       // ⬇ show custom modal, no browser alert
       setShowTermsPopup(true);
       return;
     }
-    const formData = new FormData();
-    formData.append("payment_method", selectedPayment);
-    formData.append("payment_option", paymentOption);
-    if (slipNumber) formData.append("slip_number", slipNumber);
-    if (slipPdf && selectedPayment === "Bank Transfer") formData.append("slip_pdf", slipPdf);
-    router.post(route("client.seaBookings.confirm", booking.id), formData, {
-      forceFormData: true,
-      preserveScroll: true,
-    });
+    router.post(
+      route("client.seaBookings.confirm", booking.id),
+      { payment_method: selectedPayment, payment_option: paymentOption },
+      {
+        preserveScroll: true,
+        onError: (errs) => {
+          if (errs?.wallet) setWalletError(errs.wallet);
+        },
+      }
+    );
   };
 
   const handleBackBooking = () => {
@@ -246,7 +227,8 @@ const Payments = () => {
             <h1 className="text-[20px] font-[700]">Payment Methods</h1>
 
             <div className="flex flex-row flex-wrap items-center gap-10 text-[10px] font-[600] text-[#00000080] py-2">
-              {["Credit Card", "PayPal", "Bank Transfer"].map((m) => (
+              {/* Wallet only ever holds LKR — hide it for bookings priced in any other currency */}
+              {["PayHere", ...(String(booking?.currency || "LKR").toUpperCase() === "LKR" ? ["Wallet"] : [])].map((m) => (
                 <label key={m} className="flex flex-row justify-center items-center gap-3 cursor-pointer">
                   <input
                     type="radio"
@@ -256,94 +238,31 @@ const Payments = () => {
                     onChange={() => handlePaymentMethodChange(m)}
                     className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:outline-none focus:ring-transparent transition-colors cursor-pointer"
                   />
-                  <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
+                  <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600] flex items-center gap-1.5">
+                    {m === "Wallet" && <WalletIcon size={14} className="text-[#0955AC]" />}
                     {m}
                   </span>
                 </label>
               ))}
             </div>
 
-            {selectedPayment === "Bank Transfer" && (
-              <div className="mt-4 grid lg:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px]/[24px] font-[600]">Slip Number :</label>
-                  <div
-                    className={`md:w-[374px] w-auto h-[49px] border-[1px] rounded-[5px] ${error.slipNumber ? "border-red-500" : "border-[#0000004D]"
-                      }`}
-                  >
-                    <input
-                      value={slipNumber}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setSlipNumber(value);
-
-                        // Real-time validation
-                        if (!slipNumberRegex.test(value)) {
-                          setError((prev) => ({
-                            ...prev,
-                            slipNumber: "Invalid slip number format",
-                          }));
-                        } else {
-                          setError((prev) => ({ ...prev, slipNumber: "" }));
-                        }
-                      }}
-                      className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                      placeholder="Enter slip number"
-                    />
+            {selectedPayment === "Wallet" && (
+              <div className="mt-4 rounded-[10px] bg-[#F1F5F9] px-5 py-4 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-[600] text-[#00000099]">Wallet Balance</span>
+                  <span className="text-[16px] font-[700] text-[#0955AC]">
+                    {wallet.currency} {walletBalance.toFixed(2)}
+                  </span>
+                </div>
+                {walletError && (
+                  <div className="flex items-center gap-2 text-red-600 text-[12px] font-[600]">
+                    <AlertTriangle size={14} />
+                    <span>{walletError}</span>
+                    <a href={route("client.wallet.dashboard")} className="ml-1 underline text-[#0955AC]">
+                      Top up now
+                    </a>
                   </div>
-                  {error.slipNumber && (
-                    <p className="text-red-500 text-[10px]">{error.slipNumber}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-[10px]/[24px] font-[600]">Upload Bank Slip (PDF, JPG, JPEG or PNG) :</label>
-                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] flex items-center px-3">
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] ?? null;
-                          if (file) {
-                            // Allowed standard MIME types. Some devices/browsers may not set file.type,
-                            // so we fallback to extension check when needed.
-                            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-                            const maxSize = 5 * 1024 * 1024; // 5 MB in bytes
-
-                            const isTypeAllowed = file.type ? allowedTypes.includes(file.type) : false;
-                            const name = (file.name || '').toLowerCase();
-                            const extAllowed = ['.pdf', '.jpg', '.jpeg', '.png'];
-                            const hasAllowedExt = extAllowed.some((ext) => name.endsWith(ext));
-
-                            if (!isTypeAllowed && !hasAllowedExt) {
-                              setError((prev) => ({ ...prev, slipPdf: 'Invalid file type. Only PDF, JPG, JPEG, PNG allowed.' }));
-                              setSlipPdf(null);
-                              return;
-                            }
-
-                            if (file.size > maxSize) {
-                              setError((prev) => ({ ...prev, slipPdf: 'File size exceeds 5 MB.' }));
-                              setSlipPdf(null);
-                              return;
-                            }
-
-                            // Valid file
-                            setSlipPdf(file);
-                            setError((prev) => ({ ...prev, slipPdf: '' }));
-                          } else {
-                            setSlipPdf(null);
-                            setError((prev) => ({ ...prev, slipPdf: '' }));
-                          }
-                        }}
-                        className="w-full text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
-                      />
-                    </div>
-
-                    {error.slipPdf && <p className="text-red-500 text-[10px]">{error.slipPdf}</p>}
-
-                    <p className="text-[10px] text-[#00000080] mt-1">Only PDF, JPG, JPEG or PNG files are allowed. Max size 5MB.</p>
-                </div>
-
+                )}
               </div>
             )}
           </div>

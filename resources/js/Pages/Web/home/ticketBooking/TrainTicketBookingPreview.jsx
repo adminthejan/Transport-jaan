@@ -59,7 +59,8 @@ const TrainTicketBookingPreviewInner = () => {
         outboundSchedule,
         returnSchedule,
         passengers = {},
-        totalPrice = 0
+        totalPrice = 0,
+        wallet = null,
     } = props;
 
     const { data, setData, post, processing, errors } = useForm({
@@ -72,6 +73,7 @@ const TrainTicketBookingPreviewInner = () => {
         children: passengers.children || 0,
         infants: passengers.infants || 0,
         luggage: 'none',
+        payment_method: 'PayHere',
     });
 
     const handleSubmit = (e) => {
@@ -186,6 +188,45 @@ const TrainTicketBookingPreviewInner = () => {
                                         <option value="2">2 bags — LKR 500</option>
                                         <option value="3">3 bags — LKR 1,000</option>
                                     </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
+                                        PAYMENT METHOD
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setData('payment_method', 'PayHere')}
+                                            className={`rounded-[10px] border px-3 py-3 text-[13px] font-[700] transition-colors ${
+                                                data.payment_method === 'PayHere'
+                                                    ? 'border-[#0955AC] bg-[#0955AC]/10 text-[#0955AC]'
+                                                    : 'border-[#E2E8F0] text-[#64748B] hover:border-[#0955AC]/40'
+                                            }`}
+                                        >
+                                            Pay with PayHere
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setData('payment_method', 'Wallet')}
+                                            className={`rounded-[10px] border px-3 py-3 text-[13px] font-[700] transition-colors ${
+                                                data.payment_method === 'Wallet'
+                                                    ? 'border-[#0955AC] bg-[#0955AC]/10 text-[#0955AC]'
+                                                    : 'border-[#E2E8F0] text-[#64748B] hover:border-[#0955AC]/40'
+                                            }`}
+                                        >
+                                            Pay with Wallet
+                                        </button>
+                                    </div>
+                                    {data.payment_method === 'Wallet' && wallet && (
+                                        <p className="mt-1.5 text-[12px] text-[#64748B]">
+                                            Wallet balance: <span className="font-[700] text-[#0F172A]">{formatPrice(wallet.balance)}</span>
+                                            {wallet.balance < totalPrice && (
+                                                <span className="ml-1.5 text-red-500 font-[600]">Insufficient balance for this total.</span>
+                                            )}
+                                        </p>
+                                    )}
+                                    {errors.payment_method && <p className="text-red-500 text-xs mt-1">{errors.payment_method}</p>}
                                 </div>
 
                                 <button

@@ -218,7 +218,7 @@ function GenderPromptModal({ seatId, onSelect, onCancel }) {
     );
 }
 
-const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedSeatGenders, seatLayout, returnTrip, returnBookedSeats, returnBookedSeatGenders, returnSeatLayout }) => {
+const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedSeatGenders, seatLayout, returnTrip, returnBookedSeats, returnBookedSeatGenders, returnSeatLayout, wallet }) => {
     const { t, formatPrice } = useLocale();
     const isRoundTrip = !!returnTrip;
     // How many seats the passenger picked on the search form — the seat map
@@ -238,6 +238,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
     // Additional services — shown by default (not an opt-in add-on you have
     // to discover), defaulting to the free tier like Busbud's luggage picker.
     const [luggage, setLuggage] = useState("none");
+    const [paymentMethod, setPaymentMethod] = useState("PayHere");
     const [submitting, setSubmitting] = useState(false);
     // Which seat is currently waiting on a gender pick: { leg: 'outbound'|'return', seatId }
     const [genderPrompt, setGenderPrompt] = useState(null);
@@ -338,6 +339,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
             destination_point: destination,
             luggage,
             total_price: outboundTotal,
+            payment_method: paymentMethod,
         };
 
         if (isRoundTrip) {
@@ -554,6 +556,42 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                                         ))}
                                     </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-[12px] font-[700] text-[#64748B] tracking-wide">Payment Method</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPaymentMethod("PayHere")}
+                                            className={`rounded-[10px] border px-3 py-3 text-[13px] font-[700] transition-colors ${
+                                                paymentMethod === "PayHere"
+                                                    ? "border-[#0955AC] bg-[#0955AC]/10 text-[#0955AC]"
+                                                    : "border-[#E2E8F0] text-[#64748B] hover:border-[#0955AC]/40"
+                                            }`}
+                                        >
+                                            Pay with PayHere
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPaymentMethod("Wallet")}
+                                            className={`rounded-[10px] border px-3 py-3 text-[13px] font-[700] transition-colors ${
+                                                paymentMethod === "Wallet"
+                                                    ? "border-[#0955AC] bg-[#0955AC]/10 text-[#0955AC]"
+                                                    : "border-[#E2E8F0] text-[#64748B] hover:border-[#0955AC]/40"
+                                            }`}
+                                        >
+                                            Pay with Wallet
+                                        </button>
+                                    </div>
+                                    {paymentMethod === "Wallet" && wallet && (
+                                        <p className="mt-1.5 text-[12px] text-[#64748B]">
+                                            Wallet balance: <span className="font-[700] text-[#0F172A]">{formatPrice(wallet.balance)}</span>
+                                            {wallet.balance < total && (
+                                                <span className="ml-1.5 text-red-500 font-[600]">Insufficient balance for this total.</span>
+                                            )}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <button

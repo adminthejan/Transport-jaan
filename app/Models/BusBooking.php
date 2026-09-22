@@ -54,6 +54,11 @@ class BusBooking extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(BusBookingPayment::class);
+    }
+
     public function busSchedule()
     {
         return $this->belongsTo(BusSchedule::class);

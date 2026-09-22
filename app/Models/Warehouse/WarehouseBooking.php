@@ -73,13 +73,62 @@ class WarehouseBooking extends Model
         'insurance_required',
         'notes',
         'documents',
-        
+
         // Cancellation Fields
         'cancelled_by',
         'cancelled_at',
         'refund_percentage',
         'refund_amount',
+
+        // Payment gateway fields (PayHere / wallet)
+        'provider',
+        'gateway_order_id',
+        'gateway_payment_id',
+        'gateway_status',
+        'initiated_at',
+        'failed_at',
+        'last_notified_at',
+        'failure_reason',
+        'gateway_payload',
+        'callback_payload',
     ];
+
+    public const PAYMENT_STATUS_PENDING = 'pending';
+    public const PAYMENT_STATUS_PAID = 'paid';
+    public const PAYMENT_STATUS_FAILED = 'failed';
+    public const PAYMENT_STATUS_REFUNDED = 'refunded';
+
+    public function isPaymentPaid(): bool
+    {
+        return $this->payment_status === self::PAYMENT_STATUS_PAID;
+    }
+
+    public function isPaymentPending(): bool
+    {
+        return $this->payment_status === self::PAYMENT_STATUS_PENDING;
+    }
+
+    public function markPaymentPaid(?string $gatewayPaymentId = null, ?string $txReference = null, ?string $gatewayStatus = null): void
+    {
+        $this->forceFill([
+            'payment_status' => self::PAYMENT_STATUS_PAID,
+            'gateway_payment_id' => $gatewayPaymentId ?: $this->gateway_payment_id,
+            'transaction_reference' => $txReference ?: $this->transaction_reference,
+            'gateway_status' => $gatewayStatus ?: $this->gateway_status,
+            'payment_date' => now(),
+            'failed_at' => null,
+        ])->save();
+    }
+
+    public function markPaymentFailed(string $reason = '', ?string $gatewayStatus = null): void
+    {
+        $this->forceFill([
+            'payment_status' => self::PAYMENT_STATUS_FAILED,
+            'failure_reason' => $reason !== '' ? $reason : $this->failure_reason,
+            'gateway_status' => $gatewayStatus ?: $this->gateway_status,
+            'failed_at' => now(),
+        ])->save();
+    }
 
     protected $casts = [
         'start_date' => 'date',
@@ -105,6 +154,11 @@ class WarehouseBooking extends Model
         'special_requirements' => 'json',
         'amenities' => 'json',
         'documents' => 'json',
+        'initiated_at' => 'datetime',
+        'failed_at' => 'datetime',
+        'last_notified_at' => 'datetime',
+        'gateway_payload' => 'array',
+        'callback_payload' => 'array',
     ];
 
     protected static function boot()

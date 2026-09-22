@@ -69,6 +69,85 @@ class WalletService
     }
 
     /**
+     * Start a real (gateway-backed) top-up: records a 'pending' transaction
+     * with the PayHere order id, but does NOT touch the wallet balance yet
+     * — that only happens in completeTopup(), once the webhook confirms the
+     * charge actually went through. Unlike credit(), which is used for
+     * instant/trusted credits (refunds, admin adjustments).
+     */
+    public function initiateTopup(User $user, float $amount, string $orderId): WalletTransaction
+    {
+        if ($amount <= 0) {
+            throw new RuntimeException('Top-up amount must be greater than zero.');
+        }
+
+        $wallet = $this->walletFor($user);
+
+        return WalletTransaction::create([
+            'wallet_id' => $wallet->id,
+            'type' => 'topup',
+            'amount' => $amount,
+            'balance_after' => $wallet->balance, // unchanged until completed
+            'status' => 'pending',
+            'description' => 'Wallet top-up via PayHere',
+            'provider' => 'payhere',
+            'gateway_order_id' => $orderId,
+            'initiated_at' => now(),
+        ]);
+    }
+
+    /**
+     * Confirm a pending top-up once PayHere's webhook/return verifies the
+     * charge — credits the wallet and completes the transaction. Idempotent:
+     * safe to call more than once for the same transaction (e.g. both the
+     * browser return and the async webhook resolve it).
+     */
+    public function completeTopup(
+        WalletTransaction $transaction,
+        ?string $gatewayPaymentId = null,
+        ?string $gatewayStatus = null
+    ): WalletTransaction {
+        return DB::transaction(function () use ($transaction, $gatewayPaymentId, $gatewayStatus) {
+            /** @var WalletTransaction $locked */
+            $locked = WalletTransaction::where('id', $transaction->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status === 'completed') {
+                return $locked; // already applied — don't double-credit
+            }
+
+            /** @var Wallet $wallet */
+            $wallet = Wallet::where('id', $locked->wallet_id)->lockForUpdate()->firstOrFail();
+            $newBalance = round((float) $wallet->balance + (float) $locked->amount, 2);
+            $wallet->update(['balance' => $newBalance]);
+
+            $locked->update([
+                'status' => 'completed',
+                'balance_after' => $newBalance,
+                'gateway_payment_id' => $gatewayPaymentId ?: $locked->gateway_payment_id,
+                'gateway_status' => $gatewayStatus ?: $locked->gateway_status,
+            ]);
+
+            return $locked->fresh();
+        });
+    }
+
+    public function failTopup(WalletTransaction $transaction, string $reason = '', ?string $gatewayStatus = null): WalletTransaction
+    {
+        if ($transaction->status === 'completed') {
+            return $transaction; // never downgrade a completed credit
+        }
+
+        $transaction->update([
+            'status' => 'failed',
+            'failure_reason' => $reason !== '' ? $reason : $transaction->failure_reason,
+            'gateway_status' => $gatewayStatus ?: $transaction->gateway_status,
+            'failed_at' => now(),
+        ]);
+
+        return $transaction->fresh();
+    }
+
+    /**
      * Debit (remove funds from) a user's wallet. Used for payments.
      *
      * Throws a RuntimeException if the wallet does not have sufficient balance,

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { router } from "@inertiajs/react";
+import { router, usePage } from "@inertiajs/react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
+import { Wallet as WalletIcon, AlertTriangle } from 'lucide-react';
 
 // Storage & Fulfillment is an optional add-on service (pick, pack, and ship
 // handling on the client's behalf) priced as a share of the base monthly rate.
@@ -12,14 +13,17 @@ const fulfillmentRateFor = (warehouse) =>
     warehouse?.fulfillment_fee_rate ? Number(warehouse.fulfillment_fee_rate) / 100 : DEFAULT_FULFILLMENT_SERVICE_RATE;
 
 const WarehousePayments = () => {
-    const [selectedPayment, setSelectedPayment] = useState("Credit Card");
-    const [slipNumber, setSlipNumber] = useState("");
-    const [slipPdf, setSlipPdf] = useState(null);
+    const { props } = usePage();
+    const wallet = props?.wallet || null;
+    const walletBalance = Number(wallet?.balance ?? 0);
+
+    const [selectedPayment, setSelectedPayment] = useState("PayHere");
     const [bookingData, setBookingData] = useState(null);
     const [warehouseInfo, setWarehouseInfo] = useState(null);
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [paymentOption, setPaymentOption] = useState("full"); // full or deposit
     const [errors, setErrors] = useState({});
+    const [walletError, setWalletError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Debug flag - set to true when debugging pricing calculations
@@ -252,16 +256,6 @@ const WarehousePayments = () => {
             newErrors.terms = 'You must accept the terms and conditions';
         }
 
-        if (selectedPayment === "Bank Transfer") {
-            if (!slipNumber.trim()) {
-                newErrors.slipNumber = 'Reference number is required for bank transfers';
-            }
-
-            if (!slipPdf) {
-                newErrors.slipPdf = 'Payment receipt is required for bank transfers';
-            }
-        }
-
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             toast.error('Please fix the errors before proceeding');
@@ -273,11 +267,22 @@ const WarehousePayments = () => {
             return;
         }
 
+        // Wallet balance pre-check (server re-validates with a row lock regardless)
+        if (selectedPayment === "Wallet") {
+            const payNowAmount = paymentOption === "full"
+                ? pricingDetails.final_amount
+                : (pricingDetails.monthly_rate + pricingDetails.security_deposit + pricingDetails.setup_fee);
+            if (walletBalance < payNowAmount) {
+                setWalletError('Insufficient wallet balance for this payment.');
+                toast.error('Insufficient wallet balance for this payment.');
+                return;
+            }
+        }
+        setWalletError("");
+
         const paymentData = {
             payment_method: selectedPayment,
             payment_option: paymentOption,
-            reference_number: slipNumber?.trim() || null,
-            payment_receipt: slipPdf ? 'uploaded' : null,
         };
 
         const updatedBookingData = {
@@ -286,9 +291,9 @@ const WarehousePayments = () => {
         };
         sessionStorage.setItem('warehouseBookingData', JSON.stringify(updatedBookingData));
 
-        const normalizedPaymentMethod = paymentData.payment_method
-            .toLowerCase()
-            .replace(/\s+/g, '_');
+        // Backend validates payment_method as a strict enum (PayHere|Wallet) —
+        // pass it through unchanged rather than normalizing to snake_case.
+        const normalizedPaymentMethod = paymentData.payment_method;
 
         const rawSpecialRequirements = updatedBookingData.special_requirements ?? updatedBookingData.specialRequirements ?? null;
         const normalizedSpecialRequirements = Array.isArray(rawSpecialRequirements)
@@ -420,7 +425,6 @@ const WarehousePayments = () => {
             notes: updatedBookingData.notes || null,
             payment_method: normalizedPaymentMethod,
             payment_option: paymentData.payment_option,
-            payment_reference: paymentData.reference_number,
         };
 
         toast.info('Processing your booking...');
@@ -568,97 +572,48 @@ const WarehousePayments = () => {
 
                         {/* method selector */}
                         <div className="flex flex-row flex-wrap items-center gap-10 text-[10px] font-[600] text-[#00000080] py-2">
-                            <label className="flex flex-row justify-center items-center gap-3 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="paymentMethod"
-                                    value="Credit Card"
-                                    checked={selectedPayment === "Credit Card"}
-                                    onChange={() =>
-                                        setSelectedPayment("Credit Card")
-                                    }
-                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent  focus:outline-none transition-colors cursor-pointer"
-                                />
-                                <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
-                                    Credit Card
-                                </span>
-                            </label>
-
-                            <label className="flex flex-row justify-center items-center gap-3 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="paymentMethod"
-                                    value="PayPal"
-                                    checked={selectedPayment === "PayPal"}
-                                    onChange={() =>
-                                        setSelectedPayment("PayPal")
-                                    }
-                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:outline-none focus:ring-transparent  transition-colors cursor-pointer"
-                                />
-                                <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
-                                    PayPal
-                                </span>
-                            </label>
-
-                            <label className="flex flex-row justify-center items-center gap-3 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="paymentMethod"
-                                    value="Bank Transfer"
-                                    checked={
-                                        selectedPayment === "Bank Transfer"
-                                    }
-                                    onChange={() =>
-                                        setSelectedPayment("Bank Transfer")
-                                    }
-                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:outline-none focus:ring-transparent transition-colors cursor-pointer"
-                                />
-                                <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
-                                    Bank Transfer
-                                </span>
-                            </label>
+                            {["PayHere", "Wallet"].map((m) => (
+                                <label key={m} className="flex flex-row justify-center items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="paymentMethod"
+                                        value={m}
+                                        checked={selectedPayment === m}
+                                        onChange={() => {
+                                            setSelectedPayment(m);
+                                            setWalletError("");
+                                        }}
+                                        className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent focus:outline-none transition-colors cursor-pointer"
+                                    />
+                                    <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600] flex items-center gap-1.5">
+                                        {m === "Wallet" && <WalletIcon size={14} className="text-[#0955AC]" />}
+                                        {m}
+                                    </span>
+                                </label>
+                            ))}
                         </div>
 
-                        {/* only show when Bank Transfer is selected */}
-                        {selectedPayment === "Bank Transfer" && (
-                            <div className="mt-4 grid lg:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        Reference Number :
-                                    </label>
-                                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                        <input
-                                            value={slipNumber}
-                                            onChange={(e) =>
-                                                setSlipNumber(e.target.value)
-                                            }
-                                            className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                            placeholder="Enter reference number"
-                                        />
-                                    </div>
+                        {/* Wallet balance + insufficient-balance warning */}
+                        {selectedPayment === "Wallet" && (
+                            <div className="mt-4 rounded-[10px] bg-[#F1F5F9] px-5 py-4 flex flex-col gap-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[12px] font-[600] text-[#00000099]">Wallet Balance</span>
+                                    <span className="text-[16px] font-[700] text-[#0955AC]">
+                                        {wallet?.currency || 'LKR'} {walletBalance.toFixed(2)}
+                                    </span>
                                 </div>
-
-                                <div>
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        Upload Payment Receipt (PDF) :
-                                    </label>
-                                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] flex items-center px-3">
-                                        <input
-                                            type="file"
-                                            accept="application/pdf"
-                                            onChange={(e) =>
-                                                setSlipPdf(
-                                                    e.target.files?.[0] ?? null
-                                                )
-                                            }
-                                            className="w-full text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
-                                        />
+                                {walletError && (
+                                    <div className="flex items-center gap-2 text-red-600 text-[12px] font-[600]">
+                                        <AlertTriangle size={14} />
+                                        <span>{walletError}</span>
+                                        <a
+                                            href={route("client.wallet.dashboard")}
+                                            className="ml-1 underline text-[#0955AC]"
+                                        >
+                                            Top up now
+                                        </a>
                                     </div>
-                                    {/* optional: small hint */}
-                                    <p className="text-[10px] text-[#00000080] mt-1">
-                                        Only PDF files are allowed.
-                                    </p>
-                                </div>
+                                )}
                             </div>
                         )}
                     </div>

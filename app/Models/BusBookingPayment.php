@@ -5,15 +5,12 @@ namespace App\Models;
 use App\Models\Concerns\HasGatewayPaymentLifecycle;
 use Illuminate\Database\Eloquent\Model;
 
-class AirVehicleBookingPayment extends Model
+class BusBookingPayment extends Model
 {
     use HasGatewayPaymentLifecycle;
 
-    protected $table = 'air_vehicle_booking_payments';
-
     protected $fillable = [
-        'air_vehicle_booking_id','method','option','amount_paid','status',
-        'slip_number','slip_path','tx_reference',
+        'bus_booking_id', 'method', 'option', 'amount_paid', 'status', 'tx_reference',
         'provider', 'gateway_order_id', 'gateway_payment_id', 'gateway_status',
         'initiated_at', 'paid_at', 'failed_at', 'last_notified_at',
         'failure_reason', 'gateway_payload', 'callback_payload',
@@ -21,8 +18,6 @@ class AirVehicleBookingPayment extends Model
 
     protected $casts = [
         'amount_paid' => 'float',
-        'created_at'  => 'datetime',
-        'updated_at'  => 'datetime',
         'initiated_at' => 'datetime',
         'paid_at' => 'datetime',
         'failed_at' => 'datetime',
@@ -31,8 +26,8 @@ class AirVehicleBookingPayment extends Model
         'callback_payload' => 'array',
     ];
 
-    public function airVehicleBooking()
+    public function busBooking()
     {
-        return $this->belongsTo(AirVehicleBookings::class, 'air_vehicle_booking_id');
+        return $this->belongsTo(BusBooking::class);
     }
 }

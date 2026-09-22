@@ -253,6 +253,47 @@ Route::post('/bus-bookings/{reference}/cancel', [BusBookingController::class, 'c
 Route::get('/train-bookings/{reference}/cancellation-policy', [TrainController::class, 'getCancellationPolicy'])->name('train.booking.cancellation.policy')->middleware('auth');
 Route::post('/train-bookings/{reference}/cancel', [TrainController::class, 'cancelBooking'])->name('train.booking.cancel')->middleware('auth');
 
+// Bus booking payment flow (PayHere / Wallet checkout added right after
+// booking creation — see BusBookingController::store()). Mirrors the
+// warehouse-bookings/payhere/* structure.
+Route::prefix('bus-bookings')->name('bus-bookings.')->group(function () {
+    // PayHere callbacks — deliberately outside the auth middleware. The
+    // notify webhook carries no session at all (PayHere calls it server-to-
+    // server), and the browser return redirect shouldn't be blocked by
+    // session state either — resolution happens by gateway_order_id, not
+    // Auth::user(), same pattern as client.wallet.payhere.* / warehouse.
+    // NOTE: the notify path here ("bus-bookings/payhere/notify") is
+    // pre-registered as CSRF-exempt in bootstrap/app.php — do not rename it.
+    Route::prefix('payhere')->name('payhere.')->group(function () {
+        Route::get('/return', [BusBookingController::class, 'handlePayHereReturn'])->name('return');
+        Route::get('/cancel', [BusBookingController::class, 'handlePayHereCancel'])->name('cancel');
+        Route::post('/notify', [BusBookingController::class, 'handlePayHereNotify'])->name('notify');
+    });
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/payhere/checkout/{booking}', [BusBookingController::class, 'paymentCheckout'])->name('payhere.checkout');
+        Route::get('/payhere/status/{booking}', [BusBookingController::class, 'paymentStatus'])->name('payhere.status');
+        Route::post('/payhere/retry/{booking}', [BusBookingController::class, 'paymentRetry'])->name('payhere.retry');
+    });
+});
+
+// Train booking payment flow — same structure as bus-bookings above.
+Route::prefix('train-bookings')->name('train-bookings.')->group(function () {
+    // NOTE: the notify path here ("train-bookings/payhere/notify") is
+    // pre-registered as CSRF-exempt in bootstrap/app.php — do not rename it.
+    Route::prefix('payhere')->name('payhere.')->group(function () {
+        Route::get('/return', [TrainController::class, 'handlePayHereReturn'])->name('return');
+        Route::get('/cancel', [TrainController::class, 'handlePayHereCancel'])->name('cancel');
+        Route::post('/notify', [TrainController::class, 'handlePayHereNotify'])->name('notify');
+    });
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/payhere/checkout/{booking}', [TrainController::class, 'paymentCheckout'])->name('payhere.checkout');
+        Route::get('/payhere/status/{booking}', [TrainController::class, 'paymentStatus'])->name('payhere.status');
+        Route::post('/payhere/retry/{booking}', [TrainController::class, 'paymentRetry'])->name('payhere.retry');
+    });
+});
+
 // Flight booking cancellation routes
 Route::get('/flight-bookings/{reference}/cancellation-policy', [FlightBookingController::class, 'getCancellationPolicy'])->name('flight.booking.cancellation.policy')->middleware('auth');
 Route::post('/flight-bookings/{reference}/cancel', [FlightBookingController::class, 'cancelBooking'])->name('flight.booking.cancel')->middleware('auth');
@@ -365,6 +406,19 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
     Route::post('/book', [WarehouseBookingController::class, 'store'])->name('book');
     Route::post('/store', [WarehouseBookingController::class, 'store'])->name('store');
 
+    // PayHere callbacks — deliberately outside the auth middleware. The
+    // notify webhook carries no session at all (PayHere calls it server-to-
+    // server), and the browser return redirect shouldn't be blocked by
+    // session state either — resolution happens by gateway_order_id, not
+    // Auth::user(), same pattern as client.wallet.payhere.* / couriers.
+    // NOTE: the notify path here ("warehouse-bookings/payhere/notify") is
+    // pre-registered as CSRF-exempt in bootstrap/app.php — do not rename it.
+    Route::prefix('payhere')->name('payhere.')->group(function () {
+        Route::get('/return', [WarehouseBookingController::class, 'handlePayHereReturn'])->name('return');
+        Route::get('/cancel', [WarehouseBookingController::class, 'handlePayHereCancel'])->name('cancel');
+        Route::post('/notify', [WarehouseBookingController::class, 'handlePayHereNotify'])->name('notify');
+    });
+
     // Protected routes (require authentication)
     Route::middleware(['auth'])->group(function () {
         // Booking summary/confirmation
@@ -373,10 +427,15 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
         // User's booking management
         Route::get('/my-bookings', [WarehouseBookingController::class, 'list'])->name('list');
         Route::get('/booking/{id}', [WarehouseBookingController::class, 'show'])->name('show');
-        
+
         // Cancellation routes
         Route::get('/booking/{id}/cancel-preview', [\App\Http\Controllers\WarehouseBookingCancellationController::class, 'preview'])->name('cancel-preview');
         Route::post('/booking/{id}/cancel', [\App\Http\Controllers\WarehouseBookingCancellationController::class, 'cancel'])->name('cancel');
+
+        // PayHere checkout step for bookings paid via PayHere (see store())
+        Route::get('/payhere/checkout/{booking}', [WarehouseBookingController::class, 'paymentCheckout'])->name('payhere.checkout');
+        Route::get('/payhere/status/{booking}', [WarehouseBookingController::class, 'paymentStatus'])->name('payhere.status');
+        Route::post('/payhere/retry/{booking}', [WarehouseBookingController::class, 'paymentRetry'])->name('payhere.retry');
     });
 });
 
@@ -445,10 +504,17 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
         Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
 
+        // Land vehicle PayHere checkout (authenticated leg — return/cancel/notify are public, see below)
+        Route::get('/bookings/{booking}/payhere/checkout', [ClientBookingController::class, 'paymentCheckout'])->name('bookings.payhere.checkout');
+        Route::get('/bookings/{booking}/payhere/status', [ClientBookingController::class, 'paymentStatus'])->name('bookings.payhere.status');
+        Route::post('/bookings/{booking}/payhere/retry', [ClientBookingController::class, 'paymentRetry'])->name('bookings.payhere.retry');
+
         // Central client wallet
         Route::get('/wallet', [WalletController::class, 'dashboard'])->name('wallet.dashboard');
         Route::get('/wallet/summary', [WalletController::class, 'summary'])->name('wallet.summary');
         Route::post('/wallet/topup', [WalletController::class, 'topup'])->name('wallet.topup');
+        Route::get('/wallet/checkout/{transaction}', [WalletController::class, 'checkout'])->name('wallet.checkout');
+        Route::get('/wallet/checkout/{transaction}/status', [WalletController::class, 'status'])->name('wallet.checkout.status');
         
         // Vehicle booking cancellation routes
         Route::get('/bookings/{booking}/cancellation-policy', [ClientBookingController::class, 'getCancellationPolicy'])->name('bookings.cancellation-policy');
@@ -467,6 +533,11 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/airBookings/{airVehicleBooking}/cancellation-policy', [ClientBookingController::class, 'getAirVehicleCancellationPolicy'])->name('airBookings.cancellation-policy');
         Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
 
+        // Air vehicle PayHere checkout (authenticated leg — return/cancel/notify are public, see below)
+        Route::get('/airBookings/{airVehicleBooking}/payhere/checkout', [ClientBookingController::class, 'airPaymentCheckout'])->name('airBookings.payhere.checkout');
+        Route::get('/airBookings/{airVehicleBooking}/payhere/status', [ClientBookingController::class, 'airPaymentStatus'])->name('airBookings.payhere.status');
+        Route::post('/airBookings/{airVehicleBooking}/payhere/retry', [ClientBookingController::class, 'airPaymentRetry'])->name('airBookings.payhere.retry');
+
         // Sea Vehicle Booking Routes
         Route::get('/seaBookings/quote', [ClientBookingController::class, 'seaVehicleQuote'])->name('seaBookings.quote');
         Route::get('/seaBookings/checkout', [ClientBookingController::class, 'showSeaVehicleCheckout'])->name('seaBookings.checkout');
@@ -479,6 +550,11 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/seaBookings/{seaVehicleBooking}/cancellation-policy', [ClientBookingController::class, 'getSeaVehicleCancellationPolicy'])->name('seaBookings.cancellation-policy');
         Route::post('/seaBookings/{seaVehicleBooking}/cancel', [ClientBookingController::class, 'seaVehicleCancel'])->name('seaBookings.cancel');
 
+        // Sea vehicle PayHere checkout (authenticated leg — return/cancel/notify are public, see below)
+        Route::get('/seaBookings/{seaVehicleBooking}/payhere/checkout', [ClientBookingController::class, 'seaPaymentCheckout'])->name('seaBookings.payhere.checkout');
+        Route::get('/seaBookings/{seaVehicleBooking}/payhere/status', [ClientBookingController::class, 'seaPaymentStatus'])->name('seaBookings.payhere.status');
+        Route::post('/seaBookings/{seaVehicleBooking}/payhere/retry', [ClientBookingController::class, 'seaPaymentRetry'])->name('seaBookings.payhere.retry');
+
 
 
         Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
@@ -488,6 +564,39 @@ Route::prefix('client')->as('client.')->group(function () {
 
         Route::get('/warehouses/dashboard-data', [WarehouseBookingController::class, 'dashboardData'])->name('warehouses.dashboard-data');
     });
+});
+
+// Wallet PayHere callbacks — deliberately outside the auth:client group.
+// The notify webhook carries no session at all (PayHere calls it server-to-
+// server), and the browser return redirect shouldn't be blocked by session
+// state either — resolution happens by gateway_order_id, not Auth::user(),
+// same pattern as couriers.payments.payhere.*.
+Route::prefix('client/wallet')->name('client.wallet.')->group(function () {
+    Route::get('/payhere/return', [WalletController::class, 'handleReturn'])->name('payhere.return');
+    Route::get('/payhere/cancel', [WalletController::class, 'handleCancel'])->name('payhere.cancel');
+    Route::post('/payhere/notify', [WalletController::class, 'handleNotify'])->name('payhere.notify');
+});
+
+// Vehicle rental (land/air/sea) PayHere callbacks — same reasoning as the
+// wallet block above: notify is server-to-server with no session, and return
+// resolves purely by gateway_order_id. All three prefixes share the same
+// handler methods on ClientBookingController, which dispatch internally by
+// the order_id prefix (VEH-/AIR-/SEA-). Paths must stay exactly as below —
+// bootstrap/app.php has these three CSRF-exempted by literal path.
+Route::prefix('client/bookings')->name('client.bookings.')->group(function () {
+    Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
+    Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
+    Route::post('/payhere/notify', [ClientBookingController::class, 'handlePayHereNotify'])->name('payhere.notify');
+});
+Route::prefix('client/airBookings')->name('client.airBookings.')->group(function () {
+    Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
+    Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
+    Route::post('/payhere/notify', [ClientBookingController::class, 'handlePayHereNotify'])->name('payhere.notify');
+});
+Route::prefix('client/seaBookings')->name('client.seaBookings.')->group(function () {
+    Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
+    Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
+    Route::post('/payhere/notify', [ClientBookingController::class, 'handlePayHereNotify'])->name('payhere.notify');
 });
 
 /*

@@ -42,6 +42,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'logout-alt',
             'csrf-token',
             'couriers/payments/payhere/notify',
+            'client/wallet/payhere/notify',
+            'client/bookings/payhere/notify',
+            'client/airBookings/payhere/notify',
+            'client/seaBookings/payhere/notify',
+            'bus-bookings/payhere/notify',
+            'train-bookings/payhere/notify',
+            'warehouse-bookings/payhere/notify',
         ]);
 
         // Add CORS middleware to API routes
