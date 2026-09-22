@@ -123,6 +123,15 @@ class ClientCourierShipmentTransformer
             'actualCost' => $shipment->actual_cost !== null ? (float) $shipment->actual_cost : null,
             'deliveryNotes' => $shipment->delivery_notes,
             'internalNotes' => $shipment->internal_notes,
+            'shipmentType' => $shipment->shipment_type,
+            'shipmentTypeDescription' => $shipment->shipment_type_description,
+            // Whichever the customer needs to know before/instead of paying —
+            // previously omitted entirely from the detail page, so a rejected
+            // shipment just looked "Pending" forever with no explanation.
+            'vendorApprovalStatus' => $shipment->vendor_approval_status,
+            'requiresVendorApproval' => $shipment->isVendorApprovalBlocking(),
+            'vendorApprovalNotes' => $shipment->vendor_approval_notes,
+            'vendorApprovalDecidedAt' => $shipment->vendor_approval_decided_at?->format('Y-m-d H:i:s'),
             'createdAt' => $shipment->created_at?->format('Y-m-d H:i:s'),
             'updatedAt' => $shipment->updated_at?->format('Y-m-d H:i:s'),
         ];

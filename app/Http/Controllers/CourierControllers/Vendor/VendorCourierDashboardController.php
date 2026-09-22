@@ -2327,7 +2327,7 @@ class VendorCourierDashboardController extends Controller
 
         $decision = $validated['decision'];
 
-        DB::transaction(function () use ($shipment, $decision, $validated, $request) {
+        $trackingEvent = DB::transaction(function () use ($shipment, $decision, $validated, $request) {
             $shipment->update([
                 'vendor_approval_status' => $decision,
                 'vendor_approval_decided_at' => now(),
@@ -2335,7 +2335,7 @@ class VendorCourierDashboardController extends Controller
                 'vendor_approval_notes' => $validated['notes'] ?? null,
             ]);
 
-            $shipment->trackingEvents()->create([
+            return $shipment->trackingEvents()->create([
                 'status' => $decision === 'approved' ? 'vendor_approved' : 'vendor_rejected',
                 'description' => $decision === 'approved'
                     ? 'Vendor approved this shipment type for processing.'
@@ -2343,6 +2343,15 @@ class VendorCourierDashboardController extends Controller
                 'recorded_at' => now(),
             ]);
         });
+
+        // Previously silent — a rejected/approved customer got no email at all
+        // and had to notice a missing "Pay" button to figure out what happened.
+        $emailDispatch = app(CourierCustomerEmailDispatchService::class);
+        if ($decision === 'approved') {
+            $emailDispatch->queueVendorApproved($shipment, $trackingEvent);
+        } else {
+            $emailDispatch->queueVendorRejected($shipment, $trackingEvent);
+        }
 
         return back()->with('success', $decision === 'approved'
             ? 'Shipment approved. The customer can now proceed to payment.'

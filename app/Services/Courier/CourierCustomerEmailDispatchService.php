@@ -25,6 +25,8 @@ class CourierCustomerEmailDispatchService
     public const EVENT_PAYMENT_PAID = 'payment_paid';
     public const EVENT_PAYMENT_FAILED = 'payment_failed';
     public const EVENT_PAYMENT_CANCELLED = 'payment_cancelled';
+    public const EVENT_VENDOR_APPROVED = 'vendor_approved';
+    public const EVENT_VENDOR_REJECTED = 'vendor_rejected';
 
     public function __construct(
         private readonly CourierNotificationPreferenceService $preferences,
@@ -90,6 +92,16 @@ class CourierCustomerEmailDispatchService
     public function queuePaymentCancelled(CourierShipmentPayment $payment): int
     {
         return $this->queuePaymentEvent($payment, self::EVENT_PAYMENT_CANCELLED);
+    }
+
+    public function queueVendorApproved(CourierShipment $shipment, ?CourierTrackingEvent $trackingEvent = null): int
+    {
+        return $this->queueShipmentEvent($shipment, self::EVENT_VENDOR_APPROVED, trackingEvent: $trackingEvent);
+    }
+
+    public function queueVendorRejected(CourierShipment $shipment, ?CourierTrackingEvent $trackingEvent = null): int
+    {
+        return $this->queueShipmentEvent($shipment, self::EVENT_VENDOR_REJECTED, trackingEvent: $trackingEvent);
     }
 
     private function queuePaymentEvent(CourierShipmentPayment $payment, string $eventType): int

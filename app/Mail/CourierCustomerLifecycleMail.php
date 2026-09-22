@@ -77,6 +77,8 @@ class CourierCustomerLifecycleMail extends Mailable
             'payment_paid' => 'Payment Received - Courier ' . (string) $this->shipment->reference,
             'payment_failed' => 'Payment Failed - Courier ' . (string) $this->shipment->reference,
             'payment_cancelled' => 'Payment Cancelled - Courier ' . (string) $this->shipment->reference,
+            'vendor_approved' => 'Courier Shipment Approved - ' . (string) $this->shipment->reference,
+            'vendor_rejected' => 'Courier Shipment Rejected - ' . (string) $this->shipment->reference,
             default => 'Courier Update - ' . (string) $this->shipment->reference,
         };
     }
@@ -93,6 +95,8 @@ class CourierCustomerLifecycleMail extends Mailable
             'payment_paid' => 'Payment Successful',
             'payment_failed' => 'Payment Failed',
             'payment_cancelled' => 'Payment Cancelled',
+            'vendor_approved' => 'Shipment Approved',
+            'vendor_rejected' => 'Shipment Rejected',
             default => 'Shipment Update',
         };
     }
@@ -109,6 +113,8 @@ class CourierCustomerLifecycleMail extends Mailable
             'payment_paid' => 'Your payment has been confirmed.',
             'payment_failed' => 'We could not complete your payment. You can retry from your shipment page.',
             'payment_cancelled' => 'Your payment was cancelled. You can retry from your shipment page.',
+            'vendor_approved' => 'Good news — the courier vendor approved your shipment. You can now proceed to payment.',
+            'vendor_rejected' => 'The courier vendor was unable to accept this shipment. Please check your shipment page for details, or contact support.',
             default => 'Your courier shipment has a new update.',
         };
     }

@@ -123,6 +123,8 @@ const CourierShipmentDetail = () => {
     const paymentProvider = shipment.payment_provider || shipment.paymentProvider || null;
     const paymentCheckoutUrl = shipment.payment_checkout_url || shipment.paymentCheckoutUrl || null;
     const requiresCardPayment = Boolean(shipment.requires_card_payment || shipment.requiresCardPayment);
+    const vendorApprovalStatus = shipment.vendorApprovalStatus || null;
+    const vendorApprovalNotes = shipment.vendorApprovalNotes || null;
     const canTakePayment = requiresCardPayment && paymentStatusRaw !== 'paid' && Boolean(paymentCheckoutUrl);
     const paymentStatusLabel = toTitleLabel(paymentStatusRaw, 'Pending');
     const paymentMethodLabel = toTitleLabel(paymentMethodRaw, 'Not Available');
@@ -240,6 +242,18 @@ const CourierShipmentDetail = () => {
                                         <StatusIcon className="h-5 w-5" />
                                         {statusInfo.label}
                                     </div>
+                                    {vendorApprovalStatus === 'rejected' && (
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold bg-rose-50 text-rose-700 border-rose-200">
+                                            <AlertCircle className="h-4 w-4" />
+                                            Rejected by Courier Vendor
+                                        </div>
+                                    )}
+                                    {vendorApprovalStatus === 'pending' && (
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold bg-amber-50 text-amber-700 border-amber-200">
+                                            <Clock className="h-4 w-4" />
+                                            Awaiting Vendor Review
+                                        </div>
+                                    )}
                                     <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold ${
                                         paymentStatusRaw === 'paid'
                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -276,6 +290,37 @@ const CourierShipmentDetail = () => {
                                 )}
                         </div>
                     </div>
+
+                    {vendorApprovalStatus === 'rejected' && (
+                        <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-5 flex items-start gap-3">
+                            <AlertCircle className="h-5 w-5 text-rose-600 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="font-semibold text-rose-800">
+                                    The courier vendor rejected this shipment
+                                </p>
+                                {vendorApprovalNotes && (
+                                    <p className="text-[14px] text-rose-700 mt-1">Reason: {vendorApprovalNotes}</p>
+                                )}
+                                <p className="text-[13px] text-rose-600 mt-1">
+                                    Payment is disabled for this shipment. Please contact support or create a new shipment.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {vendorApprovalStatus === 'pending' && (
+                        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 flex items-start gap-3">
+                            <Clock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="font-semibold text-amber-800">
+                                    Waiting on the courier vendor to review this shipment
+                                </p>
+                                <p className="text-[13px] text-amber-700 mt-1">
+                                    This shipment type needs vendor approval before it can be paid for. You'll be able to pay once it's approved.
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Main Content Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
