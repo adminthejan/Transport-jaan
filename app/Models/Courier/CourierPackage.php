@@ -26,6 +26,7 @@ class CourierPackage extends Model
         'height_cm',
         'declared_value',
         'description',
+        'hs_code',
     ];
 
     protected $casts = [

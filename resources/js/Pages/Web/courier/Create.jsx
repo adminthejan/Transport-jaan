@@ -41,14 +41,102 @@ const DIMENSION_UNIT_FACTORS = {
     yd: 1 / CENTIMETERS_PER_YARD,
 };
 const SHIPMENT_TYPE_OPTIONS = [
-    { value: "electronics", label: "Electronics" },
-    { value: "documents", label: "Documents" },
-    { value: "clothing", label: "Clothing" },
-    { value: "medical", label: "Medical supplies" },
-    { value: "perishable", label: "Perishable" },
-    { value: "fragile", label: "Fragile" },
-    { value: "other", label: "Other" },
+    {
+        value: "electronics",
+        label: "Electronics",
+        description: "Devices, gadgets, or electrical items. May need extra padding and insurance.",
+    },
+    {
+        value: "documents",
+        label: "Documents",
+        description: "Papers, certificates, or contracts only — no physical goods.",
+    },
+    {
+        value: "clothing",
+        label: "Clothing",
+        description: "Apparel, textiles, or fabric items.",
+    },
+    {
+        value: "medical",
+        label: "Medical supplies",
+        description: "Medicines or medical devices. Some items may require special handling or certification.",
+    },
+    {
+        value: "perishable",
+        label: "Perishable",
+        description: "Food, flowers, or other items that can spoil and need fast delivery.",
+    },
+    {
+        value: "fragile",
+        label: "Fragile",
+        description: "Breakable items such as glass or ceramics that require careful handling.",
+    },
+    {
+        value: "other",
+        label: "Other",
+        description: "Doesn't fit the categories above. Requires vendor approval before you can proceed to payment.",
+    },
 ];
+
+const SHIPMENT_TYPE_OPTIONS_BY_VALUE = SHIPMENT_TYPE_OPTIONS.reduce((accumulator, option) => {
+    accumulator[option.value] = option;
+    return accumulator;
+}, {});
+
+// Shared "Type" select used in both the domestic and international package
+// sections — keeps per-type help text and the "Other" vendor-approval notice
+// consistent instead of duplicating this markup in each section.
+const ShipmentTypeField = ({ value, onChange }) => {
+    const selectedOption = SHIPMENT_TYPE_OPTIONS_BY_VALUE[value] || null;
+
+    return (
+        <div>
+            <div className="mb-2 flex items-center gap-2">
+                <label className="block text-sm font-medium text-[#0B1739]">Type</label>
+                <div className="group relative">
+                    <button
+                        type="button"
+                        className="flex h-5 w-5 items-center justify-center rounded-full border border-[#8A8A8A] text-[11px] font-semibold text-[#404040]"
+                        aria-label="What do these shipment types mean?"
+                    >
+                        ?
+                    </button>
+                    <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[320px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-xs text-[#333333] shadow-lg group-hover:block group-focus-within:block">
+                        <p className="font-semibold">What do these types mean?</p>
+                        <ul className="mt-2 space-y-2">
+                            {SHIPMENT_TYPE_OPTIONS.map((option) => (
+                                <li key={`shipment-type-help-${option.value}`}>
+                                    <span className="font-semibold text-[#0B1739]">{option.label}:</span>{" "}
+                                    <span className="text-[#5B6887]">{option.description}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <select
+                value={value || ""}
+                onChange={(event) => onChange(event.target.value)}
+                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+            >
+                <option value="">Select type</option>
+                {SHIPMENT_TYPE_OPTIONS.map((option) => (
+                    <option key={`shipment-type-${option.value}`} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+            {selectedOption && (
+                <p className="mt-1.5 text-xs text-[#5B6887]">{selectedOption.description}</p>
+            )}
+            {value === "other" && (
+                <p className="mt-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700">
+                    Shipments marked "Other" require vendor approval before you can proceed to payment.
+                </p>
+            )}
+        </div>
+    );
+};
 
 const DOMESTIC_DIMENSION_ASSIST_PRESETS = [
     {
@@ -356,6 +444,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     nonStackable: false,
                     declaredValue: "",
                     description: "",
+                    hsCode: "",
                     courierProvider: "",
                     serviceLevel: "",
                 },
@@ -1494,18 +1583,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
     const updatePaymentOptions = (optionKey, checked) => {
         const currentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
-        let nextOptions = { ...currentOptions };
-
-        if (optionKey === "all") {
-            nextOptions = {
-                all: checked,
-                cod: checked,
-                card: checked,
-            };
-        } else {
-            nextOptions[optionKey] = checked;
-            nextOptions.all = nextOptions.cod && nextOptions.card;
-        }
+        const nextOptions = { ...currentOptions, all: false, [optionKey]: checked };
 
         markUpstreamChange();
         setData("shipment", {
@@ -1570,6 +1648,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 nonStackable: false,
                 declaredValue: "",
                 description: "",
+                hsCode: "",
                 courierProvider: "",
                 serviceLevel: "",
             },
@@ -3601,21 +3680,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         )}
                                                                     </div>
 
-                                                                    <div>
-                                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">Type</label>
-                                                                        <select
-                                                                            value={data.shipment.shipmentType || ""}
-                                                                            onChange={(event) => handleShipmentTypeChange(event.target.value)}
-                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                        >
-                                                                            <option value="">Select type</option>
-                                                                            {SHIPMENT_TYPE_OPTIONS.map((option) => (
-                                                                                <option key={`shipment-type-${option.value}`} value={option.value}>
-                                                                                    {option.label}
-                                                                                </option>
-                                                                            ))}
-                                                                        </select>
-                                                                    </div>
+                                                                    <ShipmentTypeField
+                                                                        value={data.shipment.shipmentType}
+                                                                        onChange={handleShipmentTypeChange}
+                                                                    />
                                                                 </div>
 
                                                                 {data.shipment.shipmentType === "other" && (
@@ -3670,15 +3738,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         <>
                                                                             <p className="mt-4 text-sm font-semibold text-[#0B1739]">Payment options*</p>
                                                                             <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
-                                                                                <label className="inline-flex items-center gap-2">
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        className="h-4 w-4 accent-[#0955AC]"
-                                                                                        checked={paymentOptions.all}
-                                                                                        onChange={(event) => updatePaymentOptions("all", event.target.checked)}
-                                                                                    />
-                                                                                    All
-                                                                                </label>
                                                                                 <label className="inline-flex items-center gap-2">
                                                                                     <input
                                                                                         type="checkbox"
@@ -3871,21 +3930,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         )}
                                                                     </div>
 
-                                                                    <div>
-                                                                        <label className="mb-1 block text-sm font-medium text-[#0B1739]">Type</label>
-                                                                        <select
-                                                                            value={data.shipment.shipmentType || ""}
-                                                                            onChange={(event) => handleShipmentTypeChange(event.target.value)}
-                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                        >
-                                                                            <option value="">Select type</option>
-                                                                            {SHIPMENT_TYPE_OPTIONS.map((option) => (
-                                                                                <option key={`shipment-type-${option.value}`} value={option.value}>
-                                                                                    {option.label}
-                                                                                </option>
-                                                                            ))}
-                                                                        </select>
-                                                                    </div>
+                                                                    <ShipmentTypeField
+                                                                        value={data.shipment.shipmentType}
+                                                                        onChange={handleShipmentTypeChange}
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -4000,6 +4048,25 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 />
                                                                 Shipment contains exclusively documents
                                                             </label>
+
+                                                            <div className="mt-2 max-w-xs">
+                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">
+                                                                    HS Code <span className="font-normal text-[#8C97B0]">(for customs clearance)</span>
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={item.hsCode || ""}
+                                                                    onChange={(event) => updatePackage(index, "hsCode", event.target.value)}
+                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    placeholder="e.g. 8517.12"
+                                                                />
+                                                                <p className="mt-1.5 text-xs text-[#5B6887]">
+                                                                    The Harmonized System code for these goods. Helps customs classify your shipment and can speed up clearance.
+                                                                </p>
+                                                                {errors[`packages.${index}.hsCode`] && (
+                                                                    <p className="mt-2 text-sm text-red-500">{errors[`packages.${index}.hsCode`]}</p>
+                                                                )}
+                                                            </div>
                                                         </div>
 
                                                     </div>

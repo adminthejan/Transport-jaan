@@ -1287,6 +1287,10 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.shipments.update_stage')
         ->name('courierService.shipments.stage');
 
+    Route::post('/courierService/shipments/{shipment}/vendor-approval', [VendorCourierDashboardController::class, 'updateVendorApproval'])
+        ->middleware('service.permission:courier.shipments.update_stage')
+        ->name('courierService.shipments.vendorApproval');
+
     Route::post('/courierService/shipments/bulk-stage', [VendorCourierDashboardController::class, 'bulkUpdateShipmentStage'])
         ->middleware('service.permission:courier.shipments.bulk_update')
         ->name('courierService.shipments.bulk.stage');

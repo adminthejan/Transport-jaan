@@ -84,6 +84,7 @@ class StoreCourierShipmentRequest extends FormRequest
             'packages.*.heightCm' => ['nullable', 'numeric', 'min:0'],
             'packages.*.declaredValue' => ['nullable', 'numeric', 'min:0'],
             'packages.*.description' => ['nullable', 'string', 'max:500'],
+            'packages.*.hsCode' => ['nullable', 'string', 'max:20'],
 
             'reviewContext' => ['nullable', 'array'],
             'reviewContext.displayCurrency' => ['nullable', 'string', 'max:4'],

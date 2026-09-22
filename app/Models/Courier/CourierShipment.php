@@ -24,6 +24,14 @@ class CourierShipment extends Model
     public const ASSIGNMENT_STATUS_UNASSIGNED = 'unassigned';
     public const ASSIGNMENT_STATUS_ASSIGNED = 'assigned';
 
+    public const VENDOR_APPROVAL_PENDING = 'pending';
+    public const VENDOR_APPROVAL_APPROVED = 'approved';
+    public const VENDOR_APPROVAL_REJECTED = 'rejected';
+
+    // Shipment types that cannot be auto-approved and must be reviewed by the
+    // assigned vendor before the customer can pay/checkout.
+    public const SHIPMENT_TYPES_REQUIRING_VENDOR_APPROVAL = ['other'];
+
     protected $fillable = [
         'reference',
         'tracking_pin',
@@ -35,10 +43,17 @@ class CourierShipment extends Model
         'sender_address_id',
         'recipient_address_id',
         'service_level',
+        'shipment_type',
+        'shipment_type_description',
         'status',
         'assignment_category',
         'assignment_status',
         'assigned_at',
+        'vendor_approval_status',
+        'vendor_approval_requested_at',
+        'vendor_approval_decided_at',
+        'vendor_approval_decided_by_user_id',
+        'vendor_approval_notes',
         'pickup_date',
         'pickup_window_start',
         'pickup_window_end',
@@ -64,6 +79,8 @@ class CourierShipment extends Model
         'pickup_window_start' => 'datetime:H:i',
         'pickup_window_end' => 'datetime:H:i',
         'assigned_at' => 'datetime',
+        'vendor_approval_requested_at' => 'datetime',
+        'vendor_approval_decided_at' => 'datetime',
         'insurance_required' => 'boolean',
         'declared_value' => 'decimal:2',
         'is_cod_enabled' => 'boolean',
@@ -115,6 +132,11 @@ class CourierShipment extends Model
     public function assignedVendorRegistration()
     {
         return $this->belongsTo(\App\Models\VendorServiceRegistration::class, 'assigned_vendor_registration_id');
+    }
+
+    public function vendorApprovalDecidedBy()
+    {
+        return $this->belongsTo(User::class, 'vendor_approval_decided_by_user_id');
     }
 
     public function codCapability()
@@ -215,6 +237,20 @@ class CourierShipment extends Model
     public function isOperationsFrozen(): bool
     {
         return SuperAdminCourierActionAudit::isShipmentOperationsFrozen((int) $this->id);
+    }
+
+    public static function shipmentTypeRequiresVendorApproval(?string $shipmentType): bool
+    {
+        return in_array(strtolower((string) $shipmentType), self::SHIPMENT_TYPES_REQUIRING_VENDOR_APPROVAL, true);
+    }
+
+    /**
+     * True while this shipment cannot proceed to payment/checkout because it
+     * is awaiting (or was refused) vendor approval.
+     */
+    public function isVendorApprovalBlocking(): bool
+    {
+        return in_array($this->vendor_approval_status, [self::VENDOR_APPROVAL_PENDING, self::VENDOR_APPROVAL_REJECTED], true);
     }
 
     public function toSearchableArray(): array

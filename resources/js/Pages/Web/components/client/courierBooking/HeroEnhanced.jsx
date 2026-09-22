@@ -696,6 +696,16 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                                                     {shipment.serviceLevel && (
                                                         <span className="text-[11px] text-slate-500 bg-slate-50 rounded-full px-2.5 py-1">Service: {shipment.serviceLevel}</span>
                                                     )}
+                                                    {shipment.vendorApprovalStatus === "pending" && (
+                                                        <span className="text-[11px] rounded-full px-2.5 py-1 font-[600] bg-amber-50 text-amber-700">
+                                                            Awaiting vendor approval
+                                                        </span>
+                                                    )}
+                                                    {shipment.vendorApprovalStatus === "rejected" && (
+                                                        <span className="text-[11px] rounded-full px-2.5 py-1 font-[600] bg-rose-50 text-rose-700">
+                                                            Not approved by vendor
+                                                        </span>
+                                                    )}
                                                     {shipment.paymentStatus && (
                                                         <span className={`text-[11px] rounded-full px-2.5 py-1 font-[600] capitalize ${shipment.paymentStatus === "paid" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                                                             Payment: {shipment.paymentStatusLabel || shipment.paymentStatus}

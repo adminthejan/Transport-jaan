@@ -2177,6 +2177,8 @@ class ClientCourierController extends Controller
                 'shipment.codEnabled' => ['nullable', 'boolean'],
                 'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
                 'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
+                'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
+                'shipment.shipmentTypeDescription' => ['nullable', 'string', 'max:200'],
                 'shipment.internationalDimensions' => ['nullable', 'array'],
                 'shipment.internationalDimensions.unitType' => ['nullable', 'string', 'max:40'],
                 'shipment.internationalDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
@@ -2195,6 +2197,7 @@ class ClientCourierController extends Controller
                 'packages.*.heightCm' => ['nullable', 'numeric', 'min:0'],
                 'packages.*.declaredValue' => ['nullable', 'numeric', 'min:0'],
                 'packages.*.description' => ['nullable', 'string', 'max:500'],
+                'packages.*.hsCode' => ['nullable', 'string', 'max:20'],
                 'reviewContext' => ['nullable', 'array'],
                 'reviewContext.displayCurrency' => ['nullable', 'string', 'max:4'],
                 'reviewContext.totalPriceUSD' => ['nullable', 'numeric', 'min:0'],
@@ -2537,6 +2540,9 @@ class ClientCourierController extends Controller
                     'is_primary' => true,
                 ]);
 
+                $shipmentType = $payload['shipment']['shipmentType'] ?? null;
+                $requiresVendorApproval = CourierShipment::shipmentTypeRequiresVendorApproval($shipmentType);
+
                 $shipment = CourierShipment::create([
                     'requested_by_user_id' => Auth::id(),
                     'sender_contact_id' => $sender->id,
@@ -2544,6 +2550,8 @@ class ClientCourierController extends Controller
                     'sender_address_id' => $senderAddress->id,
                     'recipient_address_id' => $recipientAddress->id,
                     'service_level' => $payload['shipment']['serviceLevel'],
+                    'shipment_type' => $shipmentType,
+                    'shipment_type_description' => $payload['shipment']['shipmentTypeDescription'] ?? null,
                     'status' => CourierShipment::STATUS_PENDING,
                     'pickup_date' => $payload['shipment']['pickupDate'] ? $payload['shipment']['pickupDate'] : null,
                     'pickup_window_start' => $payload['shipment']['pickupWindowStart'] ? $payload['shipment']['pickupWindowStart'] : null,
@@ -2557,6 +2565,8 @@ class ClientCourierController extends Controller
                     'cod_requested_method' => $codRequest['requestedMethod'] ?? null,
                     'currency_code' => strtoupper($payload['shipment']['currency'] ?? 'LKR'),
                     'delivery_notes' => $payload['shipment']['deliveryNotes'] ?? null,
+                    'vendor_approval_status' => $requiresVendorApproval ? CourierShipment::VENDOR_APPROVAL_PENDING : null,
+                    'vendor_approval_requested_at' => $requiresVendorApproval ? now() : null,
                 ]);
 
                 foreach ($payload['packages'] as $index => $package) {
@@ -2578,6 +2588,7 @@ class ClientCourierController extends Controller
                         'height_cm' => $package['heightCm'] ?? null,
                         'declared_value' => $package['declaredValue'] ?? null,
                         'description' => $package['description'] ?? null,
+                        'hs_code' => $package['hsCode'] ?? null,
                     ]);
                 }
 
@@ -3149,6 +3160,24 @@ class ClientCourierController extends Controller
         return 'international';
     }
 
+    /**
+     * COD-specific domestic check. Trusts the route the customer explicitly
+     * picked in the wizard (shipment.routeType) first, since the generic
+     * country-code inference in resolvePayloadCategory() can disagree with it
+     * whenever address country fields haven't been (re)populated — which
+     * previously locked customers who picked "Domestic" out of COD entirely.
+     * Falls back to the country-code check only when routeType is absent.
+     */
+    private function isDomesticForCodPurposes(array $payload): bool
+    {
+        $routeType = strtolower((string) ($payload['shipment']['routeType'] ?? ''));
+        if (in_array($routeType, ['domestic', 'international'], true)) {
+            return $routeType === 'domestic';
+        }
+
+        return $this->resolvePayloadCategory($payload) === 'domestic';
+    }
+
     private function normalizeServiceLevelKey(string $value): string
     {
         $normalized = strtolower(trim($value));
@@ -3523,7 +3552,7 @@ class ClientCourierController extends Controller
             return;
         }
 
-        if ($this->resolvePayloadCategory($payload) !== 'domestic') {
+        if (!$this->isDomesticForCodPurposes($payload)) {
             throw ValidationException::withMessages([
                 'shipment.codEnabled' => 'Cash on Delivery is available only for domestic routes.',
             ]);

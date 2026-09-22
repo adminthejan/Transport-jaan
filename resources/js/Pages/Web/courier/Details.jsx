@@ -1124,10 +1124,19 @@ const Details = ({
             : null;
     }, [data?.shipment?.codEnabled, data?.shipment?.estimatedValue, packages]);
 
-    const shipmentCategory = useMemo(
-        () => resolveShipmentCategory(data),
-        [data?.sender?.address?.country, data?.recipient?.address?.country],
-    );
+    // Trust the route the customer explicitly picked in the wizard first —
+    // the country-code inference below can disagree with it whenever address
+    // country fields haven't been (re)populated, which previously locked
+    // customers who picked "Domestic" out of COD entirely with no clear
+    // explanation. Only fall back to country-code inference when routeType
+    // is absent.
+    const shipmentCategory = useMemo(() => {
+        const routeType = String(data?.shipment?.routeType || "").toLowerCase();
+        if (routeType === "domestic" || routeType === "international") {
+            return routeType;
+        }
+        return resolveShipmentCategory(data);
+    }, [data?.shipment?.routeType, data?.sender?.address?.country, data?.recipient?.address?.country]);
     const codAvailableForRoute = shipmentCategory === "domestic";
 
     useEffect(() => {

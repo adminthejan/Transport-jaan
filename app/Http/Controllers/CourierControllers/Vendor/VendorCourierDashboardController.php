@@ -2297,6 +2297,58 @@ class VendorCourierDashboardController extends Controller
         return back()->with('success', 'Shipment updated successfully.');
     }
 
+    /**
+     * Approve or reject a shipment that requires vendor review before the
+     * customer can proceed to payment (currently: shipment_type "other").
+     * This is a review gate, not a lifecycle stage transition, so it is kept
+     * separate from ACTION_META / applyShipmentAction rather than folded
+     * into the stage machine.
+     */
+    public function updateVendorApproval(Request $request, CourierShipment $shipment)
+    {
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+
+        if ((int) $shipment->assigned_vendor_user_id !== $vendorId) {
+            abort(403, 'You are not allowed to review this shipment.');
+        }
+
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
+        $this->assertAdvancedPermission($request, $policy, 'shipments', 'update', $shipment);
+        $this->assertStaffSecurityPolicy($request, $policy);
+
+        if ($shipment->vendor_approval_status !== CourierShipment::VENDOR_APPROVAL_PENDING) {
+            return back()->with('error', 'This shipment is not awaiting approval.');
+        }
+
+        $validated = $request->validate([
+            'decision' => ['required', 'string', 'in:approved,rejected'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $decision = $validated['decision'];
+
+        DB::transaction(function () use ($shipment, $decision, $validated, $request) {
+            $shipment->update([
+                'vendor_approval_status' => $decision,
+                'vendor_approval_decided_at' => now(),
+                'vendor_approval_decided_by_user_id' => optional($request->user())->id,
+                'vendor_approval_notes' => $validated['notes'] ?? null,
+            ]);
+
+            $shipment->trackingEvents()->create([
+                'status' => $decision === 'approved' ? 'vendor_approved' : 'vendor_rejected',
+                'description' => $decision === 'approved'
+                    ? 'Vendor approved this shipment type for processing.'
+                    : 'Vendor rejected this shipment' . (!empty($validated['notes']) ? ': ' . $validated['notes'] : '.'),
+                'recorded_at' => now(),
+            ]);
+        });
+
+        return back()->with('success', $decision === 'approved'
+            ? 'Shipment approved. The customer can now proceed to payment.'
+            : 'Shipment rejected.');
+    }
+
     public function bulkUpdateShipmentStage(Request $request)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
@@ -2511,6 +2563,10 @@ class VendorCourierDashboardController extends Controller
                     : null,
                 'codCollectionRecordedAt' => optional($shipment->cod_collection_recorded_at)->format('Y-m-d H:i'),
                 'codAllowedActions' => $codAllowedActions,
+                'shipmentType' => $shipment->shipment_type,
+                'shipmentTypeDescription' => $shipment->shipment_type_description,
+                'vendorApprovalStatus' => $shipment->vendor_approval_status,
+                'vendorApprovalNotes' => $shipment->vendor_approval_notes,
                 'details' => [
                     'deliveryNotes' => $shipment->delivery_notes,
                     'internalNotes' => $shipment->internal_notes,

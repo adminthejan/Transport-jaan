@@ -439,6 +439,31 @@ const UnitContent = () => {
         execute();
     };
 
+    const runVendorApproval = (shipment, decision) => {
+        if (!shipment) {
+            return;
+        }
+
+        const execute = () => {
+            router.post(
+                route("courierService.shipments.vendorApproval", shipment.id),
+                { decision },
+                { preserveScroll: true },
+            );
+        };
+
+        if (decision === "rejected") {
+            openConfirm({
+                title: "Reject Shipment",
+                message: "Are you sure you want to reject this shipment? The customer will not be able to pay for it.",
+                onConfirm: execute,
+            });
+            return;
+        }
+
+        execute();
+    };
+
     const runBulkAction = () => {
         if (!bulkAction || selectedIds.length === 0) {
             return;
@@ -723,7 +748,22 @@ const UnitContent = () => {
                                         </td>
                                         <td className="px-3 py-3 font-[700]">{row.bookingNumber}</td>
                                         <td className="px-3 py-3">{row.trackingNumber}</td>
-                                        <td className="px-3 py-3">{row.category}</td>
+                                        <td className="px-3 py-3">
+                                            {row.category}
+                                            {row.vendorApprovalStatus === "pending" && (
+                                                <span
+                                                    className="ml-1.5 inline-block px-2 py-0.5 rounded-full text-[10px] font-[700] bg-amber-100 text-amber-700"
+                                                    title={row.shipmentTypeDescription || "Requires vendor approval"}
+                                                >
+                                                    Needs approval
+                                                </span>
+                                            )}
+                                            {row.vendorApprovalStatus === "rejected" && (
+                                                <span className="ml-1.5 inline-block px-2 py-0.5 rounded-full text-[10px] font-[700] bg-rose-100 text-rose-700">
+                                                    Rejected
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-3 py-3">{row.origin} to {row.destination}</td>
                                         <td className="px-3 py-3">
                                             <span className={`px-2.5 py-1 rounded-full text-[11px] font-[700] ${stageBadge(row.stage)}`}>
@@ -768,6 +808,30 @@ const UnitContent = () => {
                                                 >
                                                     Print
                                                 </button>
+                                                {row.vendorApprovalStatus === "pending" && (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                runVendorApproval(row, "approved");
+                                                            }}
+                                                            className="px-2 py-1 rounded-[5px] bg-emerald-100 text-emerald-800 text-[11px] font-[700]"
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                runVendorApproval(row, "rejected");
+                                                            }}
+                                                            className="px-2 py-1 rounded-[5px] bg-rose-100 text-rose-800 text-[11px] font-[700]"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </>
+                                                )}
                                                 {rowActions.map((action) => (
                                                     <button
                                                         key={action}

@@ -22,6 +22,9 @@ class CourierPaymentController extends Controller
             ->findOrFail($shipment);
 
         $this->assertCanAccessShipment($request, $shipmentModel);
+        if ($blockResponse = $this->vendorApprovalBlockResponse($request, $shipmentModel)) {
+            return $blockResponse;
+        }
 
         $payment = $shipmentModel->latestPayment;
         if (!$payment instanceof CourierShipmentPayment) {
@@ -130,6 +133,9 @@ class CourierPaymentController extends Controller
             ->findOrFail($shipment);
 
         $this->assertCanAccessShipment($request, $shipmentModel);
+        if ($blockResponse = $this->vendorApprovalBlockResponse($request, $shipmentModel)) {
+            return $blockResponse;
+        }
 
         $payment = $shipmentModel->latestPayment;
         if (!$payment instanceof CourierShipmentPayment) {
@@ -531,6 +537,30 @@ class CourierPaymentController extends Controller
         }
 
         abort(403, 'You are not allowed to access this payment session.');
+    }
+
+    /**
+     * Shipments whose type requires vendor review (e.g. "Other") can't be
+     * paid for until the assigned vendor approves them. Returns a response
+     * to short-circuit the caller when blocked, or null when payment may
+     * proceed.
+     */
+    private function vendorApprovalBlockResponse(Request $request, CourierShipment $shipment)
+    {
+        if (!$shipment->isVendorApprovalBlocking()) {
+            return null;
+        }
+
+        $message = $shipment->vendor_approval_status === CourierShipment::VENDOR_APPROVAL_REJECTED
+            ? 'This shipment was not approved by the vendor and cannot be paid for. Please contact support or start a new booking.'
+            : 'This shipment is awaiting vendor approval before payment can proceed.';
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => false, 'message' => $message], 409);
+        }
+
+        return redirect()->route('courier.shipment.show', ['id' => (int) $shipment->id])
+            ->with('error', $message);
     }
 
     private function resolveFlow(CourierShipment $shipment): string

@@ -68,6 +68,10 @@ class ClientCourierShipmentTransformer
             'codAmount' => $shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null,
             'codPaymentMethod' => $shipment->cod_requested_method,
             'deliveryNotes' => $shipment->delivery_notes,
+            'shipmentType' => $shipment->shipment_type,
+            'shipmentTypeDescription' => $shipment->shipment_type_description,
+            'vendorApprovalStatus' => $shipment->vendor_approval_status,
+            'requiresVendorApproval' => $shipment->isVendorApprovalBlocking(),
             'latestTracking' => $latestTracking ? $this->mapTrackingEvent($latestTracking) : null,
             'createdAt' => $shipment->created_at?->format('Y-m-d H:i:s'),
             'updatedAt' => $shipment->updated_at?->format('Y-m-d H:i:s'),
@@ -370,7 +374,8 @@ class ClientCourierShipmentTransformer
         $paymentReference = $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id;
         $paymentRequired = (bool) ($latestPayment?->is_required ?? false);
         $paymentNeedsAction = $shipment->requiresCardPayment()
-            && $paymentStatus !== CourierShipmentPayment::STATUS_PAID;
+            && $paymentStatus !== CourierShipmentPayment::STATUS_PAID
+            && !$shipment->isVendorApprovalBlocking();
 
         $gatewayOrderId = $latestPayment?->gateway_order_id;
         $gatewayPaymentId = $latestPayment?->gateway_payment_id;
