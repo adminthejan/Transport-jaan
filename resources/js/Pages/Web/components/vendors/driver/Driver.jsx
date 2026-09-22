@@ -589,7 +589,8 @@ export default function Driver() {
       <main className="flex-1 w-full flex flex-col min-w-0">
         {/* ServiceNavBar - sticky at top */}
         <div className="sticky top-0 z-30">
-          <ServiceNavBar 
+          <ServiceNavBar
+    activeService="Vehicle Rental"
     isVerified={isVerified}
     settingsRoute={route("settingsPage")}
 />

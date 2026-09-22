@@ -59,17 +59,25 @@ const ServiceNavBar = ({
     const getActiveService = () => {
         if (activeService) return activeService;
 
-        const routeMap = {
-            '/vendorAllBookings': 'All Bookings',
-            '/vendors/dashboard': 'Vehicle Rental',
-            '/ticketBooking': 'Ticket Booking',
-            '/courierService': 'Courier Service',
-            '/vendors/warehouse': 'Warehousing',
-            '/freight': 'Freight',
-        };
+        // Order matters: '/vendors/warehouse' must be checked before the
+        // broader '/vendors/' so warehousing pages aren't swallowed by the
+        // vehicle-rental match. Previously this used the literal
+        // '/vendors/dashboard' for Vehicle Rental, which only ever matched
+        // the dashboard page itself — every other vehicle-rental page
+        // (units, bookings, drivers, calendar, clients, payment, expenses,
+        // earnings, addUnit, unitDetails) fell through to the 'All Bookings'
+        // default instead, showing the wrong tab as active.
+        const routeMap = [
+            ['/vendorAllBookings', 'All Bookings'],
+            ['/vendors/warehouse', 'Warehousing'],
+            ['/vendors/', 'Vehicle Rental'],
+            ['/ticketBooking', 'Ticket Booking'],
+            ['/courierService', 'Courier Service'],
+            ['/freight', 'Freight'],
+        ];
 
         // Check URL to determine active service
-        for (const [path, service] of Object.entries(routeMap)) {
+        for (const [path, service] of routeMap) {
             if (url.includes(path)) return service;
         }
 
