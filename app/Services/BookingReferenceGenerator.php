@@ -204,12 +204,25 @@ class BookingReferenceGenerator
 
     /**
      * Generate reference for sea vehicle bookings
-     * 
+     *
      * @return string Unique sea vehicle booking reference
      */
     public static function forSeaVehicle(): string
     {
         return self::generate('SEA', 'sea_vehicle_bookings');
+    }
+
+    /**
+     * Generate reference for warehouse bookings
+     *
+     * Uses a 3-letter prefix (not "WH") so it still matches this class's own
+     * validate()/getPrefix() regexes, which require 3-4 letters.
+     *
+     * @return string Unique warehouse booking reference
+     */
+    public static function forWarehouse(): string
+    {
+        return self::generate('WHS', 'warehouse_bookings');
     }
 
     /**
@@ -244,6 +257,7 @@ class BookingReferenceGenerator
             'VEH' => 'vehicle',
             'AIR' => 'air_vehicle',
             'SEA' => 'sea_vehicle',
+            'WHS' => 'warehouse',
             default => null
         };
     }

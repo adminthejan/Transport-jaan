@@ -8,6 +8,7 @@ use App\Models\BusBooking;
 use App\Models\Courier\CourierShipment;
 use App\Models\SeaVehicleBookings;
 use App\Models\TrainBooking;
+use App\Models\Warehouse\WarehouseBooking;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -27,6 +28,10 @@ class QuickTrackController extends Controller
         'SEA' => 'sea',
         'BUS' => 'bus',
         'TRN' => 'train',
+        // 'WH' covers pre-existing bookings created before warehouse switched
+        // to BookingReferenceGenerator::forWarehouse() (which emits "WHS-").
+        'WH' => 'warehouse',
+        'WHS' => 'warehouse',
     ];
 
     public function lookup(Request $request)
@@ -116,6 +121,11 @@ class QuickTrackController extends Controller
                     ->where('booking_reference', $reference)->first(),
                 '/track-ticket-booking',
             ],
+            'warehouse' => [
+                WarehouseBooking::with('warehouseUnit')
+                    ->where('booking_reference', $reference)->first(),
+                '/track-warehouse-booking',
+            ],
         };
     }
 
@@ -126,6 +136,7 @@ class QuickTrackController extends Controller
             'courier' => [$model->sender?->email, $model->recipient?->email],
             'land', 'air', 'sea' => [$model->customer?->email, $model->client?->email],
             'bus', 'train' => [$model->passenger_email],
+            'warehouse' => [$model->email],
             default => [],
         };
 
@@ -185,6 +196,19 @@ class QuickTrackController extends Controller
                     'to' => $schedule?->arrivalStation?->name,
                     'date' => $schedule ? Carbon::parse($schedule->date)->format('j M Y') : null,
                     'amount' => $model->total_amount !== null ? 'LKR ' . number_format((float) $model->total_amount) : null,
+                ];
+
+            case 'warehouse':
+                return [
+                    'code' => $model->booking_reference,
+                    'status' => $model->status,
+                    'title' => $model->warehouseUnit?->name ?? 'Warehouse Storage',
+                    'from' => optional($model->start_date)->format('j M Y'),
+                    'to' => optional($model->end_date)->format('j M Y'),
+                    'date' => null,
+                    'amount' => $model->final_amount !== null
+                        ? 'LKR ' . number_format((float) $model->final_amount)
+                        : null,
                 ];
 
             default:

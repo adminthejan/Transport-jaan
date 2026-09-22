@@ -149,6 +149,7 @@ class EnsureVendorHasApprovedServiceAccess
                 'vendors.unitDetails',
                 'vendors.unitDetails.show',
                 'vendors.drivers',
+                'vendors.earnings',
             ], true)
         ) {
             return ['vehicle-rental'];

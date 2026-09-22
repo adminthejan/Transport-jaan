@@ -5,17 +5,21 @@ namespace App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Models\Concerns\HasTrackingPin;
+use App\Services\BookingReferenceGenerator;
 use Laravel\Scout\Searchable;
 
 class WarehouseBooking extends Model
 {
     use HasFactory;
     use Searchable;
+    use HasTrackingPin;
 
     protected $fillable = [
         'user_id',
         'warehouse_unit_id',
         'booking_reference',
+        'tracking_pin',
         'status',
         
         // Company Information
@@ -102,6 +106,20 @@ class WarehouseBooking extends Model
         'amenities' => 'json',
         'documents' => 'json',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function (self $booking) {
+            if (empty($booking->booking_reference)) {
+                $booking->booking_reference = BookingReferenceGenerator::forWarehouse();
+            }
+            if (empty($booking->tracking_pin)) {
+                $booking->tracking_pin = self::generateTrackingPin();
+            }
+        });
+    }
 
     /**
      * Get the user that owns the booking

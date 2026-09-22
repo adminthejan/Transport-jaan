@@ -37,6 +37,7 @@ use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleTrackingController;
 use App\Http\Controllers\TicketBookingTrackingController;
+use App\Http\Controllers\WarehouseControllers\Client\WarehouseTrackingController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSettingsController;
 use App\Http\Controllers\Client\WalletController;
@@ -104,6 +105,14 @@ Route::get('/track-vehicle-booking', [VehicleTrackingController::class, 'trackPu
 Route::get('/track-ticket-booking', [TicketBookingTrackingController::class, 'trackPublic'])
     ->middleware('throttle:30,1')
     ->name('tickets.track.public');
+Route::get('/track-warehouse-booking', [WarehouseTrackingController::class, 'trackPublic'])
+    ->middleware('throttle:30,1')
+    // Plural, like the couriers./vehicles./tickets. siblings above — a
+    // singular "warehouse." prefix would collide with
+    // EnsureVendorHasApprovedServiceAccess's vendor-dashboard route-name
+    // match (str_starts_with($routeName, 'warehouse.')) and incorrectly
+    // gate this public page behind vendor service approval.
+    ->name('warehouses.track.public');
 Route::get('/track/lookup', [\App\Http\Controllers\QuickTrackController::class, 'lookup'])
     ->middleware('throttle:30,1')
     ->name('track.lookup');

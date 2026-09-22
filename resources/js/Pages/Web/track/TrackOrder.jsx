@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { router } from "@inertiajs/react";
-import { Search, PackageSearch, Mail, KeyRound, Truck, Car, Ticket, AlertCircle } from "lucide-react";
+import { Search, PackageSearch, Mail, KeyRound, Truck, Car, Ticket, Warehouse, AlertCircle } from "lucide-react";
 import Header from "../home/client/ClientHeader";
 import Footer from "../layouts/Footer";
 
@@ -16,6 +16,10 @@ const SERVICE_ROUTES = {
     SEA: { path: "/track-vehicle-booking", label: "Vehicle Rental (Sea)", icon: Car },
     BUS: { path: "/track-ticket-booking", label: "Bus Ticket", icon: Ticket },
     TRN: { path: "/track-ticket-booking", label: "Train Ticket", icon: Ticket },
+    // "WH" covers bookings created before the reference format switched to
+    // the checksummed "WHS-XXXXXX-YY" scheme.
+    WH: { path: "/track-warehouse-booking", label: "Warehouse Storage", icon: Warehouse },
+    WHS: { path: "/track-warehouse-booking", label: "Warehouse Storage", icon: Warehouse },
 };
 
 function detectService(reference) {
@@ -28,6 +32,7 @@ const EXAMPLES = [
     { label: "Courier", example: "CR-2026-000123", icon: PackageSearch },
     { label: "Vehicle Rental", example: "VEH-XXXXXX-YY", icon: Car },
     { label: "Bus / Train", example: "BUS-XXXXXX-YY", icon: Ticket },
+    { label: "Warehouse", example: "WHS-XXXXXX-YY", icon: Warehouse },
 ];
 
 const TrackOrder = () => {
@@ -66,7 +71,7 @@ const TrackOrder = () => {
                     <Truck className="w-10 h-10 text-[#0955AC] mx-auto mb-3" />
                     <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F172A]">Track Any Order</h1>
                     <p className="text-[#64748B] mt-2">
-                        One box for everything — courier shipments, vehicle rentals, and bus/train tickets.
+                        One box for everything — courier shipments, vehicle rentals, bus/train tickets, and warehouse storage.
                     </p>
                 </div>
 
@@ -125,7 +130,7 @@ const TrackOrder = () => {
                     </p>
                 </form>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {EXAMPLES.map(({ label, example, icon: Icon }) => (
                         <div key={label} className="rounded-[12px] border border-[#EEF2F6] bg-white px-4 py-3 text-center">
                             <Icon className="w-4 h-4 text-[#0955AC] mx-auto mb-1.5" />
