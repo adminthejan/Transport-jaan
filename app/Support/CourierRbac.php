@@ -124,6 +124,21 @@ class CourierRbac
 
     public static function ensureDefinitionsExist(): void
     {
+        // Runs on every request that touches a courier workspace (see
+        // ServiceWorkspaceManager::ensureWorkspaceForVendor). Two concurrent
+        // requests can both find a role's permissions "not yet synced" and
+        // race to insert the same pivot rows, which throws a unique
+        // constraint violation on team_user_role_has_permissions instead of
+        // a normal Eloquent exception. Since the exception only occurs when
+        // another process is inserting the exact rows we also want, it's
+        // safe to treat as "already synced" and move on. The static guard
+        // also avoids repeating this work if called more than once per
+        // request/process.
+        static $ensured = false;
+        if ($ensured) {
+            return;
+        }
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         foreach (self::permissions() as $permissionName) {
@@ -132,9 +147,15 @@ class CourierRbac
 
         foreach (self::roleMap() as $roleName => $rolePermissions) {
             $role = Role::findOrCreate($roleName, self::GUARD);
-            $role->syncPermissions($rolePermissions);
+            try {
+                $role->syncPermissions($rolePermissions);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                // A concurrent request already synced this role to the same
+                // desired permission set; nothing left for us to do.
+            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $ensured = true;
     }
 }

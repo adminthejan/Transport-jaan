@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierVehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 /**
  * Vendor's own delivery fleet for Courier Service ("Units" -> "Add Unit").
@@ -14,6 +15,31 @@ use Illuminate\Support\Facades\Storage;
  */
 class CourierVehicleController extends Controller
 {
+    public function index(Request $request)
+    {
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        abort_if($vendorId <= 0, 403, 'No active courier workspace for this account.');
+
+        $vehicles = CourierVehicle::where('vendor_id', $vendorId)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return Inertia::render('Web/home/vendors/courierService/Vehicles', [
+            'vehicles' => $vehicles,
+        ]);
+    }
+
+    public function destroy(Request $request, CourierVehicle $vehicle)
+    {
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        abort_if($vehicle->vendor_id !== $vendorId, 403);
+
+        Storage::disk('public')->deleteDirectory("courier/vehicles/{$vehicle->id}");
+        $vehicle->delete();
+
+        return redirect()->route('courierService.vehicles')->with('success', 'Vehicle removed.');
+    }
+
     public function store(Request $request)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');

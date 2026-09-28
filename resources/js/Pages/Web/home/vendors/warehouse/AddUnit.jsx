@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
-import { usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { API_BASE_URL } from '../../../../../config/api';
 
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
@@ -423,7 +422,7 @@ const AddUnit = () => {
       documentFiles.forEach((f) => data.append('documents[]', f));
       if (termsPdfFile) data.append('terms_pdf', termsPdfFile);
 
-      Inertia.post(`${API_BASE_URL}vendors/warehouse/api/units`, data, {
+      router.post(`${API_BASE_URL}vendors/warehouse/api/units`, data, {
         forceFormData: true,
         onError: (err) => {
           setErrors(err);

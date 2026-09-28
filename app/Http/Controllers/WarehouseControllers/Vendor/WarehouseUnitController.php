@@ -936,16 +936,16 @@ class WarehouseUnitController extends Controller
             DB::transaction(function () use ($unit) {
                 // Delete associated images
                 foreach ($unit->images as $image) {
-                    if ($image->path && Storage::disk('public')->exists($image->path)) {
-                        Storage::disk('public')->delete($image->path);
+                    if ($image->file_path && Storage::disk('public')->exists($image->file_path)) {
+                        Storage::disk('public')->delete($image->file_path);
                     }
                     $image->delete();
                 }
 
                 // Delete associated documents
                 foreach ($unit->documents as $document) {
-                    if ($document->path && Storage::disk('public')->exists($document->path)) {
-                        Storage::disk('public')->delete($document->path);
+                    if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
+                        Storage::disk('public')->delete($document->file_path);
                     }
                     $document->delete();
                 }

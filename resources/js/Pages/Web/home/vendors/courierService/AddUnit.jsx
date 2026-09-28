@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
+import { router } from '@inertiajs/react';
 
 // Courier Service – Add Unit (Vehicle) form
 
@@ -67,10 +67,10 @@ const AddUnit = () => {
           data.append(key, value);
         }
       });
-      Inertia.post('/courierService/units/store', data, {
+      router.post('/courierService/units/store', data, {
         forceFormData: true,
         onError: (err) => { setErrors(err); setIsSubmitting(false); },
-        onSuccess: () => { window.location.href = '/courierService/units'; },
+        onSuccess: () => { router.visit('/courierService/vehicles'); },
         onFinish: () => setIsSubmitting(false),
         preserveState: true,
       });

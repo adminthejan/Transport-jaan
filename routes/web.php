@@ -1402,6 +1402,14 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.shipments.create')
         ->name('courierService.units.store');
 
+    Route::get('/courierService/vehicles', [\App\Http\Controllers\CourierControllers\Vendor\CourierVehicleController::class, 'index'])
+        ->middleware('service.permission:courier.shipments.view')
+        ->name('courierService.vehicles');
+
+    Route::delete('/courierService/vehicles/{vehicle}', [\App\Http\Controllers\CourierControllers\Vendor\CourierVehicleController::class, 'destroy'])
+        ->middleware('service.permission:courier.shipments.create')
+        ->name('courierService.vehicles.destroy');
+
     Route::get('/courierService/unitDetails', function () {
         return Inertia::render('Web/home/vendors/courierService/UnitDetails');
     })->middleware('service.permission:courier.shipments.view')->name('courierService.unitDetails');

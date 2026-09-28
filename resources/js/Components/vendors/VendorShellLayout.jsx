@@ -69,6 +69,7 @@ const SERVICE_CONFIG = {
         bookingsLabel: "Bookings",
         units: () => route("courierService.units"),
         unitsLabel: "Shipments",
+        vehicles: () => route("courierService.vehicles"),
         calendar: () => route("courierService.calendar"),
         tracking: () => route("courierService.tracking"),
         clients: () => route("courierService.clients"),
@@ -504,6 +505,13 @@ const VendorShellLayout = ({
                                     <div className={menuCls(isActive(cfg.units))} onClick={() => navigate(cfg.units)}>
                                         <img src={uniLogo} className="w-[22px]" alt="" />
                                         <span>{cfg.unitsLabel || "Units"}</span>
+                                    </div>
+                                )}
+
+                                {cfg.vehicles && hasCourierPermission("courier.shipments.view") && (
+                                    <div className={menuCls(isActive(cfg.vehicles))} onClick={() => navigate(cfg.vehicles)}>
+                                        <img src={driversLogo} className="w-[22px]" alt="" />
+                                        <span>My Vehicles</span>
                                     </div>
                                 )}
 
