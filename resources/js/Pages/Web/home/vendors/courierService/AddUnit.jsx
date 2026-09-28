@@ -70,6 +70,8 @@ const AddUnit = () => {
       Inertia.post('/courierService/units/store', data, {
         forceFormData: true,
         onError: (err) => { setErrors(err); setIsSubmitting(false); },
+        onSuccess: () => { window.location.href = '/courierService/units'; },
+        onFinish: () => setIsSubmitting(false),
         preserveState: true,
       });
     } catch (error) {

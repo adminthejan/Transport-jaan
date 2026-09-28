@@ -1398,6 +1398,10 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         return Inertia::render('Web/home/vendors/courierService/AddUnit');
     })->middleware('service.permission:courier.shipments.create')->name('courierService.addUnit');
 
+    Route::post('/courierService/units/store', [\App\Http\Controllers\CourierControllers\Vendor\CourierVehicleController::class, 'store'])
+        ->middleware('service.permission:courier.shipments.create')
+        ->name('courierService.units.store');
+
     Route::get('/courierService/unitDetails', function () {
         return Inertia::render('Web/home/vendors/courierService/UnitDetails');
     })->middleware('service.permission:courier.shipments.view')->name('courierService.unitDetails');

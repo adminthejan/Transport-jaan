@@ -465,6 +465,7 @@ class VehicleController extends Controller
             'wifi'              => $request->boolean('wifi'),
             'insuranceCoverage' => $request->boolean('insuranceCoverage'),
             'addDriver'         => $request->boolean('addDriver'),
+            'hasPortPass'       => $request->boolean('hasPortPass'),
         ]);
 
         $rules = [
