@@ -1773,6 +1773,44 @@ class ClientCourierController extends Controller
         return response()->json(['cities' => $cities]);
     }
 
+    public function searchHsCodes(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $query = trim((string) ($validated['q'] ?? ''));
+        $limit = (int) ($validated['limit'] ?? 20);
+
+        if (mb_strlen($query) < 2) {
+            return response()->json(['hsCodes' => []]);
+        }
+
+        $digitsOnly = preg_replace('/\D/', '', $query);
+
+        $rows = \App\Models\HsCode::query()
+            ->where('level', 6)
+            ->where(function ($builder) use ($query, $digitsOnly) {
+                $builder->where('description', 'like', '%' . $query . '%');
+
+                if ($digitsOnly !== '') {
+                    $builder->orWhere('code', 'like', $digitsOnly . '%');
+                }
+            })
+            ->orderByRaw("CASE WHEN description LIKE ? THEN 0 ELSE 1 END", [$query . '%'])
+            ->orderBy('description')
+            ->limit($limit)
+            ->get(['code', 'description']);
+
+        $hsCodes = $rows->map(fn ($row) => [
+            'code' => (string) $row->code,
+            'description' => (string) $row->description,
+        ])->values()->all();
+
+        return response()->json(['hsCodes' => $hsCodes]);
+    }
+
     public function review(Request $request)
     {
         $payload = $request->validate([
@@ -3101,6 +3139,7 @@ class ClientCourierController extends Controller
             'postalByCity' => "{$basePath}/postal-codes/by-city",
             'cityByPostal' => "{$basePath}/cities/by-postal-code",
             'domesticCitySearch' => "{$basePath}/cities/search",
+            'hsCodeSearch' => "{$basePath}/hs-codes/search",
             'store' => $basePath,
             'createByFlow' => [
                 'domestic' => '/couriers/domestic/create',

@@ -306,6 +306,9 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         domesticCitySearch: flowRoutesOverride.domesticCitySearch
             || flowRoutesFromPage.domesticCitySearch
             || `${flowBasePath}/cities/search`,
+        hsCodeSearch: flowRoutesOverride.hsCodeSearch
+            || flowRoutesFromPage.hsCodeSearch
+            || `${flowBasePath}/hs-codes/search`,
         store: flowRoutesOverride.store || flowRoutesFromPage.store || `${flowBasePath}`,
         createByFlow: {
             domestic: flowRoutesOverride.createByFlow?.domestic
@@ -509,6 +512,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         sender: null,
         recipient: null,
     });
+    const [hsCodeSuggestions, setHsCodeSuggestions] = useState({});
+    const [hsCodeLoading, setHsCodeLoading] = useState({});
+    const [activeHsCodeField, setActiveHsCodeField] = useState(null);
+    const hsCodeAbortRef = useRef({});
+    const hsCodeTimerRef = useRef({});
     const cityLookupAbortRef = useRef({
         sender: null,
         recipient: null,
@@ -677,6 +685,82 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 setDomesticCityLoading((prev) => ({ ...prev, [party]: false }));
             }
         }, DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS);
+    };
+
+    const fetchHsCodeSuggestions = (index, query) => {
+        const normalized = String(query || "").trim();
+
+        if (hsCodeTimerRef.current[index]) {
+            clearTimeout(hsCodeTimerRef.current[index]);
+            hsCodeTimerRef.current[index] = null;
+        }
+
+        if (hsCodeAbortRef.current[index]) {
+            hsCodeAbortRef.current[index].abort();
+            hsCodeAbortRef.current[index] = null;
+        }
+
+        if (normalized.length < 2) {
+            setHsCodeSuggestions((prev) => ({ ...prev, [index]: [] }));
+            setHsCodeLoading((prev) => ({ ...prev, [index]: false }));
+            return;
+        }
+
+        setHsCodeLoading((prev) => ({ ...prev, [index]: true }));
+
+        hsCodeTimerRef.current[index] = setTimeout(async () => {
+            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+            if (controller) {
+                hsCodeAbortRef.current[index] = controller;
+            }
+
+            try {
+                const params = new URLSearchParams({ q: normalized, limit: "20" });
+                const response = await fetch(
+                    `${flowRoutes.hsCodeSearch}?${params.toString()}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            Accept: "application/json",
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
+                        credentials: "same-origin",
+                        signal: controller?.signal,
+                    }
+                );
+
+                if (!response.ok) {
+                    setHsCodeSuggestions((prev) => ({ ...prev, [index]: [] }));
+                    return;
+                }
+
+                const payload = await response.json().catch(() => ({}));
+                const options = Array.isArray(payload?.hsCodes)
+                    ? payload.hsCodes.map((entry) => ({
+                        code: String(entry.code || ""),
+                        description: String(entry.description || ""),
+                    }))
+                    : [];
+
+                setHsCodeSuggestions((prev) => ({ ...prev, [index]: options }));
+            } catch (error) {
+                if (error?.name === "AbortError") {
+                    return;
+                }
+                setHsCodeSuggestions((prev) => ({ ...prev, [index]: [] }));
+            } finally {
+                if (hsCodeAbortRef.current[index] === controller) {
+                    hsCodeAbortRef.current[index] = null;
+                }
+                setHsCodeLoading((prev) => ({ ...prev, [index]: false }));
+            }
+        }, DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS);
+    };
+
+    const handleHsCodeSelect = (index, option) => {
+        updatePackage(index, "hsCode", option.code);
+        setHsCodeSuggestions((prev) => ({ ...prev, [index]: [] }));
+        setActiveHsCodeField(null);
     };
 
     const countryOptions = useMemo(() => {
@@ -4049,17 +4133,48 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 Shipment contains exclusively documents
                                                             </label>
 
-                                                            <div className="mt-2 max-w-xs">
+                                                            <div className="relative mt-2 max-w-xs">
                                                                 <label className="mb-2 block text-sm font-medium text-[#0B1739]">
                                                                     HS Code <span className="font-normal text-[#8C97B0]">(for customs clearance)</span>
                                                                 </label>
                                                                 <input
                                                                     type="text"
                                                                     value={item.hsCode || ""}
-                                                                    onChange={(event) => updatePackage(index, "hsCode", event.target.value)}
+                                                                    onChange={(event) => {
+                                                                        const value = event.target.value;
+                                                                        updatePackage(index, "hsCode", value);
+                                                                        fetchHsCodeSuggestions(index, value);
+                                                                    }}
+                                                                    onFocus={() => setActiveHsCodeField(index)}
+                                                                    onBlur={() => {
+                                                                        window.setTimeout(() => {
+                                                                            setActiveHsCodeField((current) => (current === index ? null : current));
+                                                                        }, 120);
+                                                                    }}
                                                                     className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                    placeholder="e.g. 8517.12"
+                                                                    placeholder="Search by product name or code, e.g. laptop or 851712"
+                                                                    autoComplete="off"
                                                                 />
+                                                                {activeHsCodeField === index && hsCodeLoading[index] && (
+                                                                    <p className="mt-1.5 text-xs text-[#5B6887]">Searching HS codes...</p>
+                                                                )}
+                                                                {activeHsCodeField === index && (hsCodeSuggestions[index]?.length > 0) && (
+                                                                    <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                        {hsCodeSuggestions[index].map((option) => (
+                                                                            <li key={option.code}>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onMouseDown={(event) => event.preventDefault()}
+                                                                                    onClick={() => handleHsCodeSelect(index, option)}
+                                                                                    className="flex w-full flex-col gap-0.5 px-4 py-2 text-left text-sm hover:bg-[#F4F7FC]"
+                                                                                >
+                                                                                    <span className="font-medium text-[#0B1739]">{option.code}</span>
+                                                                                    <span className="text-xs text-[#5B6887]">{option.description}</span>
+                                                                                </button>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                )}
                                                                 <p className="mt-1.5 text-xs text-[#5B6887]">
                                                                     The Harmonized System code for these goods. Helps customs classify your shipment and can speed up clearance.
                                                                 </p>
