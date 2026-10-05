@@ -21,7 +21,7 @@ const Summary = () => {
   const client = booking?.customer;
 
   // ---- helpers ----
-  const C = booking?.currency || "USD";
+  const C = booking?.currency || "LKR";
   const n = (v) => Number(v || 0);
   const money = (v) => `${C} ${n(v).toFixed(2)}`;
 

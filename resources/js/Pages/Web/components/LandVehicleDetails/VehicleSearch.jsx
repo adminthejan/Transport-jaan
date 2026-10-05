@@ -356,7 +356,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
 
           <div className="flex justify-end items-center">
             <div className="flex flex-row items-center border-t-[1px] border-b-[1px] w-[340px] px-10 h-[39px] bg-[#E8EBEF] border-[#0955AC] text-[14px] font-[700] text-[#0955AC]">
-              <h1 className="w-[140px]">Total (USD)</h1>
+              <h1 className="w-[140px]">Total ({vehicle?.currency || "LKR"})</h1>
               <h1 className="w-[140px] text-end">
                 {quote ? Number(quote.total).toFixed(2) : "-"}
               </h1>
@@ -385,7 +385,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
         </div>
         <div className="text-[25px] font-[700] -mt-6">
           <h1>
-            {formatPrice(vehicle?.rental_price_per_day ?? 620, "USD")}{" "}
+            {formatPrice(vehicle?.rental_price_per_day ?? 620, vehicle?.currency || "LKR")}{" "}
             <span className="text-[10px] text-[#00000080]">/day</span>
           </h1>
           <h1 className="text-[10px] font-[600] text-[#00000080] py-4">
