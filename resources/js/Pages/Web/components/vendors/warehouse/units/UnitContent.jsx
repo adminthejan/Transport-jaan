@@ -31,12 +31,12 @@ const initialInlineUnitForm = {
 };
 
 const warehouseTypeOptions = [
+    { value: "general_warehouse", label: "General Warehouse" },
+    { value: "bonded_warehouse", label: "Bonded Warehouse" },
     { value: "cold_storage", label: "Cold Storage" },
-    { value: "dry", label: "Dry Storage" },
-    { value: "climate_controlled", label: "Climate Controlled" },
-    { value: "hazmat", label: "Hazmat Storage" },
-    { value: "bonded", label: "Bonded Storage" },
-    { value: "open_yard", label: "Open Yard" },
+    { value: "distribution_center", label: "Distribution Center" },
+    { value: "fulfillment_center", label: "Fulfillment Center" },
+    { value: "smart_warehouse", label: "Smart Warehouse" },
 ];
 
 const pricingModelOptions = [

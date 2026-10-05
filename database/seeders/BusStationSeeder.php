@@ -38,7 +38,7 @@ class BusStationSeeder extends Seeder
         ];
 
         foreach ($stations as $station) {
-            BusStation::create($station);
+            BusStation::updateOrCreate(['code' => $station['code']], $station);
         }
     }
 }

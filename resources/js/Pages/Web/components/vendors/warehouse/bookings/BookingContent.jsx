@@ -159,11 +159,13 @@ const BookingContent = () => {
 
   const warehouseTypeOptions = [
     { value: "", label: "All warehouse types" },
+    { value: "general_warehouse", label: "General Warehouse" },
+    { value: "bonded_warehouse", label: "Bonded Warehouse" },
     { value: "cold_storage", label: "Cold Storage" },
-    { value: "dry_storage", label: "Dry Storage" },
-    { value: "hazardous_material", label: "Hazardous Material" },
-    { value: "bonded", label: "Bonded" },
-  ];
+    { value: "distribution_center", label: "Distribution Center" },
+    { value: "fulfillment_center", label: "Fulfillment Center" },
+    { value: "smart_warehouse", label: "Smart Warehouse" },
+];
 
   const statusOptions = [
     { value: "", label: "All statuses" },

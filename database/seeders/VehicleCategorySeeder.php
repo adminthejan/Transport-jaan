@@ -21,7 +21,7 @@ class VehicleCategorySeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            VehicleCategory::create($category);
+            VehicleCategory::firstOrCreate(['type' => $category['type'], 'name' => $category['name']]);
         }
     }
 }

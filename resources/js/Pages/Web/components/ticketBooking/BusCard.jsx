@@ -32,23 +32,23 @@ const BUS_STATION_COORDS = {
     "Chilaw Bus Station": { lat: 7.5750, lng: 79.7953 },
 };
 
-const BusCard = () => {
+const BusCard = ({ initialSearch = null }) => {
     const { t } = useLocale();
-    const [tripType, setTripType] = useState("oneway");
-    const [busFrom, setBusFrom] = useState("");
-    const [busTo, setBusTo] = useState("");
-    const [busDate, setBusDate] = useState("");
-    const [returnDate, setReturnDate] = useState("");
+    const [tripType, setTripType] = useState(initialSearch?.tripType || "oneway");
+    const [busFrom, setBusFrom] = useState(initialSearch?.from || "");
+    const [busTo, setBusTo] = useState(initialSearch?.to || "");
+    const [busDate, setBusDate] = useState(initialSearch?.date || "");
+    const [returnDate, setReturnDate] = useState(initialSearch?.returnDate || "");
     const [errors, setErrors] = useState({});
     // Bus seats are picked individually at checkout, so this is a search-time
     // preference (shown on results, used as a soft filter) rather than a hard
     // headcount — actual passenger count is still however many seats you pick.
     const [passengers, setPassengers] = useState({
-        adults: 1,
-        youth: 0,
-        seniors: 0,
-        student: false,
-        wheelchair: false,
+        adults: initialSearch?.adults ?? 1,
+        youth: initialSearch?.youth ?? 0,
+        seniors: initialSearch?.seniors ?? 0,
+        student: Boolean(initialSearch?.student),
+        wheelchair: Boolean(initialSearch?.wheelchair),
     });
 
     const stationOptions = [

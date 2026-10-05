@@ -528,8 +528,17 @@ class ClientBookingController extends Controller
         if ($user->role !== 'admin' && $user->id !== $booking->client_id) abort(403);
     }
 
+    private function normalizeNeedsDriverInput(Request $request): void
+    {
+        $request->merge([
+            'needs_driver' => filter_var($request->input('needs_driver'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
+        ]);
+    }
+
     private function validateInputsForQuote(Request $request): array
     {
+        $this->normalizeNeedsDriverInput($request);
+
         $data = $request->validate([
             'vehicle_id'    => ['required', 'integer', 'exists:vehicles,id'],
             'pickup_date'   => ['required', 'date'],
@@ -558,6 +567,8 @@ class ClientBookingController extends Controller
 
     private function validateInputsForStoreDraft(Request $request): array
     {
+        $this->normalizeNeedsDriverInput($request);
+
         $data = $request->validate([
             'vehicle_id'       => ['required', 'integer', 'exists:vehicles,id'],
             'pickup_location'  => ['nullable', 'string'],

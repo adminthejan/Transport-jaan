@@ -204,28 +204,16 @@ const WarehouseCheckoutContent = () => {
         const hasDateSelection = Boolean(bookingData?.move_in_date && (bookingData?.move_out_date || bookingData?.storage_duration));
         if (!hasDateSelection) return;
 
+        // availableSpace is 0 until the availability request returns, so only
+        // clamp against a real figure and never clear or refill what the
+        // customer entered (refilling used to replace it with the unit's total area).
         const maxSpace = Math.max(availabilityInfo.availableSpace || 0, 0);
         const currentSpace = Number(bookingData?.required_space || 0);
 
-        // Auto-fill if no space specified
-        if (!bookingData?.required_space && maxSpace > 0) {
+        if (currentSpace > maxSpace && maxSpace > 0) {
             setBookingData(prev => ({
                 ...(prev || {}),
                 required_space: maxSpace
-            }));
-        }
-        // Auto-adjust if exceeds available space
-        else if (currentSpace > maxSpace && maxSpace > 0) {
-            setBookingData(prev => ({
-                ...(prev || {}),
-                required_space: maxSpace
-            }));
-        }
-        // Clear if no space available
-        else if (maxSpace === 0 && currentSpace > 0) {
-            setBookingData(prev => ({
-                ...(prev || {}),
-                required_space: ''
             }));
         }
     }, [bookingData?.move_in_date, bookingData?.move_out_date, bookingData?.storage_duration, availabilityInfo.availableSpace]);

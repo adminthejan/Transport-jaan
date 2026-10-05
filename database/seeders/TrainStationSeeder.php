@@ -48,7 +48,7 @@ class TrainStationSeeder extends Seeder
         ];
 
         foreach ($stations as $station) {
-            TrainStation::create($station);
+            TrainStation::updateOrCreate(['code' => $station['code']], $station);
         }
     }
 }

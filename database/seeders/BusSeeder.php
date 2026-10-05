@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Bus;
+use App\Models\User;
 
 class BusSeeder extends Seeder
 {
@@ -66,8 +67,13 @@ class BusSeeder extends Seeder
             ]
         ];
 
+        $vendorId = User::where('email', 'vendor@example.com')->value('id');
+
         foreach ($buses as $bus) {
-            Bus::create($bus);
+            Bus::updateOrCreate(
+                ['bus_number' => $bus['bus_number']],
+                $bus + ['vendor_id' => $vendorId]
+            );
         }
     }
 }

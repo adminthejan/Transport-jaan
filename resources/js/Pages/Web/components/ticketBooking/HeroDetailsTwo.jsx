@@ -301,7 +301,7 @@ const HeroDetailsTwoInner = ({
         <section className="mx-auto w-full max-w-[1720px] px-4 sm:px-6 lg:px-8 xl:px-10 py-6 pb-20">
             {!hideSearchCard && (
                 <div className="mb-8 sm:mb-14">
-                    <BusCard />
+                    <BusCard initialSearch={searchParams} />
                 </div>
             )}
 

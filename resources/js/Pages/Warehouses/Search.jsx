@@ -5,10 +5,13 @@ import Pagination from '@/Components/Pagination';
 
 const WAREHOUSE_TYPES = [
     { value: '', label: 'All Types' },
+    { value: '', label: 'All Types' },
+    { value: 'general_warehouse', label: 'General Warehouse' },
+    { value: 'bonded_warehouse', label: 'Bonded Warehouse' },
     { value: 'cold_storage', label: 'Cold Storage' },
-    { value: 'dry', label: 'Dry Storage' },
-    { value: 'bonded', label: 'Bonded Warehouse' },
-    { value: 'open_yard', label: 'Open Yard' },
+    { value: 'distribution_center', label: 'Distribution Center' },
+    { value: 'fulfillment_center', label: 'Fulfillment Center' },
+    { value: 'smart_warehouse', label: 'Smart Warehouse' },
 ];
 
 const AMENITIES = [

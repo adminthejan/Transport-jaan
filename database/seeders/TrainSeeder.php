@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Train;
+use App\Models\User;
 
 class TrainSeeder extends Seeder
 {
@@ -96,8 +97,13 @@ class TrainSeeder extends Seeder
             ]
         ];
 
+        $vendorId = User::where('email', 'vendor@example.com')->value('id');
+
         foreach ($trains as $train) {
-            Train::create($train);
+            Train::updateOrCreate(
+                ['train_number' => $train['train_number']],
+                $train + ['vendor_id' => $vendorId]
+            );
         }
     }
 }
