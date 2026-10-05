@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Warehouse\WarehouseUnit;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Faker\Factory as Faker;
 
 class WarehouseUnitSeeder extends Seeder
 {
@@ -17,7 +16,6 @@ class WarehouseUnitSeeder extends Seeder
     public function run(): void
     {
         mt_srand(20260101);
-        $faker = Faker::create('en_US');
 
         $vendorId = User::where('email', 'vendor@example.com')->value('id')
             ?? User::where('role', 'vendor')->value('id');
@@ -59,18 +57,18 @@ class WarehouseUnitSeeder extends Seeder
 
         $streets = ['Galle Road', 'Kandy Road', 'Negombo Road', 'Baseline Road', 'Industrial Estate Road', 'Main Street', 'Station Road', 'Puttalam Road'];
 
-        $selectedCities = collect($faker->randomElements($cities->all(), min(10, $cities->count())))->values();
+        $selectedCities = $cities->values()->filter(fn ($city, $index) => $index % max(1, intdiv($cities->count(), 10)) === 0)->take(10)->values();
 
         foreach ($selectedCities as $index => $city) {
             $type = $types[$index % count($types)];
             $pricingModel = $pricingModels[$index % count($pricingModels)];
-            $basePrice = $faker->randomFloat(2, 1200, 9500);
+            $basePrice = self::randomFloat(2, 1200, 9500);
             $monthlyRate = $pricingModel === 'monthly'
-                ? $faker->randomFloat(2, $basePrice * 0.9, $basePrice * 1.2)
+                ? self::randomFloat(2, $basePrice * 0.9, $basePrice * 1.2)
                 : round($basePrice, 2);
-            $securityDeposit = $faker->randomFloat(2, 500, 15000);
-            $setupFee = $faker->randomFloat(2, 100, 1500);
-            $taxRate = $faker->randomFloat(3, 0, 9.5);
+            $securityDeposit = self::randomFloat(2, 500, 15000);
+            $setupFee = self::randomFloat(2, 100, 1500);
+            $taxRate = self::randomFloat(3, 0, 9.5);
 
             $subtotal = $basePrice + $securityDeposit + $setupFee;
             $taxAmount = round($subtotal * ($taxRate / 100), 2);
@@ -81,11 +79,11 @@ class WarehouseUnitSeeder extends Seeder
                 [
                     'user_id' => $vendorId,
                     'description' => "Demo warehouse in {$city->name_en}, {$city->district} District.",
-                    'address' => $faker->numberBetween(1, 250) . ' ' . $streets[$index % count($streets)] . ", {$city->name_en}, {$city->district}, {$city->province}, Sri Lanka",
-                    'latitude' => round((float) $city->latitude + $faker->randomFloat(4, -0.01, 0.01), 8),
-                    'longitude' => round((float) $city->longitude + $faker->randomFloat(4, -0.01, 0.01), 8),
-                    'total_area' => $faker->randomFloat(2, 8000, 45000),
-                    'capacity' => $faker->randomFloat(2, 5000, 40000),
+                    'address' => random_int(1, 250) . ' ' . $streets[$index % count($streets)] . ", {$city->name_en}, {$city->district}, {$city->province}, Sri Lanka",
+                    'latitude' => round((float) $city->latitude + self::randomFloat(4, -0.01, 0.01), 8),
+                    'longitude' => round((float) $city->longitude + self::randomFloat(4, -0.01, 0.01), 8),
+                    'total_area' => self::randomFloat(2, 8000, 45000),
+                    'capacity' => self::randomFloat(2, 5000, 40000),
                     'capacity_unit' => $capacityUnits[$index % count($capacityUnits)],
                     'type' => $type,
                     'pricing_model' => $pricingModel,
@@ -129,5 +127,10 @@ class WarehouseUnitSeeder extends Seeder
                 ]);
             }
         }
+    }
+
+    private static function randomFloat(int $decimals, float $min, float $max): float
+    {
+        return round($min + mt_rand() / mt_getrandmax() * ($max - $min), $decimals);
     }
 }
