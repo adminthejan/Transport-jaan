@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePage, router } from '@inertiajs/react';
 import {
     launchPayHereOnsiteCheckout,
@@ -98,7 +98,21 @@ const formatAmountWithCurrency = (amount, currencyCode = 'USD') => {
 };
 
 const CourierShipmentDetail = () => {
-    const { shipment } = usePage().props;
+    const { shipment, flash } = usePage().props;
+    const [successNotice, setSuccessNotice] = useState(flash?.success || null);
+    const [copiedField, setCopiedField] = useState(null);
+    const trackingCode = shipment.code || '';
+    const trackingPin = shipment.trackingPin || '';
+    const trackingUrl = `/track-shipment?reference=${encodeURIComponent(trackingCode)}`;
+    const copyValue = async (field, value) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            setCopiedField(field);
+            setTimeout(() => setCopiedField(null), 1500);
+        } catch (e) {
+            // clipboard unavailable
+        }
+    };
     const statusInfo = statusMap[shipment.status] || statusMap.pending;
     const StatusIcon = statusInfo.icon;
     const codEnabled = Boolean(shipment.codEnabled);
@@ -217,6 +231,16 @@ const CourierShipmentDetail = () => {
         <div>
             <Header />
             <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+                {successNotice && (
+                    <div role="status" className="fixed top-6 right-6 z-50 flex max-w-sm items-start gap-3 rounded-xl bg-green-600 px-5 py-4 text-white shadow-lg">
+                        <div className="flex-1 text-sm">
+                            <p className="font-semibold">Order placed successfully</p>
+                            <p className="mt-1 opacity-90">{successNotice}</p>
+                            {trackingCode && <p className="mt-1 opacity-90">Tracking ID: {trackingCode}</p>}
+                        </div>
+                        <button type="button" onClick={() => setSuccessNotice(null)} className="text-white/80 hover:text-white text-lg leading-none" aria-label="Dismiss">×</button>
+                    </div>
+                )}
                 <div className="mx-auto max-w-[1200px]">
                     {/* Header */}
                     <div className="mb-6 flex flex-col gap-4 md:mb-10">
@@ -525,6 +549,36 @@ const CourierShipmentDetail = () => {
 
                         {/* Right Column - Tracking & Summary */}
                         <div className="space-y-6">
+                            {trackingCode && (
+                                <div className="bg-white rounded-2xl shadow-sm p-8">
+                                    <h3 className="text-[18px] font-semibold mb-4">Tracking</h3>
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-slate-500">Tracking ID</span>
+                                            <span className="flex items-center gap-2 font-semibold">
+                                                {trackingCode}
+                                                <button type="button" onClick={() => copyValue('code', trackingCode)} className="text-[#0955AC] text-xs underline">
+                                                    {copiedField === 'code' ? 'Copied' : 'Copy'}
+                                                </button>
+                                            </span>
+                                        </div>
+                                        {trackingPin && (
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="text-slate-500">Tracking PIN</span>
+                                                <span className="flex items-center gap-2 font-semibold">
+                                                    {trackingPin}
+                                                    <button type="button" onClick={() => copyValue('pin', trackingPin)} className="text-[#0955AC] text-xs underline">
+                                                        {copiedField === 'pin' ? 'Copied' : 'Copy'}
+                                                    </button>
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <a href={trackingUrl} className="mt-5 inline-flex w-full items-center justify-center rounded-lg bg-[#0955AC] px-4 py-3 text-sm font-semibold text-white hover:bg-[#074494]">
+                                        Track this shipment
+                                    </a>
+                                </div>
+                            )}
                             {/* Cost Summary */}
                             <div className="bg-white rounded-2xl shadow-sm p-8">
                                 <h3 className="text-[18px] font-semibold mb-4 flex items-center gap-2">

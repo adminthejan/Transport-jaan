@@ -1140,6 +1140,16 @@ const Details = ({
     const codAvailableForRoute = shipmentCategory === "domestic";
 
     useEffect(() => {
+        if (!codAvailableForRoute || !Boolean(data?.shipment?.codEnabled)) return;
+        const next = resolvedCodAmount === null ? "" : String(resolvedCodAmount);
+        if (String(data?.shipment?.codAmount ?? "") === next) return;
+        setData((previous) => ({
+            ...previous,
+            shipment: { ...(previous.shipment || {}), codAmount: next },
+        }));
+    }, [codAvailableForRoute, data?.shipment?.codEnabled, data?.shipment?.codAmount, resolvedCodAmount, setData]);
+
+    useEffect(() => {
         if (codAvailableForRoute) {
             return;
         }
@@ -2124,7 +2134,7 @@ const Details = ({
                                     </label>
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-xs font-medium">Declared value ({data.reviewContext?.displayCurrency || DEFAULT_CURRENCY})</label>
+                                    <label className="mb-1 block text-xs font-medium">Declared value (USD)</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -2141,70 +2151,6 @@ const Details = ({
                                 </div>
                             </div>
 
-                            <div className="mt-4 rounded-lg border border-[#D6DEEB] bg-white p-3">
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        id="shipment-cod-enabled"
-                                        type="checkbox"
-                                        checked={Boolean(data.shipment.codEnabled)}
-                                        disabled={!codAvailableForRoute}
-                                        onChange={(event) => {
-                                            const nextValue = event.target.checked;
-                                            updateNestedField("shipment.codEnabled", nextValue);
-                                            if (!nextValue) {
-                                                updateNestedField("shipment.codAmount", "");
-                                                updateNestedField("shipment.codPaymentMethod", "");
-                                            }
-                                        }}
-                                        className={`h-4 w-4 rounded border-[#B8C5E0] text-[#0955AC] focus:ring-[#0955AC] ${!codAvailableForRoute ? "cursor-not-allowed opacity-60" : ""}`}
-                                    />
-                                    <label htmlFor="shipment-cod-enabled" className="text-xs font-medium text-[#0B1739]">
-                                        Enable Cash on Delivery (domestic only)
-                                    </label>
-                                </div>
-
-                                {!codAvailableForRoute && (
-                                    <p className="mt-2 text-xs text-[#6B7280]">
-                                        COD is disabled for international routes.
-                                    </p>
-                                )}
-
-                                {combinedErrors["shipment.codEnabled"] && (
-                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.codEnabled"]}</p>
-                                )}
-
-                                {codAvailableForRoute && Boolean(data.shipment.codEnabled) && (
-                                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                                        <div>
-                                            <label className="mb-1 block text-xs font-medium">COD amount ({data.reviewContext?.displayCurrency || DEFAULT_CURRENCY})</label>
-                                            <div className="w-full rounded-lg border border-[#D6DEEB] bg-[#F8FAFF] px-3 py-2 text-sm text-[#0B1739]">
-                                                {resolvedCodAmount !== null
-                                                    ? `${resolvedCodAmount.toFixed(2)} ${data.reviewContext?.displayCurrency || DEFAULT_CURRENCY}`
-                                                    : "Set a declared value to auto-calculate COD amount."}
-                                            </div>
-                                            <p className="mt-1 text-[11px] text-[#6B7280]">COD amount is auto-calculated from declared shipment/package values.</p>
-                                        </div>
-
-                                        <div>
-                                            <label className="mb-1 block text-xs font-medium">COD payment method</label>
-                                            <select
-                                                value={data.shipment.codPaymentMethod || ""}
-                                                onChange={(event) => updateNestedField("shipment.codPaymentMethod", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                            >
-                                                <option value="">Select method</option>
-                                                <option value="cash">Cash</option>
-                                                <option value="card">Card</option>
-                                                <option value="check">Check</option>
-                                                <option value="bank_transfer">Bank transfer</option>
-                                            </select>
-                                            {combinedErrors["shipment.codPaymentMethod"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.codPaymentMethod"]}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
                         </section>
 
 

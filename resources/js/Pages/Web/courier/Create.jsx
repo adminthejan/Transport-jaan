@@ -444,7 +444,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     widthCm: "",
                     heightCm: "",
                     dimensionUnit: "cm",
-                    nonStackable: false,
+                    fragile: false,
                     declaredValue: "",
                     description: "",
                     hsCode: "",
@@ -1668,11 +1668,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const updatePaymentOptions = (optionKey, checked) => {
         const currentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
         const nextOptions = { ...currentOptions, all: false, [optionKey]: checked };
+        if (checked && optionKey === "cod") nextOptions.card = false;
+        if (checked && optionKey === "card") nextOptions.cod = false;
 
         markUpstreamChange();
         setData("shipment", {
             ...data.shipment,
             paymentOptions: nextOptions,
+            codEnabled: Boolean(nextOptions.cod),
         });
     };
 
@@ -1729,7 +1732,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 widthCm: "",
                 heightCm: "",
                 dimensionUnit: "cm",
-                nonStackable: false,
+                fragile: false,
                 declaredValue: "",
                 description: "",
                 hsCode: "",
@@ -2757,34 +2760,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         return hasRequiredDetails && hasSelectedServices;
     }, [hasRequiredDetails, hasSelectedServices]);
 
-    const isReadyForQuoteOnly = useMemo(() => {
-        return hasRequiredDetailsForQuoteOnly && hasSelectedServices;
-    }, [hasRequiredDetailsForQuoteOnly, hasSelectedServices]);
-
-    const handleGetQuoteOnly = () => {
-        if (!isReadyForQuoteOnly || isPlacing) {
-            setSubmitError(
-                hasRequiredDetailsForQuoteOnly
-                    ? "Select a courier service for each package to get a quote."
-                    : "Complete all required fields before getting a quote.",
-            );
-            return;
-        }
-
-        const payload = JSON.parse(JSON.stringify(data));
-        const reviewContext = computeReviewContextForPayload(payload);
-        setData((previous) => ({
-            ...previous,
-            reviewContext,
-        }));
-
-        setSubmitError("");
-        setQuoteOnlyMessage(
-            `Quotation ready. Estimated total: ${formatCurrency(reviewContext.totalPriceUSD || 0)} for ${reviewContext.selectedQuotes?.length || 0} package(s).`,
-        );
-        handleDownloadQuotation();
-    };
-
     const getBase64ImageFromUrl = async (imageUrl) => {
         try {
             const res = await fetch(imageUrl);
@@ -3215,7 +3190,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                         onClick={addPackage}
                                         className="inline-flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white transition hover:border-[#04356d] hover:text-white"
                                     >
-                                        + Add item
+                                        + Add package
                                     </button>
                                 )}
                             </div>
@@ -3261,6 +3236,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                     )}
 
                                                     <div className="space-y-4">
+                                                        {index === 0 && (
                                                         <div>
                                                             <label className="mb-2 block text-sm font-medium text-[#0B1739]">
                                                                 Locations*
@@ -3667,6 +3643,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 )}
                                                             </div>
                                                         </div>
+                                                        )}
 
                                                         {selectedRouteType === "domestic" && (
                                                             <div className="border-t border-[#E4EAF5] pt-6">
@@ -3793,11 +3770,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                     <div className="mt-3 flex flex-wrap items-center gap-3">
                                                                         <input
                                                                             type="checkbox"
-                                                                            checked={Boolean(item.nonStackable)}
-                                                                            onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
+                                                                            checked={Boolean(item.fragile)}
+                                                                            onChange={(event) => updatePackage(index, "fragile", event.target.checked)}
                                                                             className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
                                                                         />
-                                                                        <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
+                                                                        <span className="text-[16px] leading-none text-[#8A8A8A]">Fragile</span>
 
                                                                         <div className="group relative">
                                                                             <button
@@ -3812,13 +3789,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
                                                                                 <p className="font-semibold">Why do we need this information?</p>
                                                                                 <p className="mt-2 leading-6">
-                                                                                    Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
+                                                                                    Please choose "Fragile" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
                                                                                 </p>
                                                                             </div>
                                                                         </div>
                                                                     </div>
 
-                                                                    {selectedRouteType === "domestic" && (
+                                                                    {index === 0 && selectedRouteType === "domestic" && (
                                                                         <>
                                                                             <p className="mt-4 text-sm font-semibold text-[#0B1739]">Payment options*</p>
                                                                             <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
@@ -3841,6 +3818,23 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     Debit / Credit
                                                                                 </label>
                                                                             </div>
+                                                                            {paymentOptions.cod && (
+                                                                                <div className="mt-3 max-w-xs">
+                                                                                    <label className="mb-1 block text-xs font-medium text-[#0B1739]">COD payment method*</label>
+                                                                                    <select
+                                                                                        value={data.shipment?.codPaymentMethod || ""}
+                                                                                        onChange={(event) => {
+                                                                                            markUpstreamChange();
+                                                                                            setData("shipment", { ...data.shipment, codPaymentMethod: event.target.value });
+                                                                                        }}
+                                                                                        className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    >
+                                                                                        <option value="">Select method</option>
+                                                                                        <option value="cash">Cash</option>
+                                                                                        <option value="bank_transfer">Bank transfer</option>
+                                                                                    </select>
+                                                                                </div>
+                                                                            )}
                                                                         </>
                                                                     )}
                                                                 </div>
@@ -3868,7 +3862,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 onClick={addPackage}
                                                                 className="inline-flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white transition hover:border-[#04356d] hover:text-white"
                                                             >
-                                                                + Add item
+                                                                + Add package
                                                             </button>
                                                         </div>
                                                     )}
@@ -3997,7 +3991,21 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                             >
                                                                                 -
                                                                             </button>
-                                                                            <span className="text-sm font-semibold text-[#0B1739]">{itemQuantity}</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                min={1}
+                                                                                inputMode="numeric"
+                                                                                aria-label="Item quantity"
+                                                                                value={item.quantity ?? ""}
+                                                                                onChange={(event) => {
+                                                                                    const raw = event.target.value;
+                                                                                    updatePackage(index, "quantity", raw === "" ? "" : Math.max(1, parseInt(raw, 10) || 1));
+                                                                                }}
+                                                                                onBlur={() => {
+                                                                                    if (!item.quantity) updatePackage(index, "quantity", 1);
+                                                                                }}
+                                                                                className="h-8 w-16 rounded-md border border-[#D6DEEB] bg-white text-center text-sm font-semibold text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                            />
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => updatePackageQuantity(index, 1)}
@@ -4068,11 +4076,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 <div className="mt-3 flex items-center gap-3">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={Boolean(item.nonStackable)}
-                                                                        onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
+                                                                        checked={Boolean(item.fragile)}
+                                                                        onChange={(event) => updatePackage(index, "fragile", event.target.checked)}
                                                                         className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
                                                                     />
-                                                                    <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
+                                                                    <span className="text-[16px] leading-none text-[#8A8A8A]">Fragile</span>
 
                                                                     <div className="group relative">
                                                                         <button
@@ -4087,7 +4095,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                             <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
                                                                             <p className="font-semibold">Why do we need this information?</p>
                                                                             <p className="mt-2 leading-6">
-                                                                                Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
+                                                                                Please choose "Fragile" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
                                                                             </p>
                                                                         </div>
                                                                     </div>
@@ -4262,17 +4270,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                         ) : verifiedQuoteProviders.length > 0 && paymentFilteredQuoteProviders.length === 0 ? (
                                             <div className="space-y-3">
                                                 <p>
-                                                    No couriers currently accept your selected payment method for this route.
-                                                    Try a different payment option above, or request a custom quote instead.
+                                                    No couriers currently accept your selected payment method for this route. Try a different payment option above.
                                                 </p>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleGetQuoteOnly}
-                                                    disabled={!isReadyForQuoteOnly || isPlacing}
-                                                    className={`rounded-lg border border-[#0955AC] bg-white px-4 py-2 text-sm font-semibold text-[#0955AC] transition ${!isReadyForQuoteOnly || isPlacing ? "cursor-not-allowed opacity-50" : "hover:bg-[#EEF5FF]"}`}
-                                                >
-                                                    Get a quote
-                                                </button>
                                             </div>
                                         ) : (
                                             `Add package details to view available ${selectedRouteType} courier services.`
@@ -4823,19 +4822,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            {showDetails && (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleGetQuoteOnly}
-                                                    disabled={!isReadyForQuoteOnly || isPlacing}
-                                                    className={`rounded-lg border border-[#0955AC] bg-white px-4 py-2 text-sm font-semibold text-[#0955AC] transition ${!isReadyForQuoteOnly || isPlacing ? "cursor-not-allowed opacity-50" : "hover:bg-[#EEF5FF]"}`}
-                                                >
-                                                    Get a quote
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
+                                                                            </div>
                                 )}
                             </section>
                         )}
@@ -5099,15 +5086,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                 ) : (
                                     <>
                                         <div className="grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
-                                            <button
-                                                type="button"
-                                                onClick={handleGetQuoteOnly}
-                                                disabled={!isReadyForQuoteOnly || isPlacing}
-                                                className={`rounded-lg border border-[#0955AC] bg-white px-6 py-3 text-center text-sm font-semibold text-[#0955AC] shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyForQuoteOnly || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#EEF5FF]'
-                                                    }`}
-                                            >
-                                                Get a quote
-                                            </button>
                                             <button
                                                 type="button"
                                                 onClick={handleContinueToDetails}

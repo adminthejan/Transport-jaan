@@ -117,6 +117,7 @@ Route::get('/track/lookup', [\App\Http\Controllers\QuickTrackController::class, 
     ->middleware('throttle:30,1')
     ->name('track.lookup');
 Route::prefix('couriers')->name('couriers.')->group(function () {
+    Route::middleware('auth')->group(function () {
     Route::get('/create', function () {
         return redirect()->route('couriers.flow.create', ['flow' => 'domestic']);
     })->name('create');
@@ -176,6 +177,8 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
         ->whereNumber('contact')
         ->name('favorites.remove');
 
+    });
+
     Route::prefix('payments')->name('payments.')->group(function () {
         Route::get('/{shipment}/checkout', [CourierPaymentController::class, 'checkout'])
             ->whereNumber('shipment')
@@ -194,10 +197,12 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
             ->name('payhere.notify');
     });
 
+    Route::middleware('auth')->group(function () {
     Route::post('/', [ClientCourierController::class, 'store'])->name('store');
     Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
         ->whereNumber('shipment')
         ->name('bill');
+    });
 });
 
 // Courier & Freight Booking Dashboards (protected - requires auth)

@@ -365,6 +365,15 @@ const ClientHeader = () => {
                                 </span>
                             </button>
                         )}
+                        {!auth?.user && (
+                            <Link
+                                href="/signin"
+                                className="h-[48px] px-5 rounded-full bg-[#0955AC] hover:bg-[#074494] text-white text-[13px] font-[700] flex items-center gap-2 transition"
+                            >
+                                <LogIn className="w-[16px] h-[16px]" />
+                                Login
+                            </Link>
+                        )}
                         <div className="size-[48px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                             <img
                                 src={bell}

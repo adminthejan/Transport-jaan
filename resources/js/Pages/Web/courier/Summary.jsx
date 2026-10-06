@@ -233,6 +233,9 @@ const Summary = ({
 
     const insuranceLabel = formState.shipment?.insurance ? "Yes" : "No";
     const codEnabled = Boolean(formState.shipment?.codEnabled);
+    const declaredValueTotal = Number(formState.shipment?.estimatedValue) > 0
+        ? Number(formState.shipment.estimatedValue)
+        : (formState.packages || []).reduce((sum, pkg) => sum + (Number(pkg?.declaredValue) || 0), 0);
     const codAmount = formState.shipment?.codAmount !== undefined && formState.shipment?.codAmount !== null && formState.shipment?.codAmount !== ""
         ? Number(formState.shipment.codAmount)
         : null;
@@ -686,10 +689,11 @@ const Summary = ({
                             <p><span className="font-medium text-[#0B1739]">Pickup date:</span> {formState.shipment?.pickupDate || "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Pickup window:</span> {formState.shipment?.pickupWindowStart && formState.shipment?.pickupWindowEnd ? `${formState.shipment.pickupWindowStart} - ${formState.shipment.pickupWindowEnd}` : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Insurance required:</span> {insuranceLabel}</p>
-                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {formState.shipment?.estimatedValue ? formatDeclaredValue(Number(formState.shipment.estimatedValue)) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {declaredValueTotal > 0 ? formatDeclaredValue(declaredValueTotal) : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Cash on delivery:</span> {codEnabled ? "Enabled" : "Disabled"}</p>
                             <p><span className="font-medium text-[#0B1739]">COD amount:</span> {codEnabled && codAmount !== null ? formatDeclaredValue(codAmount) : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">COD payment method:</span> {codEnabled ? codPaymentMethodLabel : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Total value (declared + COD):</span> {formatDeclaredValue(declaredValueTotal + (codEnabled && codAmount !== null ? Number(codAmount) : 0))}</p>
                         </div>
                     </section>
 
