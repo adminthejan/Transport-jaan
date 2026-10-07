@@ -111,6 +111,13 @@ class ClientVehicleController extends Controller
             'body_type',
             'transmission',
             'fuel',
+            'industryCategory',
+            'extras',
+            'luggage',
+            'mileage',
+            'minPrice',
+            'maxPrice',
+            'minSeats',
         ]);
 
         $query = Vehicle::with([
