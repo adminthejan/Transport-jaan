@@ -233,15 +233,15 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                                 >
                                     Pick-up Location
                                 </label>
-                                <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
+                                <div className="flex items-center gap-2 min-w-0 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
                                     <MapPin className="w-[16px] h-[16px] text-[#0955AC] flex-shrink-0" />
                                     <input
                                         type="text"
                                         id="pickupLocation"
                                         value={formData.pickupLocation}
                                         onChange={handleInputChange}
-                                        placeholder="Search a location"
-                                        className="appearance-none w-full py-[14px] leading-tight focus:outline-none placeholder:text-[#286BB6] bg-transparent"
+                                        placeholder="Enter location"
+                                        className="appearance-none w-full min-w-0 flex-1 border-0 py-[14px] leading-tight focus:outline-none focus:ring-0 placeholder:text-[#286BB6] bg-transparent"
                                     />
                                 </div>
                             </div>
@@ -251,7 +251,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                                 <label htmlFor="pickupDate" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
                                     Pick-up Date
                                 </label>
-                                <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
+                                <div className="flex items-center gap-2 min-w-0 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
                                     <CalendarDays className="w-[16px] h-[16px] text-[#0955AC] flex-shrink-0" />
                                     <input
                                         type="date"
@@ -273,15 +273,15 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                                 >
                                     Drop-off Location
                                 </label>
-                                <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
+                                <div className="flex items-center gap-2 min-w-0 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
                                     <MapPin className="w-[16px] h-[16px] text-[#0955AC] flex-shrink-0" />
                                     <input
                                         type="text"
                                         id="dropoffLocation"
                                         value={formData.dropoffLocation}
                                         onChange={handleInputChange}
-                                        placeholder="Search a location"
-                                        className="w-full py-[14px] leading-tight focus:outline-none placeholder:text-[#286BB6] bg-transparent"
+                                        placeholder="Enter location"
+                                        className="appearance-none w-full min-w-0 flex-1 border-0 py-[14px] leading-tight focus:outline-none focus:ring-0 placeholder:text-[#286BB6] bg-transparent"
                                     />
                                 </div>
                             </div>
@@ -291,7 +291,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                                 <label htmlFor="dropoffDate" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
                                     Drop-off Date
                                 </label>
-                                <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
+                                <div className="flex items-center gap-2 min-w-0 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
                                     <CalendarDays className="w-[16px] h-[16px] text-[#0955AC] flex-shrink-0" />
                                     <input
                                         type="date"

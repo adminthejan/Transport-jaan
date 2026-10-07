@@ -25,6 +25,7 @@ class DemoModulesSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            LocationDataSeeder::class,
             CourierDemoVendorSeeder::class,
             BusStationSeeder::class,
             BusSeeder::class,
