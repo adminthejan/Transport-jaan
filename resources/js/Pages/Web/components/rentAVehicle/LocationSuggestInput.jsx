@@ -35,7 +35,7 @@ const LocationSuggestInput = ({ id, value, onChange, placeholder, className, inp
   };
 
   return (
-    <div ref={wrapRef} className={`relative min-w-0 ${className || ""}`}>
+    <div ref={wrapRef} className={`relative min-w-0 ${open ? "z-50" : ""} ${className || ""}`}>
       <input
         type="text"
         id={id}
@@ -51,7 +51,7 @@ const LocationSuggestInput = ({ id, value, onChange, placeholder, className, inp
         className={inputClassName}
       />
       {open && options.length > 0 && (
-        <ul className="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white py-1 text-left shadow-lg">
+        <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white py-1 text-left shadow-lg">
           {options.map((o) => (
             <li key={o.label}>
               <button
