@@ -27,6 +27,7 @@ class CourierPackage extends Model
         'declared_value',
         'description',
         'hs_code',
+        'extras',
     ];
 
     protected $casts = [
@@ -37,6 +38,7 @@ class CourierPackage extends Model
         'height_cm' => 'decimal:2',
         'declared_value' => 'decimal:2',
         'quoted_price_usd' => 'decimal:2',
+        'extras' => 'array',
     ];
 
     public function shipment()

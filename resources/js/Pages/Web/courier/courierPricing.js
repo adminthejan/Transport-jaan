@@ -598,6 +598,22 @@ const resolveQuoteServices = (services) => {
         : COURIER_SERVICES;
 };
 
+// Volumetric weight (kg) = L(cm) x W(cm) x H(cm) / divisor
+export const computeVolumetricWeightKg = (length, width, height, divisor = VOLUMETRIC_DIVISOR) => {
+    const l = Number(length) || 0;
+    const w = Number(width) || 0;
+    const h = Number(height) || 0;
+    if (l <= 0 || w <= 0 || h <= 0) return 0;
+    return (l * w * h) / divisor;
+};
+
+// Weights are always expressed in kg (e.g. 200 g -> "0.2 kg").
+export const formatWeightKg = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return "—";
+    return `${parseFloat(n.toFixed(3))} kg`;
+};
+
 export const computePackageMetrics = (packages = []) => {
     if (!Array.isArray(packages) || packages.length === 0) {
         return {
@@ -693,7 +709,12 @@ export const buildQuoteMatrix = (packages = [], options = {}) => {
                     ? 12
                     : 0;
 
-            const providers = services.map((provider) => {
+            const packageServices =
+                typeof options.servicesForPackage === "function"
+                    ? resolveQuoteServices(options.servicesForPackage(pkg, packageIndex))
+                    : services;
+
+            const providers = packageServices.map((provider) => {
                 const tiers = (provider.tiers || []).map((tier) => {
                     const baseComponent = tier.base;
                     const weightComponent = billableWeight * tier.perKg;

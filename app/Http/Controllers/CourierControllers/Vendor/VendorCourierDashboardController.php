@@ -4713,6 +4713,8 @@ class VendorCourierDashboardController extends Controller
                 'allowCodForDomestic' => true,
                 'allowCodForInternational' => false,
                 'allowTeamOverride' => false,
+                'allowCashCod' => true,
+                'allowBankTransferCod' => true,
             ],
         ];
     }
@@ -4737,6 +4739,8 @@ class VendorCourierDashboardController extends Controller
         $cod['allowCodForDomestic'] = (bool) ($cod['allowCodForDomestic'] ?? false);
         $cod['allowCodForInternational'] = false;
         $cod['allowTeamOverride'] = (bool) ($cod['allowTeamOverride'] ?? false);
+        $cod['allowCashCod'] = (bool) ($cod['allowCashCod'] ?? true);
+        $cod['allowBankTransferCod'] = (bool) ($cod['allowBankTransferCod'] ?? true);
 
         $normalized['cod'] = $cod;
 

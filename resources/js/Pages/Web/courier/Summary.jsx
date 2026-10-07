@@ -7,6 +7,7 @@ import {
     launchPayHereRedirectCheckout,
     preloadPayHereOnsiteSdk,
 } from "./payhereCheckout";
+import { computeVolumetricWeightKg, formatWeightKg } from "./courierPricing";
 
 const PROGRESS_STEPS = [
     {
@@ -714,6 +715,8 @@ const Summary = ({
                                     ? `${selection.billableWeight.toFixed(2)} kg billable`
                                     : null;
 
+                                const pkgVolumetricKg = computeVolumetricWeightKg(pkg.lengthCm, pkg.widthCm, pkg.heightCm);
+
                                 return (
                                     <div key={`summary-package-${index}`} className="rounded-2xl border border-[#E3EAF5] bg-white p-5 shadow-sm">
                                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -730,7 +733,7 @@ const Summary = ({
 
                                         <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-[#5B6887] md:grid-cols-2">
                                             <p><span className="font-medium text-[#0B1739]">Quantity:</span> {pkg.quantity || "—"}</p>
-                                            <p><span className="font-medium text-[#0B1739]">Weight:</span> {pkg.weightKg ? `${pkg.weightKg} kg` : "—"}</p>
+                                            <p><span className="font-medium text-[#0B1739]">Weight:</span> {formatWeightKg(pkg.weightKg)}</p>
                                             <p>
                                                 <span className="font-medium text-[#0B1739]">Dimensions:</span> {pkg.lengthCm && pkg.widthCm && pkg.heightCm
                                                     ? `${pkg.lengthCm} × ${pkg.widthCm} × ${pkg.heightCm} cm`
@@ -738,10 +741,74 @@ const Summary = ({
                                             </p>
                                             <p><span className="font-medium text-[#0B1739]">Declared value:</span> {pkg.declaredValue ? formatDeclaredValue(Number(pkg.declaredValue)) : "—"}</p>
                                             <p><span className="font-medium text-[#0B1739]">Type:</span> {pkg.packageType || "—"}</p>
+                                            <p>
+                                                <span className="font-medium text-[#0B1739]">Volumetric weight:</span> {pkgVolumetricKg > 0 ? `${parseFloat(pkgVolumetricKg.toFixed(3))} kg` : "—"}
+                                            </p>
                                             {volumetricInfo && (
                                                 <p><span className="font-medium text-[#0B1739]">Billable weight:</span> {volumetricInfo}</p>
                                             )}
                                         </div>
+
+                                        {(() => {
+                                            const extras = pkg.extras || {};
+                                            const handling = [
+                                                pkg.fragile && "Fragile",
+                                                extras.nonStackable && "Non-stackable",
+                                                extras.liquid && "Liquid",
+                                                extras.containsBatteries && "Contains batteries",
+                                                extras.dangerousGoods && "Dangerous goods",
+                                            ].filter(Boolean);
+                                            const commodities = Array.isArray(extras.commodities) ? extras.commodities : [];
+                                            return (
+                                                <>
+                                                    {extras.paymentMethod && (
+                                                        <p className="mt-3 text-sm text-[#5B6887]">
+                                                            <span className="font-medium text-[#0B1739]">Payment:</span> {extras.paymentMethod === "cod" ? "Cash on delivery" : "Debit / Credit"}
+                                                        </p>
+                                                    )}
+                                                    {handling.length > 0 && (
+                                                        <p className="mt-2 text-sm text-[#5B6887]">
+                                                            <span className="font-medium text-[#0B1739]">Special handling:</span> {handling.join(", ")}
+                                                        </p>
+                                                    )}
+                                                    {commodities.length > 0 && (
+                                                        <div className="mt-4 overflow-x-auto rounded-lg bg-[#F9FBFF] p-3 text-xs text-[#5B6887]">
+                                                            <p className="mb-2 text-sm font-medium text-[#0B1739]">Commodities</p>
+                                                            <table className="w-full min-w-[520px] text-left">
+                                                                <thead>
+                                                                    <tr className="text-[#0B1739]">
+                                                                        <th className="py-1 pr-2">HS code</th>
+                                                                        <th className="py-1 pr-2">Specification</th>
+                                                                        <th className="py-1 pr-2">Weight (kg)</th>
+                                                                        <th className="py-1 pr-2">Qty</th>
+                                                                        <th className="py-1 pr-2">Unit price</th>
+                                                                        <th className="py-1">Total</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {commodities.map((row, rowIndex) => (
+                                                                        <tr key={`summary-commodity-${index}-${rowIndex}`}>
+                                                                            <td className="py-1 pr-2">{row.hsCode || "—"}</td>
+                                                                            <td className="py-1 pr-2">{row.description || "—"}</td>
+                                                                            <td className="py-1 pr-2">{row.weightKg || "—"}</td>
+                                                                            <td className="py-1 pr-2">{row.quantity || 0}</td>
+                                                                            <td className="py-1 pr-2">{Number(row.unitPrice || 0).toFixed(2)}</td>
+                                                                            <td className="py-1">{((Number(row.quantity) || 0) * (Number(row.unitPrice) || 0)).toFixed(2)}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
+                                                    {extras.packingList && (
+                                                        <div className="mt-4 rounded-lg bg-[#F9FBFF] p-4 text-sm text-[#5B6887]">
+                                                            <p className="font-medium text-[#0B1739]">Packing list</p>
+                                                            <p className="mt-2 whitespace-pre-line leading-relaxed">{extras.packingList}</p>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
 
                                         {pkg.description && (
                                             <div className="mt-4 rounded-lg bg-[#F9FBFF] p-4 text-sm text-[#5B6887]">
