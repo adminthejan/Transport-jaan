@@ -219,7 +219,7 @@ const handleViewMore = () => {
                 <div className="flex items-center justify-between">
                   <p className="poppins">
                     <span className="text-[20px] sm:text-[22px] font-[800] text-[#0955AC]">
-                      LKR {Number(vehicle.rental_price_per_day || 0).toLocaleString()}
+                      {vehicle.currency || "LKR"} {Number(vehicle.rental_price_per_day || 0).toLocaleString()}
                     </span>
                     <span className="text-[#00000066] text-[11px] font-[600]"> /day</span>
                   </p>

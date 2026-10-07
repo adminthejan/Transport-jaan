@@ -188,6 +188,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
                 <div className="flex items-end justify-between mt-4 pt-4 border-t border-gray-100">
                   <div>
                     <div className="font-extrabold text-[22px] text-[#0F0F0F] leading-none">
+                      {v.currency || "LKR"}{" "}
                       {(Number(v.rental_price_per_day) || 0).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,

@@ -23,6 +23,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quote, setQuote] = useState(null);
+  const [availability, setAvailability] = useState(null);
   useScrollLock(showQuoteModal);
 
   const [pickupLocation, setPickupLocation] = useState("");
@@ -131,35 +132,56 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
       .filter(([, v]) => v)
       .map(([name]) => ({ name, qty: 1 }));
 
+  const quoteParams = () => ({
+    vehicle_id: vehicleId,
+    pickup_date: pickupDate,
+    pickup_time: pickupTime || "10:00",
+    dropoff_date: dropoffDate,
+    dropoff_time: dropoffTime || "10:00",
+    addons: selectedAddons(),
+    needs_driver: needsDriver,
+  });
+
+  // Rates are returned even when the vehicle is taken, so the price is always shown.
+  const requestQuote = async () => {
+    const { data, status } = await axios.get(route("client.bookings.quote"), {
+      params: quoteParams(),
+      validateStatus: (code) => code === 200 || code === 422,
+    });
+    setQuote(data);
+    setAvailability({
+      available: status === 200 && data.available !== false,
+      message: data.message || null,
+    });
+    return { available: status === 200 && data.available !== false, message: data.message };
+  };
+
+  useEffect(() => {
+    if (!vehicleId || !pickupDate || !dropoffDate) {
+      setQuote(null);
+      setAvailability(null);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      requestQuote().catch(() => setQuote(null));
+    }, 300);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleId, pickupDate, pickupTime, dropoffDate, dropoffTime, needsDriver, extras]);
+
   const getQuote = async () => {
     if (!vehicleId || !pickupDate || !dropoffDate) {
       showCenter("Please select pick-up and drop-off dates.", "Missing dates", "info");
       return;
     }
     try {
-      const { data } = await axios.get(route("client.bookings.quote"), {
-        params: {
-          vehicle_id: vehicleId,
-          pickup_date: pickupDate,
-          pickup_time: pickupTime || "10:00",
-          dropoff_date: dropoffDate,
-          dropoff_time: dropoffTime || "10:00",
-          addons: selectedAddons(),
-          needs_driver: needsDriver,
-        },
-      });
-      setQuote(data);
+      await requestQuote();
       setShowQuoteModal(true);
     } catch (e) {
-      showCenter(
-        e?.response?.data?.message || "Could not fetch a quote. Please check your dates.",
-        "Oops",
-        "error"
-      );
+      showCenter("Could not fetch a quote. Please check your dates.", "Oops", "error");
     }
   };
 
-  // pre-check availability; show SweetAlert if unavailable
   const continueToCheckout = async () => {
     if (!vehicleId || !pickupDate || !dropoffDate) {
       showCenter("Please fill pick-up and drop-off first.", "Missing info", "info");
@@ -167,17 +189,11 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
     }
 
     try {
-      await axios.get(route("client.bookings.quote"), {
-        params: {
-          vehicle_id: vehicleId,
-          pickup_date: pickupDate,
-          pickup_time: pickupTime || "10:00",
-          dropoff_date: dropoffDate,
-          dropoff_time: dropoffTime || "10:00",
-          addons: selectedAddons(),
-          needs_driver: needsDriver,
-        },
-      });
+      const result = await requestQuote();
+      if (!result.available) {
+        showCenter(result.message || "Vehicle is not available for the selected dates.", "Unavailable", "error");
+        return;
+      }
 
       router.visit(route("client.bookings.checkout"), {
         method: "get",
@@ -195,15 +211,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
         preserveScroll: true,
       });
     } catch (e) {
-      const status = e?.response?.status;
-      const msg =
-        e?.response?.data?.message ||
-        "Vehicle is not available for the selected dates.";
-      if (status === 422) {
-        showCenter(msg, "Unavailable", "error");
-      } else {
-        showCenter("Something went wrong. Please try again.", "Oops", "error");
-      }
+      showCenter("Something went wrong. Please try again.", "Oops", "error");
     }
   };
 
@@ -363,6 +371,19 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
             </div>
           </div>
 
+          <div className="flex justify-end items-center">
+            <div className="flex flex-row items-center w-[340px] px-10 h-[36px] text-[14px] font-[600]">
+              <h1 className="w-[140px]">Refundable deposit</h1>
+              <h1 className="w-[140px] text-end">{quote ? Number(quote.deposit_amount).toFixed(2) : "-"}</h1>
+            </div>
+          </div>
+          <div className="flex justify-end items-center">
+            <div className="flex flex-row items-center w-[340px] px-10 h-[36px] text-[14px] font-[600]">
+              <h1 className="w-[140px]">Advance payment</h1>
+              <h1 className="w-[140px] text-end">{quote ? Number(quote.advance_amount).toFixed(2) : "-"}</h1>
+            </div>
+          </div>
+
           <h1 className="text-[14px] font-[700] text-[#0955AC]">Terms and Conditions</h1>
           <h1 className="text-[14px] font-[500]">Payment is due in 14 days</h1>
         </div>
@@ -394,10 +415,10 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
           <div className=" w-auto md:w-[346px] h-[1px] bg-[#0000001F]" />
         </div>
 
-        <form className="text-[10px] text-[black] font-[800]" onSubmit={(e) => e.preventDefault()}>
+        <form className="text-[13px] text-[#0B1739] space-y-1" onSubmit={(e) => e.preventDefault()}>
           <div>
             <div>
-              <label htmlFor="pickupLocation" className="block mb-3 text-black-600 font-semibold text-sm  ">
+              <label htmlFor="pickupLocation" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">
                 Pick-up Location
               </label>
               <input
@@ -406,31 +427,31 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
                 value={pickupLocation}
                 onChange={(e) => setPickupLocation(e.target.value)}
                 placeholder="Hudson Rd, Colombo 03"
-                className="appearance-none w-full h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-2 leading-tight focus:outline-none focus:shadow-outline placeholder:text-gray-400 placeholder:text-[12px] placeholder:font-[600]"
+                className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-5">
+            <div className="grid grid-cols-2 gap-3 mt-4 mb-4">
               <div>
-                <label htmlFor="pickupDate" className="block mb-3 text-black text-sm font-semibold">Pick-up Date</label>
+                <label htmlFor="pickupDate" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Pick-up Date</label>
                 <input
                   type="date"
                   id="pickupDate"
                   value={pickupDate}
                   onChange={(e) => setPickupDate(e.target.value)}
                   placeholder="2025-07-23"
-                  className="w-full border-[1px] h-[35px]  border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
+                  className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
                 />
               </div>
               <div className="relative">
-                <label htmlFor="pickupTime" className="block mb-3 text-black text-sm font-semibold">Pick-up Time</label>
+                <label htmlFor="pickupTime" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Pick-up Time</label>
                 <input
                   type="time"
                   id="pickupTime"
                   value={pickupTime}
                   onChange={(e) => setPickupTime(e.target.value)}
                   placeholder="00:00"
-                  className="w-full sm:w-[135px] h-[35px] relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-2 leading-tight focus:outline-none focus:shadow-outline placeholder:text-gray-400 placeholder:text-[12px] placeholder:font-[600]"
+                  className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
                 />
               </div>
             </div>
@@ -438,38 +459,38 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
 
           <div>
             <div>
-              <label htmlFor="dropoffLocation" className="block mb-3 text-black text-sm font-semibold">Drop-off Location</label>
+              <label htmlFor="dropoffLocation" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Drop-off Location</label>
               <input
                 type="text"
                 id="dropoffLocation"
                 value={dropoffLocation}
                 onChange={(e) => setDropoffLocation(e.target.value)}
                 placeholder="Hudson Rd, Colombo 03"
-                className="w-full h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-2 leading-tight focus:outline-none focus:shadow-outline placeholder:text-gray-400 placeholder:text-[12px] placeholder:font-[600]"
+                className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-5">
+            <div className="grid grid-cols-2 gap-3 mt-4 mb-4">
               <div>
-                <label htmlFor="dropoffDate" className="block mb-3 text-black text-sm font-semibold">Drop-off Date</label>
+                <label htmlFor="dropoffDate" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Drop-off Date</label>
                 <input
                   type="date"
                   id="dropoffDate"
                   value={dropoffDate}
                   onChange={(e) => setDropoffDate(e.target.value)}
                   placeholder="2025-07-30"
-                  className="border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3  w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
+                  className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
                 />
               </div>
               <div className="relative">
-                <label htmlFor="dropoffTime" className="block mb-3 text-black text-sm font-semibold">Drop-off Time</label>
+                <label htmlFor="dropoffTime" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Drop-off Time</label>
                 <input
                   type="time"
                   id="dropoffTime"
                   value={dropoffTime}
                   onChange={(e) => setDropoffTime(e.target.value)}
                   placeholder="00:00"
-                  className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-2 leading-tight focus:outline-none focus:shadow-outline placeholder:text-gray-400 placeholder:text-[12px] placeholder:font-[600]"
+                  className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
                 />
               </div>
             </div>
@@ -486,12 +507,43 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
           </div>
         )}
 
-        <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
-          <h1 className="font-[600] mb-5 text-[#000000D9]">Pricing Breakdown</h1>
-          <div className="w-full h-[1px] bg-[#CDD0D4]" />
+        <div className="w-full rounded-2xl border border-[#E3EAF5] bg-white p-6 shadow-sm text-[13px] text-[#0B1739] flex flex-col gap-5">
+          <h1 className="text-base font-semibold text-[#0B1739]">Pricing Breakdown</h1>
+          {availability && availability.available === false && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">
+              Not available for these dates. Rates are shown for reference only.
+            </div>
+          )}
+          {quote && (
+            <div className="rounded-xl border border-[#E3EAF5] divide-y divide-[#E3EAF5] text-[13px]">
+              {[
+                [`Rental (${quote.rental_days} ${quote.rental_days === 1 ? "day" : "days"} × ${Number(quote.price_per_day).toFixed(2)})`, Number(quote.price_per_day) * Number(quote.rental_days)],
+                ...(Number(quote.addons_total) > 0 ? [["Extras", Number(quote.addons_total)]] : []),
+                ...(Number(quote.driver_fee_total) > 0 ? [["Driver fee", Number(quote.driver_fee_total)]] : []),
+                ["Subtotal", Number(quote.subtotal)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between px-4 py-2.5">
+                  <span className="text-[#5B6887]">{label}</span>
+                  <span className="font-medium">{value.toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
+                <span className="text-[#5B6887]">Refundable deposit</span>
+                <span className="font-medium">{Number(quote.deposit_amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
+                <span className="text-[#5B6887]">Advance payment</span>
+                <span className="font-medium">{Number(quote.advance_amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-4 py-3 bg-[#EEF5FF]">
+                <span className="font-semibold text-[#0955AC]">Total ({quote.currency || vehicle?.currency || "LKR"})</span>
+                <span className="font-semibold text-[#0955AC]">{Number(quote.total).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
 
-          <h1 className="font-[600] mt-5 text-[#000000D9]">Driver</h1>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Driver</h2>
+          <div className="grid grid-cols-2 gap-3">
             {[
               { value: false, label: "Self-Drive" },
               { value: true, label: "With Driver" },
@@ -500,10 +552,10 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
                 type="button"
                 key={String(opt.value)}
                 onClick={() => setNeedsDriver(opt.value)}
-                className={`rounded-[5px] border-[1.5px] px-4 py-2.5 text-[12px] font-[700] transition-colors ${
+                className={`rounded-xl border px-4 py-3 text-[13px] font-semibold transition-colors ${
                   needsDriver === opt.value
                     ? "bg-[#0955AC] border-[#0955AC] text-white"
-                    : "border-[#0000001F] text-[#00000099] hover:border-[#0955AC]/40"
+                    : "border-[#D6DEEB] bg-white text-[#5B6887] hover:border-[#0955AC]/50"
                 }`}
               >
                 {opt.label}
@@ -511,35 +563,34 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
             ))}
           </div>
           {needsDriver && (
-            <p className="mt-3 text-[12px] font-[700] text-[#0955AC] bg-[#0955AC1A] border border-[#0955AC]/30 rounded-[6px] px-3 py-2">
+            <p className="rounded-xl border border-[#0955AC]/20 bg-[#EEF5FF] px-3 py-2.5 text-[12px] font-medium text-[#0955AC]">
               A driver adds {(DRIVER_FEE_RATE * 100).toFixed(0)}% of the daily rate for chauffeur service.
             </p>
           )}
 
-          <h1 className="font-[600] mt-5 text-[#000000D9]">Add Extras</h1>
+          <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Add Extras</h2>
 
-          <div className="flex flex-col justify-center text-[12px] font-[500] mt-5">
+          <div className="flex flex-col divide-y divide-[#E3EAF5] rounded-xl border border-[#E3EAF5] overflow-hidden">
             {Object.keys(extras).length === 0 && (
-              <div className="px-5 py-5 text-[#00000080]">No extras available.</div>
+              <div className="px-4 py-4 text-[#5B6887]">No extras available.</div>
             )}
             {Object.keys(extras).map((name, i) => (
-              <div key={name} className={`flex flex-row justify-between w-full px-5 ${i % 2 ? "" : "py-5"}`}>
+              <div key={name} className="flex flex-row items-center justify-between w-full px-4 py-3 hover:bg-[#F7FAFF]">
                 <div className="flex flex-row justify-center items-center gap-4">
                   <input
                     type="checkbox"
-                    className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
+                    className="size-4 accent-[#0955AC]"
                     checked={!!extras[name]}
                     onChange={() => toggleExtra(name)}
                   />
-                  <h1>{name}</h1>
+                  <span className="font-medium">{name}</span>
                 </div>
-                <h1>{priceByName[name] !== undefined ? priceByName[name].toFixed(2) : "—"}</h1>
+                <span className="font-semibold text-[#0955AC]">{priceByName[name] !== undefined ? priceByName[name].toFixed(2) : "—"}</span>
               </div>
             ))}
           </div>
 
-          <div className="w-full h-[1px] bg-[#CDD0D4] mt-5" />
-
+          
           <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
             <div
               className="w-full sm:w-auto xl:w-[261px] h-auto xl:h-auto px-4 py-2.5 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-6 sm:mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer hover:bg-[#0955AC] hover:text-white transition-colors"

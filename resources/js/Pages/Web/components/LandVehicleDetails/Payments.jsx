@@ -74,7 +74,7 @@ const Payments = () => {
 
     // Wallet balance pre-check (server re-validates with a row lock regardless)
     if (selectedPayment === "Wallet") {
-      const payNowAmount = paymentOption === "full" ? total : Math.min(advance, total);
+      const payNowAmount = (paymentOption === "full" ? total : Math.min(advance, total)) + n(booking.deposit_amount);
       if (walletBalance < payNowAmount) {
         setWalletError("Insufficient wallet balance for this payment.");
         return;
@@ -121,6 +121,8 @@ const Payments = () => {
   // amounts based on chosen option
   const payNow = paymentOption === "full" ? total : Math.min(advance, total);
   const remaining = Math.max(total - payNow, 0);
+  const deposit = n(booking.deposit_amount);
+  const dueToday = payNow + deposit;
 
   // small helpers for UI
   const C = booking?.currency || "$";
@@ -308,6 +310,22 @@ const Payments = () => {
                   <h1 className="font-[600]">
                     {C}
                     {money(payNow)}
+                  </h1>
+                </div>
+                {deposit > 0 && (
+                  <div className="flex flex-col md:flex-row md:gap-5">
+                    <h1 className="font-[500] text-[#000000B2] w-[150px]">Refundable deposit:</h1>
+                    <h1 className="font-[600]">
+                      {C}
+                      {money(deposit)} (held until return)
+                    </h1>
+                  </div>
+                )}
+                <div className="flex flex-col md:flex-row md:gap-5">
+                  <h1 className="font-[500] text-[#000000B2] w-[150px]">Due today:</h1>
+                  <h1 className="font-[700]">
+                    {C}
+                    {money(dueToday)}
                   </h1>
                 </div>
                 <div className="flex flex-col md:flex-row md:gap-5">

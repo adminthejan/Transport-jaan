@@ -52,8 +52,8 @@ const SEATS_FLOOR = 1;
 const SEATS_CEILING = 12;
 
 const PRICE_FLOOR = 0;
-const PRICE_CEILING = 300;
-const PRICE_STEP = 5;
+const PRICE_CEILING = 3100000;
+const PRICE_STEP = 5000;
 
 const LUGGAGE_CAPACITIES = [
   { id: "1-2", label: "1 - 2 Bags" },
@@ -142,7 +142,7 @@ const THUMB_STYLES =
   "[&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#0955AC] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer";
 
 // Dual-handle price range slider. Drag updates the visual position and the
-// "US$ X - US$ Y" readout instantly (local state), but only actually
+// "LKR X - LKR Y" readout instantly (local state), but only actually
 // triggers a search (a full round trip) once you release the handle —
 // otherwise every pixel of drag would fire a request.
 const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
@@ -197,8 +197,8 @@ const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
         />
       </div>
       <div className="flex items-center justify-between text-[12px] font-[700] text-[#334155]">
-        <span>US$ {localMin}</span>
-        <span>US$ {localMax}{localMax >= max ? "+" : ""}</span>
+        <span>LKR {localMin.toLocaleString()}</span>
+        <span>LKR {localMax.toLocaleString()}{localMax >= max ? "+" : ""}</span>
       </div>
     </div>
   );

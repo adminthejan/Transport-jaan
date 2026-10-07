@@ -1101,6 +1101,7 @@ Route::middleware(['auth']) // remove 'auth' here temporarily if testing unauthe
         Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])->name('vehicles.show');
         Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
         Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
+        Route::post('/vehicle-bookings/{booking}/release-deposit', [\App\Http\Controllers\VehicleControllers\Client\ClientBookingController::class, 'releaseDeposit'])->name('vehicle-bookings.releaseDeposit');
 
         // Maintenance
         Route::post('/vehicles/{vehicle}/maintenance', [VehicleMaintenanceController::class, 'store'])->name('vehicles.maintenance.store');
