@@ -1845,6 +1845,18 @@ class ClientCourierController extends Controller
             'packages.*.widthCm' => ['nullable', 'numeric', 'min:0'],
             'packages.*.heightCm' => ['nullable', 'numeric', 'min:0'],
             'packages.*.declaredValue' => ['nullable', 'numeric', 'min:0'],
+            'packages.*.fragile' => ['nullable', 'boolean'],
+            'packages.*.extras' => ['nullable', 'array'],
+            'packages.*.extras.commodities' => ['nullable', 'array', 'max:100'],
+            'packages.*.extras.commodities.*.hsCode' => ['nullable', 'string', 'max:20'],
+            'packages.*.extras.commodities.*.description' => ['nullable', 'string', 'max:300'],
+            'packages.*.extras.commodities.*.type' => ['nullable', 'string', 'max:60'],
+            'packages.*.extras.commodities.*.weightKg' => ['nullable', 'numeric', 'min:0'],
+            'packages.*.extras.commodities.*.quantity' => ['nullable', 'numeric', 'min:0'],
+            'packages.*.extras.commodities.*.unitPrice' => ['nullable', 'numeric', 'min:0'],
+            'packages.*.extras.packingList' => ['nullable', 'string', 'max:2000'],
+            'packages.*.extras.paymentMethod' => ['nullable', 'string', 'in:cod,card'],
+            'packages.*.extras.otherDescription' => ['nullable', 'string', 'max:200'],
             'packages.*.description' => ['nullable', 'string', 'max:500'],
             'reviewContext' => ['required', 'array'],
             'reviewContext.displayCurrency' => ['nullable', 'string', 'max:4'],
@@ -2234,6 +2246,18 @@ class ClientCourierController extends Controller
                 'packages.*.widthCm' => ['nullable', 'numeric', 'min:0'],
                 'packages.*.heightCm' => ['nullable', 'numeric', 'min:0'],
                 'packages.*.declaredValue' => ['nullable', 'numeric', 'min:0'],
+                'packages.*.fragile' => ['nullable', 'boolean'],
+                'packages.*.extras' => ['nullable', 'array'],
+                'packages.*.extras.commodities' => ['nullable', 'array', 'max:100'],
+                'packages.*.extras.commodities.*.hsCode' => ['nullable', 'string', 'max:20'],
+                'packages.*.extras.commodities.*.description' => ['nullable', 'string', 'max:300'],
+                'packages.*.extras.commodities.*.type' => ['nullable', 'string', 'max:60'],
+                'packages.*.extras.commodities.*.weightKg' => ['nullable', 'numeric', 'min:0'],
+                'packages.*.extras.commodities.*.quantity' => ['nullable', 'numeric', 'min:0'],
+                'packages.*.extras.commodities.*.unitPrice' => ['nullable', 'numeric', 'min:0'],
+                'packages.*.extras.packingList' => ['nullable', 'string', 'max:2000'],
+                'packages.*.extras.paymentMethod' => ['nullable', 'string', 'in:cod,card'],
+                'packages.*.extras.otherDescription' => ['nullable', 'string', 'max:200'],
                 'packages.*.description' => ['nullable', 'string', 'max:500'],
                 'packages.*.hsCode' => ['nullable', 'string', 'max:20'],
                 'reviewContext' => ['nullable', 'array'],
@@ -2627,6 +2651,10 @@ class ClientCourierController extends Controller
                         'declared_value' => $package['declaredValue'] ?? null,
                         'description' => $package['description'] ?? null,
                         'hs_code' => $package['hsCode'] ?? null,
+                        'extras' => array_merge(
+                            is_array($package['extras'] ?? null) ? $package['extras'] : [],
+                            ['fragile' => (bool) ($package['fragile'] ?? false)]
+                        ),
                     ]);
                 }
 
@@ -5241,6 +5269,8 @@ class ClientCourierController extends Controller
             'allowCodForDomestic' => (bool) ($cod['allowCodForDomestic'] ?? false),
             'allowCodForInternational' => false,
             'allowTeamOverride' => (bool) ($cod['allowTeamOverride'] ?? false),
+            'allowCashCod' => (bool) ($cod['allowCashCod'] ?? true),
+            'allowBankTransferCod' => (bool) ($cod['allowBankTransferCod'] ?? true),
         ];
     }
 
@@ -5590,6 +5620,13 @@ class ClientCourierController extends Controller
             'paymentOptions' => [
                 'cod' => $supportsCodAtCheckout,
                 'card' => true,
+                // COD collection methods this vendor accepts (cash / bank transfer).
+                'codMethods' => $supportsCodAtCheckout
+                    ? array_values(array_filter([
+                        (bool) ($codServicePolicy['allowCashCod'] ?? true) ? 'cash' : null,
+                        (bool) ($codServicePolicy['allowBankTransferCod'] ?? true) ? 'bank_transfer' : null,
+                    ]))
+                    : [],
             ],
             'isVerified' => true,
             'codEligibility' => [

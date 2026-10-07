@@ -72,6 +72,8 @@ class CourierDemoVendorSeeder extends Seeder
             'acceptCodAtCheckout' => true,
             'allowCodForDomestic' => true,
             'allowTeamOverride' => false,
+            'allowCashCod' => true,
+            'allowBankTransferCod' => true,
         ]);
         $setting->settings = $settings;
         $setting->save();

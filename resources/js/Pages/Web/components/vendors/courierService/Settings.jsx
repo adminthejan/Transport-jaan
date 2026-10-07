@@ -146,6 +146,8 @@ const DEFAULT_SETTINGS = {
             allowCodForDomestic: true,
             allowCodForInternational: false,
             allowTeamOverride: false,
+            allowCashCod: true,
+            allowBankTransferCod: true,
         },
     },
     labels: {
@@ -5804,6 +5806,18 @@ const Settings = () => {
                                 checked={Boolean(servicesCodSettings.allowCodForDomestic)}
                                 onChange={(next) => updateServiceCodValue("allowCodForDomestic", next)}
                                 description="Keep domestic COD path active once capability is approved."
+                            />
+                            <Toggle
+                                label="Accept Cash COD"
+                                checked={servicesCodSettings.allowCashCod !== false}
+                                onChange={(next) => updateServiceCodValue("allowCashCod", next)}
+                                description="Customers can pay the courier in cash on delivery."
+                            />
+                            <Toggle
+                                label="Accept Bank Transfer COD"
+                                checked={servicesCodSettings.allowBankTransferCod !== false}
+                                onChange={(next) => updateServiceCodValue("allowBankTransferCod", next)}
+                                description="Customers can pay by bank transfer when the parcel is delivered."
                             />
                             <Toggle
                                 label="Allow Team Override"

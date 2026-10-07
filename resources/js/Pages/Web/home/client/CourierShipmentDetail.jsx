@@ -26,6 +26,7 @@ import {
     Navigation,
 } from 'lucide-react';
 import Header from "./ClientHeader";
+import { computeVolumetricWeightKg, formatWeightKg } from "../../courier/courierPricing";
 
 const statusMap = {
     pending: {
@@ -236,7 +237,7 @@ const CourierShipmentDetail = () => {
                         <div className="flex-1 text-sm">
                             <p className="font-semibold">Order placed successfully</p>
                             <p className="mt-1 opacity-90">{successNotice}</p>
-                            {trackingCode && <p className="mt-1 opacity-90">Tracking ID: {trackingCode}</p>}
+                            {trackingCode && <p className="mt-1 opacity-90">Order code: {trackingCode}</p>}
                         </div>
                         <button type="button" onClick={() => setSuccessNotice(null)} className="text-white/80 hover:text-white text-lg leading-none" aria-label="Dismiss">×</button>
                     </div>
@@ -512,7 +513,11 @@ const CourierShipmentDetail = () => {
                                                     </div>
                                                     <div>
                                                         <label className="text-slate-500 text-[12px]">Weight</label>
-                                                        <p className="font-medium">{pkg.weight} kg</p>
+                                                        <p className="font-medium">{formatWeightKg(pkg.weight)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-slate-500 text-[12px]">Volumetric weight</label>
+                                                        <p className="font-medium">{formatWeightKg(computeVolumetricWeightKg(pkg.length, pkg.width, pkg.height))}</p>
                                                     </div>
                                                     <div>
                                                         <label className="text-slate-500 text-[12px]">Quantity</label>

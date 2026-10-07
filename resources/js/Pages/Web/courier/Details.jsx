@@ -1100,9 +1100,29 @@ const Details = ({
         [currencyFormatter, packageCurrency]
     );
 
+    // Sum of the per-package COD amounts (entered as the package declared value
+    // for packages that chose COD). Falls back to every package's declared value
+    // for older drafts that predate per-package payment choices.
+    const packageCodTotal = useMemo(() => {
+        const list = packages || [];
+        const hasPerPackageChoice = list.some((pkg) => pkg?.extras?.paymentMethod);
+        const total = list.reduce((carry, pkg) => {
+            if (hasPerPackageChoice && pkg?.extras?.paymentMethod !== "cod") {
+                return carry;
+            }
+            const declaredValue = Number(pkg?.declaredValue);
+            return Number.isFinite(declaredValue) && declaredValue > 0 ? carry + declaredValue : carry;
+        }, 0);
+        return Math.round(total * 100) / 100;
+    }, [packages]);
+
     const resolvedCodAmount = useMemo(() => {
         if (!Boolean(data?.shipment?.codEnabled)) {
             return null;
+        }
+
+        if (packageCodTotal > 0) {
+            return packageCodTotal;
         }
 
         const shipmentDeclaredValue = Number(data?.shipment?.estimatedValue);
@@ -1110,19 +1130,18 @@ const Details = ({
             return Math.round(shipmentDeclaredValue * 100) / 100;
         }
 
-        const packageDeclaredValueTotal = (packages || []).reduce((carry, pkg) => {
-            const declaredValue = Number(pkg?.declaredValue);
-            if (!Number.isFinite(declaredValue) || declaredValue <= 0) {
-                return carry;
-            }
+        return null;
+    }, [data?.shipment?.codEnabled, data?.shipment?.estimatedValue, packageCodTotal]);
 
-            return carry + declaredValue;
-        }, 0);
-
-        return packageDeclaredValueTotal > 0
-            ? Math.round(packageDeclaredValueTotal * 100) / 100
-            : null;
-    }, [data?.shipment?.codEnabled, data?.shipment?.estimatedValue, packages]);
+    // The COD amount populates the shipment "Declared value" field.
+    useEffect(() => {
+        if (!Boolean(data?.shipment?.codEnabled) || packageCodTotal <= 0) return;
+        if (Number(data?.shipment?.estimatedValue) === packageCodTotal) return;
+        setData((previous) => ({
+            ...previous,
+            shipment: { ...(previous.shipment || {}), estimatedValue: String(packageCodTotal) },
+        }));
+    }, [data?.shipment?.codEnabled, data?.shipment?.estimatedValue, packageCodTotal, setData]);
 
     // Trust the route the customer explicitly picked in the wizard first —
     // the country-code inference below can disagree with it whenever address
@@ -2134,7 +2153,7 @@ const Details = ({
                                     </label>
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-xs font-medium">Declared value (USD)</label>
+                                    <label className="mb-1 block text-xs font-medium">Declared value ({shipmentCategory === "international" ? "USD" : "LKR"})</label>
                                     <input
                                         type="number"
                                         min="0"

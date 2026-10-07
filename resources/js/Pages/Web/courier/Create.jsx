@@ -16,6 +16,8 @@ import {
     buildQuoteMatrix,
     buildReviewContext,
     computePackageMetrics,
+    computeVolumetricWeightKg,
+    formatWeightKg,
     resolveDetailedQuotes,
 } from "./courierPricing";
 
@@ -42,39 +44,74 @@ const DIMENSION_UNIT_FACTORS = {
 };
 const SHIPMENT_TYPE_OPTIONS = [
     {
+        value: "documents",
+        label: "Documents",
+        description: "Papers, certificates, or contracts only - no physical goods.",
+    },
+    {
+        value: "clothes_apparel",
+        label: "Clothes & Apparel",
+        description: "Apparel, textiles, or fabric items.",
+    },
+    {
+        value: "food",
+        label: "Food",
+        description: "Packaged or prepared food. Perishable items need fast delivery.",
+    },
+    {
+        value: "groceries",
+        label: "Groceries",
+        description: "Everyday grocery items.",
+    },
+    {
         value: "electronics",
         label: "Electronics",
         description: "Devices, gadgets, or electrical items. May need extra padding and insurance.",
     },
     {
-        value: "documents",
-        label: "Documents",
-        description: "Papers, certificates, or contracts only — no physical goods.",
+        value: "household_goods",
+        label: "Household Goods",
+        description: "Home and kitchen items, small furniture or decor.",
     },
     {
-        value: "clothing",
-        label: "Clothing",
-        description: "Apparel, textiles, or fabric items.",
+        value: "personal_items",
+        label: "Personal Items",
+        description: "Personal belongings and effects.",
     },
     {
-        value: "medical",
-        label: "Medical supplies",
-        description: "Medicines or medical devices. Some items may require special handling or certification.",
+        value: "gifts",
+        label: "Gifts",
+        description: "Gift parcels for friends and family.",
     },
     {
-        value: "perishable",
-        label: "Perishable",
-        description: "Food, flowers, or other items that can spoil and need fast delivery.",
+        value: "books_stationery",
+        label: "Books & Stationery",
+        description: "Books, notebooks, and office stationery.",
     },
     {
-        value: "fragile",
-        label: "Fragile",
-        description: "Breakable items such as glass or ceramics that require careful handling.",
+        value: "beauty_cosmetics",
+        label: "Beauty & Cosmetics",
+        description: "Cosmetics, skincare, and personal-care products.",
+    },
+    {
+        value: "sports_goods",
+        label: "Sports Goods",
+        description: "Sports equipment and accessories.",
+    },
+    {
+        value: "business_supplies",
+        label: "Business Supplies / Samples",
+        description: "Commercial samples and business supplies.",
+    },
+    {
+        value: "spare_parts",
+        label: "Spare Parts",
+        description: "Machine, vehicle, or equipment spare parts.",
     },
     {
         value: "other",
         label: "Other",
-        description: "Doesn't fit the categories above. Requires vendor approval before you can proceed to payment.",
+        description: "Does not fit the categories above. Requires vendor approval before you can proceed to payment.",
     },
 ];
 
@@ -342,7 +379,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     }, [quoteProviders]);
 
     // Currency conversion state
-    const [displayCurrency, setDisplayCurrency] = useState('LKR');
     const USD_TO_LKR_RATE = 325; // Exchange rate (you can make this dynamic later)
 
     // Active package for courier selection
@@ -445,6 +481,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     heightCm: "",
                     dimensionUnit: "cm",
                     fragile: false,
+                extras: { paymentMethod: "", nonStackable: false, liquid: false, containsBatteries: false, dangerousGoods: false, commodities: [], packingList: "" },
                     declaredValue: "",
                     description: "",
                     hsCode: "",
@@ -465,6 +502,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         setError,
         clearErrors,
     } = useForm(initialForm);
+    // Domestic bookings are paid in LKR, international bookings in USD.
+    const displayCurrency = (lockedBookingFlow || data?.shipment?.routeType) === 'international' ? 'USD' : 'LKR';
     const [activeLocationField, setActiveLocationField] = useState(null);
     const [locationSearch, setLocationSearch] = useState({
         senderCity: initialForm.sender.address.city || "",
@@ -572,6 +611,77 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         setData("packages", nextPackages);
     };
 
+    const updatePackageExtra = (index, key, value) => {
+        const nextPackages = data.packages.map((item, idx) =>
+            idx === index
+                ? { ...item, extras: { ...(item.extras || {}), [key]: value } }
+                : item
+        );
+        markUpstreamChange();
+        setData("packages", nextPackages);
+    };
+
+    // Handling flags (fragile / non-stackable / liquid / batteries / dangerous goods)
+    const updateHandlingFlag = (index, key, checked) => {
+        const nextPackages = data.packages.map((item, idx) => {
+            if (idx !== index) return item;
+            if (key === "fragile") return { ...item, fragile: checked };
+            return { ...item, extras: { ...(item.extras || {}), [key]: checked } };
+        });
+        markUpstreamChange();
+        setData((previous) => ({
+            ...previous,
+            packages: nextPackages,
+            shipment: {
+                ...previous.shipment,
+                containsDangerousGoods: nextPackages.some((item) => Boolean(item?.extras?.dangerousGoods)),
+            },
+        }));
+    };
+
+    // One payment option is shared by every package; the shipment-level COD
+    // flags are derived from it.
+    const setPackagePaymentMethod = (_index, method) => {
+        const nextPackages = data.packages.map((item) => ({
+            ...item,
+            extras: { ...(item.extras || {}), paymentMethod: method },
+        }));
+        const isCod = method === "cod";
+        markUpstreamChange();
+        setData((previous) => ({
+            ...previous,
+            packages: nextPackages,
+            shipment: {
+                ...previous.shipment,
+                paymentOptions: { all: false, cod: isCod, card: method === "card" },
+                codEnabled: isCod,
+                codPaymentMethod: isCod ? (previous.shipment?.codPaymentMethod || "") : "",
+            },
+        }));
+    };
+
+    const addCommodity = (index) => {
+        const current = data.packages[index]?.extras?.commodities || [];
+        updatePackageExtra(index, "commodities", [
+            ...current,
+            { hsCode: "", description: "", type: "", weightKg: "", quantity: 1, unitPrice: "" },
+        ]);
+    };
+
+    const updateCommodity = (index, rowIndex, field, value) => {
+        const current = data.packages[index]?.extras?.commodities || [];
+        updatePackageExtra(
+            index,
+            "commodities",
+            current.map((row, idx) => (idx === rowIndex ? { ...row, [field]: value } : row))
+        );
+    };
+
+    const removeCommodity = (index, rowIndex) => {
+        const current = data.packages[index]?.extras?.commodities || [];
+        updatePackageExtra(index, "commodities", current.filter((_, idx) => idx !== rowIndex));
+    };
+
     const applyDimensionPreset = (index, preset) => {
         if (!preset) {
             return;
@@ -672,7 +782,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     }))
                     : [];
 
-                setDomesticCitySuggestions((prev) => ({ ...prev, [party]: cities }));
+                // Destination suggestions depend on the pickup location: a parcel
+                // cannot be sent to the same city it is picked up from.
+                const pickupCity = String(data.sender?.address?.city || "").trim().toLowerCase();
+                const visibleCities = party === "recipient" && pickupCity
+                    ? cities.filter((city) => String(city.value || "").trim().toLowerCase() !== pickupCity)
+                    : cities;
+
+                setDomesticCitySuggestions((prev) => ({ ...prev, [party]: visibleCities }));
             } catch (error) {
                 if (error?.name === "AbortError") {
                     return;
@@ -1560,7 +1677,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
         setActiveLocationField(null);
         setActivePackageIndex(0);
-        setDisplayCurrency("LKR");
         setServiceDetailsModal(null);
         setIsPlacing(false);
         setShowQuotes(false);
@@ -1733,6 +1849,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 heightCm: "",
                 dimensionUnit: "cm",
                 fragile: false,
+                extras: { paymentMethod: data.packages[0]?.extras?.paymentMethod || "", nonStackable: false, liquid: false, containsBatteries: false, dangerousGoods: false, commodities: [], packingList: "" },
                 declaredValue: "",
                 description: "",
                 hsCode: "",
@@ -1785,7 +1902,9 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
     const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
     const paymentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
-    const hasPaymentOption = Boolean(paymentOptions.all || paymentOptions.cod || paymentOptions.card);
+    const hasPaymentOption = selectedRouteType === "domestic"
+        ? (data.packages || []).every((pkg) => Boolean(pkg?.extras?.paymentMethod))
+        : Boolean(paymentOptions.all || paymentOptions.cod || paymentOptions.card);
     const hasLocationDetailsForDescribe = selectedRouteType !== "international"
         || (
             hasValue(data.sender?.address?.country)
@@ -2244,14 +2363,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         };
     }, [serviceDetailsModal]);
 
-    const toggleCurrency = () => {
-        const nextCurrency = displayCurrency === 'USD' ? 'LKR' : 'USD';
-        setDisplayCurrency(nextCurrency);
-        setData('shipment', {
-            ...data.shipment,
-            currency: nextCurrency,
-        });
-    };
+    useEffect(() => {
+        if (data.shipment?.currency !== displayCurrency) {
+            setData('shipment', {
+                ...data.shipment,
+                currency: displayCurrency,
+            });
+        }
+    }, [displayCurrency, data.shipment?.currency]);
 
     const filterQuoteProvidersByPaymentOptions = useCallback((options = {}) => {
         const requiresCod = Boolean(options.cod);
@@ -2294,12 +2413,32 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         [filterQuoteProvidersByPaymentOptions, paymentOptions]
     );
 
+    // COD collection methods offered by the vendors that support COD
+    // (falls back to both when no vendor data is available yet).
+    const availableCodMethods = useMemo(() => {
+        const methods = new Set();
+        (verifiedQuoteProviders || []).forEach((provider) => {
+            if (!provider?.paymentOptions?.cod) return;
+            (provider.paymentOptions.codMethods || ["cash", "bank_transfer"]).forEach((method) => methods.add(method));
+        });
+        return methods.size > 0 ? Array.from(methods) : ["cash", "bank_transfer"];
+    }, [verifiedQuoteProviders]);
+
+    const servicesForPackage = useCallback((pkg) => {
+        const method = pkg?.extras?.paymentMethod;
+        if (selectedRouteType !== "domestic" || !method) {
+            return paymentFilteredQuoteProviders;
+        }
+        return filterQuoteProvidersByPaymentOptions({ cod: method === "cod", card: method === "card" });
+    }, [selectedRouteType, paymentFilteredQuoteProviders, filterQuoteProvidersByPaymentOptions]);
+
     const quoteMatrix = useMemo(
         () => buildQuoteMatrix(data.packages, {
             metrics: packageMetrics,
             services: paymentFilteredQuoteProviders,
+            servicesForPackage,
         }),
-        [data.packages, packageMetrics, paymentFilteredQuoteProviders]
+        [data.packages, packageMetrics, paymentFilteredQuoteProviders, servicesForPackage]
     );
 
     const selectedQuotes = useMemo(
@@ -2312,9 +2451,9 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         const payloadShipment = payload?.shipment || {};
         const payloadPaymentOptions = payloadShipment?.paymentOptions || {};
         const payloadCurrency = String(
-            payload?.reviewContext?.displayCurrency
+            displayCurrency
+            || payload?.reviewContext?.displayCurrency
             || payloadShipment?.currency
-            || displayCurrency
             || "LKR"
         ).toUpperCase();
 
@@ -2323,6 +2462,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         const payloadQuoteMatrix = buildQuoteMatrix(payloadPackages, {
             metrics,
             services,
+            servicesForPackage: (pkg) => {
+                const method = pkg?.extras?.paymentMethod;
+                if (!method || payloadShipment?.routeType === "international") return services;
+                return filterQuoteProvidersByPaymentOptions({ cod: method === "cod", card: method === "card" });
+            },
         });
         const payloadDetailedQuotes = resolveDetailedQuotes(payloadPackages, payloadQuoteMatrix);
 
@@ -2496,7 +2640,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
         });
 
-        const hasEstimatedValueIfRequired = (!data.shipment?.insurance && !data.shipment?.codEnabled) || Boolean(String(data.shipment?.estimatedValue || "").trim());
+        // With COD, the amount is entered per package ("COD amount"), which also fills the shipment declared value later.
+        const codAmountsFilled = Boolean(data.shipment?.codEnabled)
+            && data.packages.every((pkg) => Number(pkg?.declaredValue) > 0);
+        const hasEstimatedValueIfRequired = (!data.shipment?.insurance && !data.shipment?.codEnabled)
+            || Boolean(String(data.shipment?.estimatedValue || "").trim())
+            || codAmountsFilled;
 
         return hasRouteLocations
             && hasShipmentType
@@ -2545,7 +2694,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
         });
 
-        const hasEstimatedValueIfRequired = (!data.shipment?.insurance && !data.shipment?.codEnabled) || Boolean(String(data.shipment?.estimatedValue || "").trim());
+        // With COD, the amount is entered per package ("COD amount"), which also fills the shipment declared value later.
+        const codAmountsFilled = Boolean(data.shipment?.codEnabled)
+            && data.packages.every((pkg) => Number(pkg?.declaredValue) > 0);
+        const hasEstimatedValueIfRequired = (!data.shipment?.insurance && !data.shipment?.codEnabled)
+            || Boolean(String(data.shipment?.estimatedValue || "").trim())
+            || codAmountsFilled;
 
         return hasRouteLocations
             && hasShipmentType
@@ -3197,7 +3351,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
                             <div className="space-y-5">
                                 {data.packages.map((item, index) => {
-                                    const weightUnit = item.weightUnit === "oz" ? "oz" : "kg";
+                                    const weightUnit = "kg";
                                     const dimensionUnit = Object.prototype.hasOwnProperty.call(DIMENSION_UNIT_FACTORS, item.dimensionUnit)
                                         ? item.dimensionUnit
                                         : "cm";
@@ -3324,6 +3478,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 />
                                                                                 {domesticCityLoading.recipient && (
                                                                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                                )}
+                                                                                {String(data.recipient?.address?.city || "").trim() !== ""
+                                                                                    && String(data.recipient?.address?.city || "").trim().toLowerCase() === String(data.sender?.address?.city || "").trim().toLowerCase() && (
+                                                                                    <p className="mt-1 text-xs text-red-500">Destination city must be different from the pickup city.</p>
                                                                                 )}
                                                                                 {activeLocationField === `recipient-city-${index}` && domesticCitySuggestions.recipient.length > 0 && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
@@ -3671,13 +3829,21 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                             >
                                                                                 <option value="kg">kg</option>
-                                                                                <option value="oz">lb</option>
                                                                             </select>
                                                                         </div>
                                                                         {errors[`packages.${index}.weightKg`] && (
                                                                             <p className="mt-2 text-sm text-red-500">
                                                                                 {errors[`packages.${index}.weightKg`]}
                                                                             </p>
+                                                                        )}
+                                                                        {(
+                                                                            <div className="mt-2 space-y-0.5 text-xs text-[#5B6887]">
+                                                                                <p>Weight: <strong className="text-[#0B1739]">{formatWeightKg(item.weightKg)}</strong></p>
+                                                                                <p>
+                                                                                    Volumetric weight: <strong className="text-[#0B1739]">{formatWeightKg(computeVolumetricWeightKg(itemLength, itemWidth, itemHeight))}</strong>
+                                                                                    <span className="text-[#8C97B0]"> (L × W × H cm ÷ 5000)</span>
+                                                                                </p>
+                                                                            </div>
                                                                         )}
                                                                     </div>
 
@@ -3771,7 +3937,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         <input
                                                                             type="checkbox"
                                                                             checked={Boolean(item.fragile)}
-                                                                            onChange={(event) => updatePackage(index, "fragile", event.target.checked)}
+                                                                            onChange={(event) => updateHandlingFlag(index, "fragile", event.target.checked)}
                                                                             className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
                                                                         />
                                                                         <span className="text-[16px] leading-none text-[#8A8A8A]">Fragile</span>
@@ -3795,48 +3961,66 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         </div>
                                                                     </div>
 
-                                                                    {index === 0 && selectedRouteType === "domestic" && (
-                                                                        <>
-                                                                            <p className="mt-4 text-sm font-semibold text-[#0B1739]">Payment options*</p>
-                                                                            <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
-                                                                                <label className="inline-flex items-center gap-2">
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        className="h-4 w-4 accent-[#0955AC]"
-                                                                                        checked={paymentOptions.cod}
-                                                                                        onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
-                                                                                    />
-                                                                                    COD
-                                                                                </label>
-                                                                                <label className="inline-flex items-center gap-2">
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        className="h-4 w-4 accent-[#0955AC]"
-                                                                                        checked={paymentOptions.card}
-                                                                                        onChange={(event) => updatePaymentOptions("card", event.target.checked)}
-                                                                                    />
-                                                                                    Debit / Credit
-                                                                                </label>
-                                                                            </div>
-                                                                            {paymentOptions.cod && (
-                                                                                <div className="mt-3 max-w-xs">
-                                                                                    <label className="mb-1 block text-xs font-medium text-[#0B1739]">COD payment method*</label>
-                                                                                    <select
-                                                                                        value={data.shipment?.codPaymentMethod || ""}
-                                                                                        onChange={(event) => {
-                                                                                            markUpstreamChange();
-                                                                                            setData("shipment", { ...data.shipment, codPaymentMethod: event.target.value });
-                                                                                        }}
-                                                                                        className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                    >
-                                                                                        <option value="">Select method</option>
-                                                                                        <option value="cash">Cash</option>
-                                                                                        <option value="bank_transfer">Bank transfer</option>
-                                                                                    </select>
-                                                                                </div>
-                                                                            )}
-                                                                        </>
-                                                                    )}
+                                                                    {selectedRouteType === "domestic" && (
+                            <>
+                                {index === 0 && (
+                                    <>
+                                        <p className="mt-4 text-sm font-semibold text-[#0B1739]">Payment options* <span className="font-normal text-[#8C97B0]">(applies to every package)</span></p>
+                                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
+                                            <label className="inline-flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 accent-[#0955AC]"
+                                                    checked={item.extras?.paymentMethod === "cod"}
+                                                    onChange={(event) => setPackagePaymentMethod(index, event.target.checked ? "cod" : "")}
+                                                />
+                                                COD
+                                            </label>
+                                            <label className="inline-flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 accent-[#0955AC]"
+                                                    checked={item.extras?.paymentMethod === "card"}
+                                                    onChange={(event) => setPackagePaymentMethod(index, event.target.checked ? "card" : "")}
+                                                />
+                                                Debit / Credit
+                                            </label>
+                                        </div>
+                                        {item.extras?.paymentMethod === "cod" && (
+                                            <div className="mt-3 max-w-xs">
+                                                <label className="mb-1 block text-xs font-medium text-[#0B1739]">COD payment method*</label>
+                                                <select
+                                                    value={data.shipment?.codPaymentMethod || ""}
+                                                    onChange={(event) => {
+                                                        markUpstreamChange();
+                                                        setData("shipment", { ...data.shipment, codPaymentMethod: event.target.value });
+                                                    }}
+                                                    className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                >
+                                                    <option value="">Select method</option>
+                                                    {availableCodMethods.includes("cash") && <option value="cash">Cash</option>}
+                                                    {availableCodMethods.includes("bank_transfer") && <option value="bank_transfer">Bank transfer</option>}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                                {item.extras?.paymentMethod === "cod" && (
+                                    <div className="mt-3 max-w-xs">
+                                        <label className="mb-1 block text-xs font-medium text-[#0B1739]">COD amount (LKR)* <span className="font-normal text-[#8C97B0]">for this package</span></label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={item.declaredValue ?? ""}
+                                            onChange={(event) => updatePackage(index, "declaredValue", event.target.value)}
+                                            className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                            placeholder="Amount to collect on delivery"
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
                                                                 </div>
                                                             </div>
                                                         )}
@@ -3862,7 +4046,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 onClick={addPackage}
                                                                 className="inline-flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white transition hover:border-[#04356d] hover:text-white"
                                                             >
-                                                                + Add package
+                                                                + Add shipment
                                                             </button>
                                                         </div>
                                                     )}
@@ -3908,13 +4092,21 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                     >
                                                                         <option value="kg">kg</option>
-                                                                        <option value="oz">lb</option>
                                                                     </select>
                                                                 </div>
                                                                 {errors[`packages.${index}.weightKg`] && (
                                                                     <p className="mt-2 text-sm text-red-500">
                                                                         {errors[`packages.${index}.weightKg`]}
                                                                     </p>
+                                                                )}
+                                                                {(
+                                                                    <div className="mt-2 space-y-0.5 text-xs text-[#5B6887]">
+                                                                        <p>Weight: <strong className="text-[#0B1739]">{formatWeightKg(item.weightKg)}</strong></p>
+                                                                        <p>
+                                                                            Volumetric weight: <strong className="text-[#0B1739]">{formatWeightKg(computeVolumetricWeightKg(itemLength, itemWidth, itemHeight))}</strong>
+                                                                            <span className="text-[#8C97B0]"> (L × W × H cm ÷ 5000)</span>
+                                                                        </p>
+                                                                    </div>
                                                                 )}
                                                             </div>
 
@@ -4077,10 +4269,18 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={Boolean(item.fragile)}
-                                                                        onChange={(event) => updatePackage(index, "fragile", event.target.checked)}
+                                                                        onChange={(event) => updateHandlingFlag(index, "fragile", event.target.checked)}
                                                                         className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
                                                                     />
                                                                     <span className="text-[16px] leading-none text-[#8A8A8A]">Fragile</span>
+<input type="checkbox" checked={Boolean(item.extras?.nonStackable)} onChange={(event) => updateHandlingFlag(index, "nonStackable", event.target.checked)} className="ml-2 h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+<span className="text-[16px] leading-none text-[#8A8A8A]">Non-stackable</span>
+<input type="checkbox" checked={Boolean(item.extras?.liquid)} onChange={(event) => updateHandlingFlag(index, "liquid", event.target.checked)} className="ml-2 h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+<span className="text-[16px] leading-none text-[#8A8A8A]">Liquid</span>
+<input type="checkbox" checked={Boolean(item.extras?.containsBatteries)} onChange={(event) => updateHandlingFlag(index, "containsBatteries", event.target.checked)} className="ml-2 h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+<span className="text-[16px] leading-none text-[#8A8A8A]">Contains batteries</span>
+<input type="checkbox" checked={Boolean(item.extras?.dangerousGoods)} onChange={(event) => updateHandlingFlag(index, "dangerousGoods", event.target.checked)} className="ml-2 h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+<span className="text-[16px] leading-none text-[#8A8A8A]">Dangerous goods</span>
 
                                                                     <div className="group relative">
                                                                         <button
@@ -4121,15 +4321,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                             </div>
                                                         )}
                                                         <div className="mt-5 flex flex-col gap-3 border-t border-[#E4EAF5] pt-5 text-sm text-[#0B1739]">
-                                                            <label className="inline-flex items-center gap-3">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="h-5 w-5 rounded border border-[#B8C4D8] accent-[#0955AC]"
-                                                                    checked={Boolean(data.shipment?.containsDangerousGoods)}
-                                                                    onChange={(event) => updateShipmentPreference("containsDangerousGoods", event.target.checked)}
-                                                                />
-                                                                Shipment contains dangerous goods
-                                                            </label>
 
                                                             <label className="inline-flex items-center gap-3">
                                                                 <input
@@ -4189,6 +4380,114 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 {errors[`packages.${index}.hsCode`] && (
                                                                     <p className="mt-2 text-sm text-red-500">{errors[`packages.${index}.hsCode`]}</p>
                                                                 )}
+                                                            </div>
+
+                                                            <div className="mt-4 max-w-xl">
+                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">Description of goods</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={item.description || ""}
+                                                                    onChange={(event) => updatePackage(index, "description", event.target.value)}
+                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    placeholder="e.g. Cotton t-shirts, men's, packed in cartons"
+                                                                    maxLength={500}
+                                                                />
+                                                            </div>
+
+                                                            <div className="mt-6 rounded-xl border border-[#E4EAF5] bg-[#F9FBFF] p-4">
+                                                                <div className="flex items-center justify-between gap-3">
+                                                                    <div>
+                                                                        <p className="text-sm font-semibold text-[#0B1739]">Commodities</p>
+                                                                        <p className="text-xs text-[#5B6887]">Add each commodity one by one. Rows appear in order below.</p>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => addCommodity(index)}
+                                                                        className="rounded-lg bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0a4b93]"
+                                                                    >
+                                                                        + Add unit
+                                                                    </button>
+                                                                </div>
+
+                                                                {(item.extras?.commodities || []).length > 0 && (
+                                                                    <div className="mt-4 overflow-x-auto">
+                                                                        <table className="w-full min-w-[860px] text-left text-xs text-[#5B6887]">
+                                                                            <thead>
+                                                                                <tr className="border-b border-[#E4EAF5] text-[#0B1739]">
+                                                                                    <th className="px-2 py-2">#</th>
+                                                                                    <th className="px-2 py-2">HS code</th>
+                                                                                    <th className="px-2 py-2">Commodity specification</th>
+                                                                                    <th className="px-2 py-2">Type</th>
+                                                                                    <th className="px-2 py-2">Weight (kg)</th>
+                                                                                    <th className="px-2 py-2">Quantity</th>
+                                                                                    <th className="px-2 py-2">Unit price (USD)</th>
+                                                                                    <th className="px-2 py-2">Total (USD)</th>
+                                                                                    <th className="px-2 py-2"></th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {(item.extras?.commodities || []).map((row, rowIndex) => {
+                                                                                    const rowTotal = (Number(row.quantity) || 0) * (Number(row.unitPrice) || 0);
+                                                                                    const cellClass = "h-[40px] w-full rounded-md border border-[#D6DEEB] bg-white px-2 text-xs text-[#0B1739] focus:border-[#0955AC] focus:outline-none";
+                                                                                    return (
+                                                                                        <tr key={`commodity-${index}-${rowIndex}`} className="border-b border-[#EEF2F8]">
+                                                                                            <td className="px-2 py-2 text-[#0B1739]">{rowIndex + 1}</td>
+                                                                                            <td className="px-2 py-2"><input className={cellClass} value={row.hsCode || ""} onChange={(event) => updateCommodity(index, rowIndex, "hsCode", event.target.value)} maxLength={20} /></td>
+                                                                                            <td className="px-2 py-2"><input className={cellClass} value={row.description || ""} onChange={(event) => updateCommodity(index, rowIndex, "description", event.target.value)} maxLength={300} /></td>
+                                                                                            <td className="px-2 py-2">
+                                                                                                <select className={cellClass} value={row.type || ""} onChange={(event) => updateCommodity(index, rowIndex, "type", event.target.value)}>
+                                                                                                    <option value="">Select</option>
+                                                                                                    {SHIPMENT_TYPE_OPTIONS.map((option) => (
+                                                                                                        <option key={`commodity-type-${option.value}`} value={option.value}>{option.label}</option>
+                                                                                                    ))}
+                                                                                                </select>
+                                                                                            </td>
+                                                                                            <td className="px-2 py-2"><input type="number" min="0" step="0.01" className={cellClass} value={row.weightKg ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "weightKg", event.target.value)} /></td>
+                                                                                            <td className="px-2 py-2"><input type="number" min="0" step="1" className={cellClass} value={row.quantity ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "quantity", event.target.value)} /></td>
+                                                                                            <td className="px-2 py-2"><input type="number" min="0" step="0.01" className={cellClass} value={row.unitPrice ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "unitPrice", event.target.value)} /></td>
+                                                                                            <td className="px-2 py-2 font-semibold text-[#0B1739]">{rowTotal.toFixed(2)}</td>
+                                                                                            <td className="px-2 py-2"><button type="button" onClick={() => removeCommodity(index, rowIndex)} className="text-red-500 hover:underline">Remove</button></td>
+                                                                                        </tr>
+                                                                                    );
+                                                                                })}
+                                                                            </tbody>
+                                                                            <tfoot>
+                                                                                <tr>
+                                                                                    <td colSpan={7} className="px-2 py-2 text-right font-semibold text-[#0B1739]">Total amount (USD)</td>
+                                                                                    <td className="px-2 py-2 font-semibold text-[#0B1739]">
+                                                                                        {(item.extras?.commodities || []).reduce((sum, row) => sum + (Number(row.quantity) || 0) * (Number(row.unitPrice) || 0), 0).toFixed(2)}
+                                                                                    </td>
+                                                                                    <td></td>
+                                                                                </tr>
+                                                                            </tfoot>
+                                                                        </table>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="mt-6">
+                                                                <div className="flex items-center justify-between gap-3">
+                                                                    <label className="block text-sm font-medium text-[#0B1739]">Packing list</label>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const lines = (item.extras?.commodities || []).map((row, rowIndex) =>
+                                                                                `${rowIndex + 1}. ${row.description || "Item"} - qty ${row.quantity || 0}, ${row.weightKg || 0} kg${row.hsCode ? `, HS ${row.hsCode}` : ""}`
+                                                                            );
+                                                                            updatePackageExtra(index, "packingList", lines.join("\n"));
+                                                                        }}
+                                                                        className="text-xs font-semibold text-[#0955AC] hover:underline"
+                                                                    >
+                                                                        Fill from commodities
+                                                                    </button>
+                                                                </div>
+                                                                <textarea
+                                                                    value={item.extras?.packingList || ""}
+                                                                    onChange={(event) => updatePackageExtra(index, "packingList", event.target.value)}
+                                                                    className="mt-2 min-h-[110px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 py-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    placeholder="List the contents of this shipment, one line per item (item, quantity, weight)."
+                                                                    maxLength={2000}
+                                                                />
                                                             </div>
                                                         </div>
 
@@ -4251,15 +4550,9 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                     )}
 
                                     {packageMetrics.readyForQuote && (
-                                        <button
-                                            type="button"
-                                            onClick={toggleCurrency}
-                                            className="rounded-lg border border-[#E3EAF5] bg-white px-4 py-2 text-xs font-semibold text-[#5B6887] shadow-sm hover:bg-[#F9FBFF] hover:border-[#0955AC] hover:text-[#0955AC] transition-all duration-200 cursor-pointer"
-                                            title={`Click to convert to ${displayCurrency === 'USD' ? 'LKR' : 'USD'}`}
-                                        >
+                                        <div className="rounded-lg border border-[#E3EAF5] bg-white px-4 py-2 text-xs font-semibold text-[#5B6887] shadow-sm">
                                             Rates in {displayCurrency} {displayCurrency === 'LKR' && '(≈ 1 USD = 325 LKR)'}
-                                            <span className="ml-2 text-[10px] opacity-60">↻</span>
-                                        </button>
+                                        </div>
                                     )}
                                 </div>
 
@@ -5047,6 +5340,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                         {stepFlowNotice}
                                     </div>
                                 )}
+                                {selectedRouteType === "domestic" && (data.packages || []).some((pkg) => pkg?.extras?.paymentMethod === "cod") && (
+                                    <div className="w-full max-w-xl rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                                        Cash on delivery: request a quote now and pay the courier directly once the price is confirmed. No online payment is taken at this step.
+                                    </div>
+                                )}
                                 {shouldShowDescribeShipmentCta ? (
                                     <>
                                         <button
@@ -5073,13 +5371,15 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                             className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!hasRequiredDetails || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
                                                 }`}
                                         >
-                                            Continue to Courier service quotes
+                                            {selectedRouteType === "domestic" && (data.packages || []).length > 0 && (data.packages || []).every((pkg) => pkg?.extras?.paymentMethod === "cod") ? "Get a quote" : "Continue to Courier service quotes"}
                                         </button>
                                         {!hasRequiredDetails && (
                                             <p className="text-xs text-[#D14343]">
                                                 {selectedRouteType === 'domestic' && !hasPaymentOption
-                                                    ? 'Select at least one payment option to continue.'
-                                                    : 'Complete all required fields before continuing.'}
+                       ? 'Select a payment option to continue.'
+                       : selectedRouteType === 'domestic' && data.shipment?.codEnabled && !(data.packages || []).every((pkg) => Number(pkg?.declaredValue) > 0)
+                           ? 'Enter the COD amount for every package to continue.'
+                           : 'Complete all required fields before continuing.'}
                                             </p>
                                         )}
                                     </>
