@@ -1,3 +1,4 @@
+import LocationSuggestInput from "./LocationSuggestInput";
 import React, { useState } from "react";
 import carImage from "../../assets/rentAVehicle/car.jpg";
 import flightImage from "../../assets/rentAVehicle/flight.jpg";
@@ -235,14 +236,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                                 </label>
                                 <div className="flex items-center gap-2 min-w-0 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
                                     <MapPin className="w-[16px] h-[16px] text-[#0955AC] flex-shrink-0" />
-                                    <input
-                                        type="text"
-                                        id="pickupLocation"
-                                        value={formData.pickupLocation}
-                                        onChange={handleInputChange}
-                                        placeholder="Enter location"
-                                        className="appearance-none w-full min-w-0 flex-1 border-0 py-[14px] leading-tight focus:outline-none focus:ring-0 placeholder:text-[#286BB6] bg-transparent"
-                                    />
+                                    <LocationSuggestInput id="pickupLocation" value={formData.pickupLocation} onChange={handleInputChange} placeholder="Enter location" inputClassName="appearance-none w-full min-w-0 flex-1 border-0 py-[14px] leading-tight focus:outline-none focus:ring-0 placeholder:text-[#286BB6] bg-transparent" />
                                 </div>
                             </div>
 
@@ -275,14 +269,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                                 </label>
                                 <div className="flex items-center gap-2 min-w-0 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors">
                                     <MapPin className="w-[16px] h-[16px] text-[#0955AC] flex-shrink-0" />
-                                    <input
-                                        type="text"
-                                        id="dropoffLocation"
-                                        value={formData.dropoffLocation}
-                                        onChange={handleInputChange}
-                                        placeholder="Enter location"
-                                        className="appearance-none w-full min-w-0 flex-1 border-0 py-[14px] leading-tight focus:outline-none focus:ring-0 placeholder:text-[#286BB6] bg-transparent"
-                                    />
+                                    <LocationSuggestInput id="dropoffLocation" value={formData.dropoffLocation} onChange={handleInputChange} placeholder="Enter location" inputClassName="appearance-none w-full min-w-0 flex-1 border-0 py-[14px] leading-tight focus:outline-none focus:ring-0 placeholder:text-[#286BB6] bg-transparent" />
                                 </div>
                             </div>
 

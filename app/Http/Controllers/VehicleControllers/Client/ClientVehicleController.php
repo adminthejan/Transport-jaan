@@ -74,6 +74,28 @@ class ClientVehicleController extends Controller
     ]);
 }
 
+    public function searchLocations(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['locations' => []]);
+        }
+
+        $rows = \Illuminate\Support\Facades\DB::table('location_cities as c')
+            ->join('location_districts as d', 'd.id', '=', 'c.district_id')
+            ->where('c.name_en', 'like', $q . '%')
+            ->orderBy('c.name_en')
+            ->limit(10)
+            ->get(['c.name_en', 'd.name_en as district']);
+
+        return response()->json([
+            'locations' => $rows->map(fn ($r) => [
+                'label' => $r->name_en . ', ' . $r->district,
+                'value' => $r->name_en,
+            ])->values(),
+        ]);
+    }
+
     /** Vehicle List with filters (brand/model case-insensitive) */
     public function vehicleList(Request $request)
     {
