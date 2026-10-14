@@ -83,6 +83,8 @@ class WarehouseUnitController extends Controller
                 'longitude' => $unit->longitude,
                 'total_area' => $unit->total_area,
                 'capacity' => $unit->capacity,
+                'temp_min_c' => $unit->temp_min_c,
+                'temp_max_c' => $unit->temp_max_c,
                 'capacity_unit' => $unit->capacity_unit,
                 'type' => $unit->type,
                 'services' => $unit->services ?? [],
@@ -224,6 +226,14 @@ class WarehouseUnitController extends Controller
                 'longitude' => ['nullable', 'numeric', 'between:-180,180'],
                 'total_area' => ['nullable', 'numeric', 'min:0'],
                 'capacity' => ['nullable', 'numeric', 'min:0'],
+                'temp_min_c' => ['nullable', 'numeric', 'between:-100,60'],
+                'temp_max_c' => ['nullable', 'numeric', 'between:-100,60',
+                    function ($attribute, $value, $fail) use ($request) {
+                        $min = $request->input('temp_min_c');
+                        if ($value !== null && $value !== '' && $min !== null && $min !== '' && (float) $value < (float) $min) {
+                            $fail('The maximum temperature must be at least the minimum temperature.');
+                        }
+                    }],
                 'capacity_unit' => ['nullable', 'string', 'in:sq_ft,sq_m,cubic_ft,cubic_m'],
                 'type' => ['required', 'string', Rule::in(self::WAREHOUSE_TYPES)],
                 // Sent as a JSON-encoded string over multipart form data, same as amenities.
@@ -311,6 +321,8 @@ class WarehouseUnitController extends Controller
             'longitude' => $nullIfEmpty($validated['longitude'] ?? null),
             'total_area' => $nullIfEmpty($validated['total_area'] ?? null),
             'capacity' => $nullIfEmpty($validated['capacity'] ?? null),
+            'temp_min_c' => $nullIfEmpty($validated['temp_min_c'] ?? null),
+            'temp_max_c' => $nullIfEmpty($validated['temp_max_c'] ?? null),
             'capacity_unit' => $validated['capacity_unit'] ?? 'sq_ft',
             'type' => $validated['type'],
             'services' => $services,
@@ -528,6 +540,8 @@ class WarehouseUnitController extends Controller
                 'longitude' => $unit->longitude ?? '',
                 'total_area' => $unit->total_area ?? '',
                 'capacity' => $unit->capacity ?? '',
+                'temp_min_c' => $unit->temp_min_c ?? '',
+                'temp_max_c' => $unit->temp_max_c ?? '',
                 'capacity_unit' => $unit->capacity_unit ?? 'sq_ft',
                 'type' => $unit->type ?? '',
                 'services' => $unit->services ?? [],
@@ -618,6 +632,14 @@ class WarehouseUnitController extends Controller
                 'longitude' => ['nullable', 'numeric', 'between:-180,180'],
                 'total_area' => ['nullable', 'numeric', 'min:0'],
                 'capacity' => ['nullable', 'numeric', 'min:0'],
+                'temp_min_c' => ['nullable', 'numeric', 'between:-100,60'],
+                'temp_max_c' => ['nullable', 'numeric', 'between:-100,60',
+                    function ($attribute, $value, $fail) use ($request) {
+                        $min = $request->input('temp_min_c');
+                        if ($value !== null && $value !== '' && $min !== null && $min !== '' && (float) $value < (float) $min) {
+                            $fail('The maximum temperature must be at least the minimum temperature.');
+                        }
+                    }],
                 'type' => ['required', 'string', Rule::in(self::WAREHOUSE_TYPES)],
                 // Sent as a JSON-encoded string over multipart form data, same as amenities.
                 'services' => ['nullable'],
@@ -839,6 +861,8 @@ class WarehouseUnitController extends Controller
                 'longitude' => $nullIfEmpty($validated['longitude'] ?? null),
                 'total_area' => $nullIfEmpty($validated['total_area'] ?? null),
                 'capacity' => $nullIfEmpty($validated['capacity'] ?? null),
+            'temp_min_c' => $nullIfEmpty($validated['temp_min_c'] ?? null),
+            'temp_max_c' => $nullIfEmpty($validated['temp_max_c'] ?? null),
                 'type' => $validated['type'],
                 'services' => $services,
                 'pricing_model' => $validated['pricing_model'],

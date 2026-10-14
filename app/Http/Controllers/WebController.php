@@ -824,6 +824,22 @@ class WebController extends Controller
             }
         }
 
+        // Budget filter: monthly budget in LKR. When the customer also entered
+        // the space they need, cost is calculated for that space (sq ft x rate
+        // for per-sqft listings, pro-rated monthly rate otherwise).
+        $query->withinMonthlyBudget(
+            $searchParams['budgetMin'] ?? null,
+            $searchParams['budgetMax'] ?? null,
+            $searchParams['requiredSpace'] ?? null
+        );
+
+        // Temperature filter: preset -> target temperature the warehouse must hold.
+        $temperatureTargets = ['frozen' => -20.0, 'chilled' => 4.0, 'cool' => 12.0, 'ambient' => 25.0];
+        if (!empty($searchParams['temperature']) && is_string($searchParams['temperature'])
+            && isset($temperatureTargets[$searchParams['temperature']])) {
+            $query->holdsTemperature($temperatureTargets[$searchParams['temperature']]);
+        }
+
         // Features filter — amenities live in the normalized warehouse_amenities
         // table, not a JSON column on warehouse_units.
         if (isset($searchParams['features']) && !empty($searchParams['features'])) {

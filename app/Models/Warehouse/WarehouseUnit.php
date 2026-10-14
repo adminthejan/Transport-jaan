@@ -22,6 +22,8 @@ class WarehouseUnit extends Model
         'total_area',
         'capacity',
         'capacity_unit',
+        'temp_min_c',
+        'temp_max_c',
         'type',
         'services',
 
@@ -67,6 +69,8 @@ class WarehouseUnit extends Model
         'longitude' => 'float',
         'total_area' => 'decimal:2',
         'capacity' => 'decimal:2',
+        'temp_min_c' => 'decimal:1',
+        'temp_max_c' => 'decimal:1',
         'base_price' => 'decimal:2',
         'monthly_rate' => 'decimal:2',
         'rate_per_sqft' => 'decimal:2',
@@ -327,5 +331,45 @@ class WarehouseUnit extends Model
         $utilization = $totalArea > 0 ? min($sqft / $totalArea, 1) : 1;
 
         return round($base * $utilization, 2);
+    }
+
+    /**
+     * Monthly cost for $sqft of space (or the whole unit when null), as SQL.
+     * Mirrors monthlyRateForSpace(); used by the budget filter.
+     */
+    public function scopeWithinMonthlyBudget($query, $min = null, $max = null, $sqft = null)
+    {
+        $space = is_numeric($sqft) && $sqft > 0 ? (float) $sqft : null;
+        $expr = 'CASE WHEN rate_per_sqft > 0 THEN rate_per_sqft * COALESCE(?, total_area, 0)
+                      ELSE COALESCE(monthly_rate, base_price, 0)
+                           * CASE WHEN ? IS NULL OR total_area IS NULL OR total_area <= 0 THEN 1 ELSE LEAST(? / total_area, 1) END
+                 END';
+        $bindings = [$space, $space, $space];
+
+        if (is_numeric($min)) {
+            $query->whereRaw("($expr) >= ?", array_merge($bindings, [(float) $min]));
+        }
+        if (is_numeric($max)) {
+            $query->whereRaw("($expr) <= ?", array_merge($bindings, [(float) $max]));
+        }
+        return $query;
+    }
+
+    /**
+     * Warehouses able to hold $tempC. Warehouses with no temperature range are
+     * ambient, so they only match when $tempC is at/above $ambientFrom.
+     */
+    public function scopeHoldsTemperature($query, float $tempC, float $ambientFrom = 20)
+    {
+        return $query->where(function ($q) use ($tempC, $ambientFrom) {
+            $q->where(function ($r) use ($tempC) {
+                $r->where('temp_min_c', '<=', $tempC)->where('temp_max_c', '>=', $tempC);
+            });
+            if ($tempC >= $ambientFrom) {
+                $q->orWhere(function ($r) {
+                    $r->whereNull('temp_min_c')->whereNull('temp_max_c');
+                });
+            }
+        });
     }
 }

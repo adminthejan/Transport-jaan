@@ -17,6 +17,8 @@ const initialState = {
   longitude: '',
   total_area: '',
   capacity: '',
+  temp_min_c: '',
+  temp_max_c: '',
   type: '',
 
   // Pricing
@@ -400,6 +402,8 @@ const AddUnit = () => {
       data.append('longitude', form.longitude || '');
       data.append('total_area', form.total_area || '');
       data.append('capacity', form.capacity || '');
+      data.append('temp_min_c', form.temp_min_c ?? '');
+      data.append('temp_max_c', form.temp_max_c ?? '');
       data.append('type', form.type);
       data.append('pricing_model', form.pricing_model);
       data.append('price', form.price || '');
@@ -712,6 +716,21 @@ const AddUnit = () => {
                   placeholder="e.g., 5000"
                 />
                 {errors.capacity && <div className="text-[#DC2626] text-[12px] mt-1">{errors.capacity}</div>}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="temp_min_c" className="block text-[14px] font-medium text-gray-700">Min temperature (°C)</label>
+                <input id="temp_min_c" type="number" name="temp_min_c" min="-100" max="60" step="0.1"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={form.temp_min_c} onChange={handleChange} placeholder="e.g. -25" />
+                {errors.temp_min_c && <div className="text-[#DC2626] text-[12px] mt-1">{errors.temp_min_c}</div>}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="temp_max_c" className="block text-[14px] font-medium text-gray-700">Max temperature (°C)</label>
+                <input id="temp_max_c" type="number" name="temp_max_c" min="-100" max="60" step="0.1"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={form.temp_max_c} onChange={handleChange} placeholder="e.g. -18" />
+                <p className="text-xs text-gray-500">Range the facility can hold. Leave both blank for ambient (not temperature controlled).</p>
+                {errors.temp_max_c && <div className="text-[#DC2626] text-[12px] mt-1">{errors.temp_max_c}</div>}
               </div>
             </div>
             {mapPreviewUrl && (

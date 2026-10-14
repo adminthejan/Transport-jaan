@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
-import { Check, ChevronDown, PackageSearch, SlidersHorizontal, Warehouse, X } from "lucide-react";
+import { Check, ChevronDown, PackageSearch, SlidersHorizontal, Thermometer, Wallet, Warehouse, X } from "lucide-react";
 
 // Warehouse Type describes the facility itself; Services describes what a
 // client can book on top of storage. Kept as two separate filter groups to
@@ -21,6 +21,15 @@ const SERVICES = [
   { id: "value_added_services", label: "Value Added Services" },
   { id: "customs_services", label: "Customs Services" },
   { id: "transportation", label: "Transportation" },
+];
+
+// Presets map to a target temperature on the backend (WebController::warehouseList):
+// the warehouse's temp range must include it. Ambient also matches uncontrolled units.
+const TEMPERATURES = [
+  { id: "frozen", label: "Frozen (-20°C)" },
+  { id: "chilled", label: "Chilled (4°C)" },
+  { id: "cool", label: "Cool (12°C)" },
+  { id: "ambient", label: "Ambient (room temp)" },
 ];
 
 const asArray = (value) => {
@@ -85,10 +94,16 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [budgetMin, setBudgetMin] = useState("");
+  const [budgetMax, setBudgetMax] = useState("");
+  const [temperature, setTemperature] = useState("");
 
   useEffect(() => {
     setSelectedTypes(asArray(searchParams?.warehouseType));
     setSelectedServices(asArray(searchParams?.services));
+    setBudgetMin(searchParams?.budgetMin ?? "");
+    setBudgetMax(searchParams?.budgetMax ?? "");
+    setTemperature(searchParams?.temperature ?? "");
   }, [searchParams]);
 
   const runSearch = (nextParams) => {
@@ -114,16 +129,36 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
     runSearch({ ...searchParams, services: next });
   };
 
+  const budgetInvalid =
+    budgetMin !== "" && budgetMax !== "" && Number(budgetMin) > Number(budgetMax);
+
+  const applyBudget = (e) => {
+    e?.preventDefault();
+    if (budgetInvalid) return;
+    runSearch({ ...searchParams, budgetMin, budgetMax });
+  };
+
+  const handleTemperatureChange = (id) => {
+    const next = temperature === id ? "" : id;
+    setTemperature(next);
+    runSearch({ ...searchParams, temperature: next });
+  };
+
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
 
-  const activeCount = selectedTypes.length + selectedServices.length;
+  const budgetActive = Boolean(searchParams?.budgetMin || searchParams?.budgetMax);
+  const activeCount =
+    selectedTypes.length + selectedServices.length + (budgetActive ? 1 : 0) + (temperature ? 1 : 0);
 
   const clearAll = () => {
     setSelectedTypes([]);
     setSelectedServices([]);
-    runSearch({ ...searchParams, warehouseType: [], services: [] });
+    setBudgetMin("");
+    setBudgetMax("");
+    setTemperature("");
+    runSearch({ ...searchParams, warehouseType: [], services: [], budgetMin: "", budgetMax: "", temperature: "" });
   };
 
   return (
@@ -213,6 +248,69 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
               label={service.label}
               active={selectedServices.includes(service.id)}
               onClick={() => handleServiceChange(service.id)}
+            />
+          ))}
+        </FilterSection>
+
+        <FilterSection
+          icon={<Wallet className="w-4 h-4 text-[#0955AC]" />}
+          title="BUDGET (PER MONTH)"
+          count={budgetActive ? 1 : 0}
+        >
+          <form onSubmit={applyBudget}>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                aria-label="Minimum monthly budget"
+                placeholder="Min"
+                value={budgetMin}
+                onChange={(e) => setBudgetMin(e.target.value)}
+                className="w-full px-3 py-2 rounded-[8px] border border-[#0000001A] text-[12px] text-[#0F0F0F] focus:outline-none focus:border-[#0955AC]"
+              />
+              <span className="text-gray-400">–</span>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                aria-label="Maximum monthly budget"
+                placeholder="Max"
+                value={budgetMax}
+                onChange={(e) => setBudgetMax(e.target.value)}
+                className="w-full px-3 py-2 rounded-[8px] border border-[#0000001A] text-[12px] text-[#0F0F0F] focus:outline-none focus:border-[#0955AC]"
+              />
+            </div>
+            {budgetInvalid && (
+              <p className="text-red-600 text-[11px] mt-1">Min must not be above max.</p>
+            )}
+            <p className="text-[11px] text-gray-400 mt-1.5">
+              {searchParams?.requiredSpace
+                ? `Cost for ${searchParams.requiredSpace} sq ft`
+                : "Cost for the whole warehouse"}{" "}
+              in LKR.
+            </p>
+            <button
+              type="submit"
+              disabled={budgetInvalid}
+              className="mt-2 w-full px-3 py-2 rounded-[8px] bg-[#0955AC] text-white text-[12px] font-[600] disabled:opacity-50 cursor-pointer"
+            >
+              Apply Budget
+            </button>
+          </form>
+        </FilterSection>
+
+        <FilterSection
+          icon={<Thermometer className="w-4 h-4 text-[#0955AC]" />}
+          title="TEMPERATURE"
+          count={temperature ? 1 : 0}
+        >
+          {TEMPERATURES.map((t) => (
+            <FilterOption
+              key={t.id}
+              label={t.label}
+              active={temperature === t.id}
+              onClick={() => handleTemperatureChange(t.id)}
             />
           ))}
         </FilterSection>

@@ -127,4 +127,28 @@ class WarehouseSqftPricingTest extends TestCase
         ]);
         $this->assertSame('60.00', $unit->fresh()->rate_per_sqft);
     }
+
+    public function test_budget_and_temperature_filters(): void
+    {
+        $v = $this->vendor();
+        $sqft = $this->unit($v, ['name' => 'F-sqft', 'rate_per_sqft' => 50, 'temp_min_c' => null, 'temp_max_c' => null]);        // 10000 sqft -> 500k whole, 2500 sqft -> 125k
+        $legacy = $this->unit($v, ['name' => 'F-legacy', 'rate_per_sqft' => null, 'monthly_rate' => 40000, 'base_price' => 40000]); // whole 40k, 2500 sqft -> 10k
+        $frozen = $this->unit($v, ['name' => 'F-frozen', 'rate_per_sqft' => null, 'monthly_rate' => 90000, 'base_price' => 90000, 'temp_min_c' => -25, 'temp_max_c' => -18]);
+
+        $names = fn (array $q) => collect($this->getJson('/warehouseList?format=json&' . http_build_query($q))->json('warehouses'))
+            ->pluck('name')->intersect(['F-sqft', 'F-legacy', 'F-frozen'])->sort()->values()->all();
+
+        // whole-warehouse budget
+        $this->assertSame(['F-frozen', 'F-legacy'], $names(['budgetMax' => 100000]));
+        $this->assertSame(['F-sqft'], $names(['budgetMin' => 100000]));
+        // budget for the space needed: 2500 sqft
+        $this->assertSame(['F-frozen', 'F-legacy', 'F-sqft'], $names(['budgetMax' => 130000, 'requiredSpace' => 2500]));
+        $this->assertSame(['F-legacy'], $names(['budgetMax' => 20000, 'requiredSpace' => 2500]));
+
+        // temperature
+        $this->assertSame(['F-frozen'], $names(['temperature' => 'frozen']));
+        $this->assertSame(['F-legacy', 'F-sqft'], $names(['temperature' => 'ambient']));
+        $this->assertSame([], $names(['temperature' => 'chilled']));
+        $this->assertSame(['F-frozen'], $names(['temperature' => 'frozen', 'budgetMax' => 100000]));
+    }
 }
