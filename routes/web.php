@@ -456,6 +456,9 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
 |--------------------------------------------------------------------------
 */
 Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('client.home');
+Route::get('/vehicles/locations/search', [ClientVehicleController::class, 'searchLocations'])
+    ->middleware('throttle:120,1')
+    ->name('vehicles.locations.search');
 Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
 Route::get('/vehicleList/json', [ClientVehicleController::class, 'vehicleListJson'])->name('vehicle.list.json');
 Route::get('/seaVehicleList', [ClientVehicleController::class, 'seaVehicleList'])->name('seaVehicle.list');

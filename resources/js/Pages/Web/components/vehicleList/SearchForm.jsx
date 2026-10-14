@@ -1,4 +1,5 @@
 import React from "react";
+import LocationSuggestInput from "../rentAVehicle/LocationSuggestInput";
 import { router } from "@inertiajs/react";
 import { Search } from "lucide-react";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png";
@@ -72,14 +73,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
               </label>
               <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors bg-white">
                 <img src={locationBlue} className="w-[18px] h-[18px] flex-shrink-0" alt="location" />
-                <input
-                  type="text"
-                  id="pickupLocation"
-                  placeholder="Search a location"
-                  value={formData.pickupLocation}
-                  onChange={handleInputChange}
-                  className="appearance-none w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
-                />
+                <LocationSuggestInput id="pickupLocation" placeholder="Search a location" value={formData.pickupLocation} onChange={handleInputChange} inputClassName="appearance-none w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]" />
               </div>
             </div>
 
@@ -113,14 +107,7 @@ const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle =
               </label>
               <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors bg-white">
                 <img src={locationBlue} className="w-[18px] h-[18px] flex-shrink-0" alt="location" />
-                <input
-                  type="text"
-                  id="dropoffLocation"
-                  placeholder="Search a location"
-                  value={formData.dropoffLocation}
-                  onChange={handleInputChange}
-                  className="w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
-                />
+                <LocationSuggestInput id="dropoffLocation" placeholder="Search a location" value={formData.dropoffLocation} onChange={handleInputChange} inputClassName="w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]" />
               </div>
             </div>
 
