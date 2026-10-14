@@ -4,6 +4,7 @@ import { CalendarDays, Loader2, LocateFixed, Ruler, Search } from "lucide-react"
 import locationBlue from "../../assets/vehicleList/locationBlue.png";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png";
 import WarehouseDatePicker from "./WarehouseDatePicker";
+import { PROVINCES } from "./warehouseLocations";
 
 const DURATION_LABELS = {
   "6": "6 Months",
@@ -20,6 +21,33 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState("");
   const popoverRef = useRef(null);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const locationRef = useRef(null);
+
+  useEffect(() => {
+    if (!locationOpen) return;
+    const handleClickOutside = (e) => {
+      if (locationRef.current && !locationRef.current.contains(e.target)) {
+        setLocationOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [locationOpen]);
+
+  // All districts grouped by province, filtered by whatever is typed.
+  const locationQuery = (formData.warehouseLocation || "").trim().toLowerCase();
+  const filteredProvinces = PROVINCES.map((province) => ({
+    ...province,
+    districts: province.districts.filter(
+      (d) => !locationQuery || d.label.toLowerCase().includes(locationQuery) || province.label.toLowerCase().includes(locationQuery)
+    ),
+  })).filter((province) => province.districts.length > 0);
+
+  const selectLocation = (label) => {
+    onFormChange({ ...formData, warehouseLocation: label, nearLat: "", nearLng: "" });
+    setLocationOpen(false);
+  };
 
   useEffect(() => {
     if (!datePopoverOpen) return;
@@ -162,7 +190,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
             {/* Input Fields Container */}
             <div className="flex flex-col sm:flex-row flex-grow gap-3.5 sm:gap-4 w-full">
               {/* Warehouse Location */}
-              <div className="w-full sm:flex-1">
+              <div className="w-full sm:flex-1 relative" ref={locationRef}>
                 <label htmlFor="warehouseLocation" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
                   Warehouse Location
                 </label>
@@ -171,9 +199,14 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                   <input
                     type="text"
                     id="warehouseLocation"
-                    placeholder="Search a location"
+                    placeholder="Search or select a location"
                     value={formData.warehouseLocation}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      handleInputChange(e);
+                      setLocationOpen(true);
+                    }}
+                    onFocus={() => setLocationOpen(true)}
+                    autoComplete="off"
                     className="appearance-none w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px] pr-[78px]"
                   />
                   <button
@@ -191,6 +224,33 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                     Nearby
                   </button>
                 </div>
+                {locationOpen && (
+                  <div className="absolute z-50 mt-1 w-full sm:w-[280px] max-h-[280px] overflow-y-auto bg-white border border-[#0000001A] rounded-[10px] shadow-[0_12px_32px_rgba(11,27,52,0.15)] py-1">
+                    {filteredProvinces.length === 0 ? (
+                      <p className="px-3 py-2 text-[12px] text-[#64748B]">No matching locations</p>
+                    ) : (
+                      filteredProvinces.map((province) => (
+                        <div key={province.id}>
+                          <p className="px-3 pt-2 pb-1 text-[10px] font-[700] uppercase tracking-wide text-[#94A3B8]">
+                            {province.label} Province
+                          </p>
+                          {province.districts.map((district) => (
+                            <button
+                              type="button"
+                              key={district.id}
+                              onClick={() => selectLocation(district.label)}
+                              className={`block w-full text-left px-3 py-1.5 text-[13px] hover:bg-[#0955AC0D] hover:text-[#0955AC] cursor-pointer ${
+                                formData.warehouseLocation === district.label ? "text-[#0955AC] font-[700]" : "text-[#0F0F0F]"
+                              }`}
+                            >
+                              {district.label}
+                            </button>
+                          ))}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
                 {locateError && <p className="text-[10px] text-red-500 mt-1">{locateError}</p>}
               </div>
 
