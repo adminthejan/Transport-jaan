@@ -547,9 +547,6 @@ class WarehouseBookingController extends Controller
             }
             
             // Set default values for required fields
-            $requestData['monthly_rate'] = $requestData['monthly_rate'] ?? 850.00;
-            $requestData['total_amount'] = $requestData['total_amount'] ?? 5550.00;
-            $requestData['final_amount'] = $requestData['final_amount'] ?? 5550.00;
             $requestData['required_space'] = $requestData['required_space'] ?? 1000;
             
             // Enhanced validation with better error messages
@@ -579,13 +576,13 @@ class WarehouseBookingController extends Controller
                 'special_instructions' => 'nullable|string|max:1000',
                 'delivery_pickup_required' => 'nullable|boolean',
                 'delivery_pickup_address' => 'required_if:delivery_pickup_required,1,true|nullable|string|max:500',
-                'monthly_rate' => 'required|numeric|min:0',
+                'monthly_rate' => 'nullable|numeric|min:0', // ignored: priced server-side
                 'security_deposit' => 'nullable|numeric|min:0',
                 'setup_fee' => 'nullable|numeric|min:0',
                 'add_ons_cost' => 'nullable|numeric|min:0',
-                'total_amount' => 'required|numeric|min:0',
+                'total_amount' => 'nullable|numeric|min:0', // ignored: priced server-side
                 'tax_amount' => 'nullable|numeric|min:0',
-                'final_amount' => 'required|numeric|min:0',
+                'final_amount' => 'nullable|numeric|min:0', // ignored: priced server-side
                 'payment_method' => 'required|in:PayHere,Wallet',
                 'payment_option' => 'nullable|string|max:100',
                 'payment_reference' => 'nullable|string|max:100',
@@ -642,7 +639,9 @@ class WarehouseBookingController extends Controller
                     ->sum('required_space');
 
                 if ($overlappingSpace + $validated['required_space'] > $capacity) {
-                    throw new \Exception('Not enough available space in this warehouse for the selected dates.');
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'required_space' => 'Not enough available space in this warehouse for the selected dates.',
+                    ]);
                 }
             }
 
@@ -657,6 +656,43 @@ class WarehouseBookingController extends Controller
             // Set default end date if not provided
             $endDate = $validated['end_date'] ?? \Carbon\Carbon::parse($validated['start_date'])->addMonths($durationMonths)->toDateString();
             
+            // Price the booking on the server. Client-sent amounts are ignored so
+            // a tampered request can't change what gets charged.
+            $storageUnit = $validated['storage_unit'] ?? 'sqft';
+            $requiredSpace = (float) $validated['required_space'];
+            $usesSqftRate = (float) ($warehouse->rate_per_sqft ?? 0) > 0;
+
+            if ($usesSqftRate && $storageUnit !== 'sqft') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'storage_unit' => 'This warehouse is priced per sq ft. Please enter the space in sq ft.',
+                ]);
+            }
+            if ($storageUnit === 'sqft' && (float) $warehouse->total_area > 0 && $requiredSpace > (float) $warehouse->total_area) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'required_space' => 'Requested space exceeds the warehouse\'s total area.',
+                ]);
+            }
+
+            $monthlyRate = $warehouse->monthlyRateForSpace($requiredSpace);
+            $baseMonthlyRate = (float) ($warehouse->monthly_rate ?? $warehouse->base_price ?? 0);
+            // Fulfillment fee is a % of the monthly rate: the booked-space rate
+            // for per-sqft listings, the whole-unit rate for legacy listings.
+            $feeBase = $usesSqftRate ? $monthlyRate : $baseMonthlyRate;
+            $fulfillmentRate = (float) $warehouse->fulfillment_fee_rate > 0
+                ? (float) $warehouse->fulfillment_fee_rate / 100
+                : 0.15;
+            $addOnsCost = ($warehouse->offers_fulfillment && !empty($validated['fulfillment_service']))
+                ? round($feeBase * $fulfillmentRate, 2)
+                : 0.0;
+            $securityDeposit = (float) ($warehouse->security_deposit ?? $baseMonthlyRate * 0.5);
+            $setupFee = (float) ($warehouse->setup_fee ?? $baseMonthlyRate * 0.2);
+            $taxRate = (float) ($warehouse->tax_rate ?? 0);
+
+            $subtotal = ($monthlyRate + $addOnsCost) * $durationMonths;
+            $taxAmount = round($subtotal * $taxRate, 2);
+            $totalAmount = round($subtotal + $taxAmount, 2);
+            $finalAmount = round($totalAmount + $securityDeposit + $setupFee, 2);
+
             // Create the booking
             $booking = WarehouseBooking::create([
                 'user_id' => Auth::id(),
@@ -683,7 +719,7 @@ class WarehouseBookingController extends Controller
                 'storage_type' => $validated['storage_type'],
                 'fulfillment_service' => $validated['fulfillment_service'] ?? false,
                 'required_space' => $validated['required_space'],
-                'storage_unit' => $validated['storage_unit'] ?? 'sqft',
+                'storage_unit' => $storageUnit,
                 'goods_type' => $validated['goods_type'] ?? 'General',
                 'goods_description' => $validated['goods_description'],
                 'quantity' => $validated['quantity'] ?? null,
@@ -708,13 +744,13 @@ class WarehouseBookingController extends Controller
                 'delivery_pickup_address' => $validated['delivery_pickup_address'] ?? null,
                 
                 // Pricing
-                'monthly_rate' => $validated['monthly_rate'],
-                'security_deposit' => $validated['security_deposit'] ?? 0,
-                'setup_fee' => $validated['setup_fee'] ?? 0,
-                'add_ons_cost' => $validated['add_ons_cost'] ?? 0,
-                'total_amount' => $validated['total_amount'],
-                'tax_amount' => $validated['tax_amount'] ?? 0,
-                'final_amount' => $validated['final_amount'],
+                'monthly_rate' => $monthlyRate,
+                'security_deposit' => $securityDeposit,
+                'setup_fee' => $setupFee,
+                'add_ons_cost' => $addOnsCost,
+                'total_amount' => $totalAmount,
+                'tax_amount' => $taxAmount,
+                'final_amount' => $finalAmount,
                 
                 // Payment Information
                 'payment_method' => $validated['payment_method'],
@@ -1189,6 +1225,7 @@ class WarehouseBookingController extends Controller
                         'capacity_unit' => $unit->capacity_unit,
                         'type' => $unit->type,
                         'monthly_rate' => $unit->monthly_rate,
+                        'rate_per_sqft' => $unit->rate_per_sqft,
                         'base_price' => $unit->base_price,
                         'currency' => $unit->currency ?? 'LKR',
                         'is_available' => $unit->is_available,
@@ -1249,6 +1286,7 @@ class WarehouseBookingController extends Controller
                 'capacity' => $warehouse->capacity,
                 'base_price' => $warehouse->base_price,
                 'monthly_rate' => $warehouse->monthly_rate,
+                'rate_per_sqft' => $warehouse->rate_per_sqft,
                 'security_deposit' => $warehouse->security_deposit,
                 'setup_fee' => $warehouse->setup_fee,
                 'tax_rate' => $warehouse->tax_rate,
@@ -1503,6 +1541,7 @@ class WarehouseBookingController extends Controller
             'capacity_unit' => $unit->capacity_unit,
             'base_price' => $unit->base_price,
             'monthly_rate' => $unit->monthly_rate,
+            'rate_per_sqft' => $unit->rate_per_sqft,
             'security_deposit' => $unit->security_deposit,
             'currency' => $unit->currency ?? 'LKR',
             'available_from' => optional($unit->available_from)?->toDateString(),

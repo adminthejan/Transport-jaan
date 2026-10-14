@@ -25,6 +25,7 @@ const initialState = {
 
   // Detailed Pricing
   monthly_rate: '',
+  rate_per_sqft: '',
   security_deposit: '',
   setup_fee: '',
   tax_rate: '',
@@ -405,6 +406,7 @@ const AddUnit = () => {
 
       // Detailed pricing fields
       data.append('monthly_rate', form.monthly_rate || '');
+      data.append('rate_per_sqft', form.rate_per_sqft || '');
       data.append('security_deposit', form.security_deposit || '');
       data.append('setup_fee', form.setup_fee || '');
       data.append('tax_rate', form.tax_rate || '');
@@ -778,6 +780,23 @@ const AddUnit = () => {
                     required
                   />
                   {errors.monthly_rate && <div className="text-red-600 text-sm mt-1">{errors.monthly_rate}</div>}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="rate_per_sqft" className="block text-[14px] font-medium text-gray-700">Rate per sq ft / month (optional)</label>
+                  <input
+                    id="rate_per_sqft"
+                    type="number"
+                    name="rate_per_sqft"
+                    min="0"
+                    step="0.01"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={form.rate_per_sqft}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-gray-500">If set, clients are charged booked sq ft &times; this rate. Leave blank to pro-rate the monthly rate by share of total area.</p>
+                  {errors.rate_per_sqft && <div className="text-red-600 text-sm mt-1">{errors.rate_per_sqft}</div>}
                 </div>
 
                 <div className="space-y-2">

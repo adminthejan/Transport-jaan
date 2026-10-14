@@ -60,6 +60,7 @@ const EditUnit = () => {
 
     // Detailed Pricing
     monthly_rate: '',
+    rate_per_sqft: '',
     security_deposit: '',
     setup_fee: '',
     tax_rate: '',
@@ -199,6 +200,7 @@ const EditUnit = () => {
 
           // Detailed Pricing
           monthly_rate: safeNumber(data.monthly_rate),
+          rate_per_sqft: safeNumber(data.rate_per_sqft),
           security_deposit: safeNumber(data.security_deposit),
           setup_fee: safeNumber(data.setup_fee),
           tax_rate: safeNumber(data.tax_rate),
@@ -316,6 +318,7 @@ const EditUnit = () => {
 
     // Detailed pricing changes
     if (String(form.monthly_rate) !== String(originalData.monthly_rate || '')) changes.push('Monthly Rate');
+    if (String(form.rate_per_sqft) !== String(originalData.rate_per_sqft || '')) changes.push('Rate per Sq Ft');
     if (String(form.security_deposit) !== String(originalData.security_deposit || '')) changes.push('Security Deposit');
     if (String(form.setup_fee) !== String(originalData.setup_fee || '')) changes.push('Setup Fee');
     if (String(form.tax_rate) !== String(originalData.tax_rate || '')) changes.push('Tax Rate');
@@ -665,6 +668,7 @@ const EditUnit = () => {
 
       // Detailed pricing fields
       data.append('monthly_rate', form.monthly_rate || '');
+      data.append('rate_per_sqft', form.rate_per_sqft || '');
       data.append('security_deposit', form.security_deposit || '');
       data.append('setup_fee', form.setup_fee || '');
       data.append('tax_rate', form.tax_rate || '');
@@ -1105,6 +1109,23 @@ const EditUnit = () => {
                       required
                     />
                     {errors.monthly_rate && <div className="text-red-600 text-sm mt-1">{errors.monthly_rate}</div>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="rate_per_sqft" className="block text-[14px] font-medium text-gray-700">Rate per sq ft / month (optional)</label>
+                    <input
+                      id="rate_per_sqft"
+                      type="number"
+                      name="rate_per_sqft"
+                      min="0"
+                      step="0.01"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={form.rate_per_sqft}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                    />
+                    <p className="text-xs text-gray-500">If set, clients are charged booked sq ft &times; this rate. Leave blank to pro-rate the monthly rate by share of total area.</p>
+                    {errors.rate_per_sqft && <div className="text-red-600 text-sm mt-1">{errors.rate_per_sqft}</div>}
                   </div>
 
                   <div className="space-y-2">

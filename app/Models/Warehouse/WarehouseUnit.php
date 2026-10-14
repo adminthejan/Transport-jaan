@@ -29,6 +29,7 @@ class WarehouseUnit extends Model
         'pricing_model',
         'base_price',
         'monthly_rate',
+        'rate_per_sqft',
         'security_deposit',
         'setup_fee',
         'tax_rate',
@@ -68,6 +69,7 @@ class WarehouseUnit extends Model
         'capacity' => 'decimal:2',
         'base_price' => 'decimal:2',
         'monthly_rate' => 'decimal:2',
+        'rate_per_sqft' => 'decimal:2',
         'security_deposit' => 'decimal:2',
         'setup_fee' => 'decimal:2',
         'tax_rate' => 'decimal:4',
@@ -307,5 +309,23 @@ class WarehouseUnit extends Model
     public function getReviewsCountAttribute()
     {
         return $this->reviewsCount();
+    }
+
+    /**
+     * Monthly price for $sqft of space. Per-sqft listings charge
+     * sqft x rate_per_sqft; legacy listings pro-rate the whole-unit monthly
+     * rate by the share of total_area being booked.
+     */
+    public function monthlyRateForSpace(float $sqft): float
+    {
+        if ($this->rate_per_sqft !== null && (float) $this->rate_per_sqft > 0) {
+            return round($sqft * (float) $this->rate_per_sqft, 2);
+        }
+
+        $base = (float) ($this->monthly_rate ?? $this->base_price ?? 0);
+        $totalArea = (float) ($this->total_area ?? 0);
+        $utilization = $totalArea > 0 ? min($sqft / $totalArea, 1) : 1;
+
+        return round($base * $utilization, 2);
     }
 }

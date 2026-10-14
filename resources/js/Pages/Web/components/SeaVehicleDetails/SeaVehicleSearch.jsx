@@ -26,6 +26,7 @@ const SeaVehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp 
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quote, setQuote] = useState(null);
+  const [availability, setAvailability] = useState(null);
   useScrollLock(showQuoteModal);
 
   const [pickupLocation, setPickupLocation] = useState("");
@@ -160,6 +161,43 @@ const SeaVehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp 
       .filter(([, v]) => v)
       .map(([name]) => ({ name, qty: 1 }));
 
+  const quoteParams = () => ({
+    vehicle_id: vehicleId,
+    pickup_date: pickupDate,
+    pickup_time: pickupTime || "10:00",
+    dropoff_date: dropoffDate,
+    dropoff_time: dropoffTime || "10:00",
+    addons: selectedAddons(),
+    needs_driver: needsDriver,
+  });
+
+  // Rates are returned even when the vehicle is taken, so the price is always shown.
+  const requestQuote = async () => {
+    const { data, status } = await axios.get(route("client.seaBookings.quote"), {
+      params: quoteParams(),
+      validateStatus: (code) => code === 200 || code === 422,
+    });
+    setQuote(data);
+    setAvailability({
+      available: status === 200 && data.available !== false,
+      message: data.message || null,
+    });
+    return { available: status === 200 && data.available !== false, message: data.message };
+  };
+
+  useEffect(() => {
+    if (!vehicleId || !pickupDate || !dropoffDate || dateError) {
+      setQuote(null);
+      setAvailability(null);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      requestQuote().catch(() => setQuote(null));
+    }, 300);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleId, pickupDate, pickupTime, dropoffDate, dropoffTime, needsDriver, extras]);
+
   const getQuote = async () => {
     if (!vehicleId || !pickupDate || !dropoffDate) {
       showCenter("Please select pick-up and drop-off dates.", "Missing dates", "info");
@@ -170,53 +208,29 @@ const SeaVehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp 
       return;
     }
     try {
-      const { data } = await axios.get(route("client.seaBookings.quote"), {
-        params: {
-          vehicle_id: vehicleId,
-          pickup_date: pickupDate,
-          pickup_time: pickupTime || "10:00",
-          dropoff_date: dropoffDate,
-          dropoff_time: dropoffTime || "10:00",
-          addons: selectedAddons(),
-          needs_driver: needsDriver,
-        },
-      });
-      setQuote(data);
+      await requestQuote();
       setShowQuoteModal(true);
     } catch (e) {
-      showCenter(
-        e?.response?.data?.message || "Could not fetch a quote. Please check your dates.",
-        "Oops",
-        "error"
-      );
+      showCenter("Could not fetch a quote. Please check your dates.", "Oops", "error");
     }
   };
 
-  // pre-check availability; show SweetAlert if unavailable
   const continueToCheckout = async () => {
     if (!vehicleId || !pickupDate || !dropoffDate) {
       showCenter("Please fill pick-up and drop-off first.", "Missing info", "info");
       return;
     }
-
     if (dateError) {
       showCenter(dateError, "Invalid dates", "error");
       return;
     }
 
     try {
-      // Check availability using the quote endpoint
-      await axios.get(route("client.seaBookings.quote"), {
-        params: {
-          vehicle_id: vehicleId,
-          pickup_date: pickupDate,
-          pickup_time: pickupTime || "10:00",
-          dropoff_date: dropoffDate,
-          dropoff_time: dropoffTime || "10:00",
-          addons: selectedAddons(),
-          needs_driver: needsDriver,
-        },
-      });
+      const result = await requestQuote();
+      if (!result.available) {
+        showCenter(result.message || "Vehicle is not available for the selected dates.", "Unavailable", "error");
+        return;
+      }
 
       router.visit(route("client.seaBookings.checkout"), {
         method: "get",
@@ -234,15 +248,7 @@ const SeaVehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp 
         preserveScroll: true,
       });
     } catch (e) {
-      const status = e?.response?.status;
-      const msg =
-        e?.response?.data?.message ||
-        "Vehicle is not available for the selected dates.";
-      if (status === 422) {
-        showCenter(msg, "Unavailable", "error");
-      } else {
-        showCenter("Something went wrong. Please try again.", "Oops", "error");
-      }
+      showCenter("Something went wrong. Please try again.", "Oops", "error");
     }
   };
 
@@ -403,6 +409,19 @@ const SeaVehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp 
             </div>
           </div>
 
+          <div className="flex justify-end items-center">
+            <div className="flex flex-row items-center w-[340px] px-10 h-[36px] text-[14px] font-[600]">
+              <h1 className="w-[140px]">Refundable deposit</h1>
+              <h1 className="w-[140px] text-end">{quote ? Number(quote.deposit_amount).toFixed(2) : "-"}</h1>
+            </div>
+          </div>
+          <div className="flex justify-end items-center">
+            <div className="flex flex-row items-center w-[340px] px-10 h-[36px] text-[14px] font-[600]">
+              <h1 className="w-[140px]">Advance payment</h1>
+              <h1 className="w-[140px] text-end">{quote ? Number(quote.advance_amount).toFixed(2) : "-"}</h1>
+            </div>
+          </div>
+
           <h1 className="text-[14px] font-[700] text-[#0955AC]">Terms and Conditions</h1>
           <h1 className="text-[14px] font-[500]">Payment is due in 14 days</h1>
         </div>
@@ -531,6 +550,43 @@ const SeaVehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp 
 
         <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
           <h1 className="font-[600] mb-5 text-[#000000D9]">Pricing Breakdown</h1>
+          {availability && availability.available === false && (
+            <div className="rounded-[6px] border border-red-200 bg-red-50 px-4 py-3 mb-4 text-[12px] font-[700] text-red-700">
+              Not available for these dates. Rates are shown for reference only.
+            </div>
+          )}
+          {quote && (
+            <div className="rounded-[6px] border border-[#0955AC1A] divide-y divide-[#0955AC1A] text-[12px] mb-4">
+              <div className="flex justify-between px-4 py-2.5">
+                <span className="text-[#5B6887]">Rental ({quote.rental_days} {quote.rental_days === 1 ? "day" : "days"} \u00d7 {Number(quote.price_per_day).toFixed(2)})</span>
+                <span className="font-[600]">{(Number(quote.price_per_day) * Number(quote.rental_days)).toFixed(2)}</span>
+              </div>
+              {Number(quote.addons_total) > 0 && (
+                <div className="flex justify-between px-4 py-2.5">
+                  <span className="text-[#5B6887]">Extras</span>
+                  <span className="font-[600]">{Number(quote.addons_total).toFixed(2)}</span>
+                </div>
+              )}
+              {Number(quote.driver_fee_total) > 0 && (
+                <div className="flex justify-between px-4 py-2.5">
+                  <span className="text-[#5B6887]">Driver fee</span>
+                  <span className="font-[600]">{Number(quote.driver_fee_total).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
+                <span className="text-[#5B6887]">Refundable deposit</span>
+                <span className="font-[600]">{Number(quote.deposit_amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
+                <span className="text-[#5B6887]">Advance payment</span>
+                <span className="font-[600]">{Number(quote.advance_amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-4 py-3 bg-[#EEF5FF]">
+                <span className="font-[700] text-[#0955AC]">Total ({quote.currency || vehicle?.currency || "LKR"})</span>
+                <span className="font-[700] text-[#0955AC]">{Number(quote.total).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
           <div className="w-full h-[1px] bg-[#CDD0D4]" />
 
           <h1 className="font-[600] mt-5 text-[#000000D9]">Skipper</h1>

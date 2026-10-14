@@ -100,6 +100,7 @@ class WarehouseUnitController extends Controller
                 'pricing_model' => $unit->pricing_model,
                 'base_price' => $unit->base_price,
                 'monthly_rate' => $unit->monthly_rate,
+                'rate_per_sqft' => $unit->rate_per_sqft,
                 'security_deposit' => $unit->security_deposit,
                 'setup_fee' => $unit->setup_fee,
                 'tax_rate' => $unit->tax_rate,
@@ -231,6 +232,7 @@ class WarehouseUnitController extends Controller
                 'base_price' => ['nullable', 'numeric', 'min:0'],
                 'price' => ['nullable', 'numeric', 'min:0'],
                 'monthly_rate' => ['nullable', 'numeric', 'min:0'],
+                'rate_per_sqft' => ['nullable', 'numeric', 'min:0'],
                 'security_deposit' => ['nullable', 'numeric', 'min:0'],
                 'setup_fee' => ['nullable', 'numeric', 'min:0'],
                 'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -313,8 +315,10 @@ class WarehouseUnitController extends Controller
             'type' => $validated['type'],
             'services' => $services,
             'pricing_model' => $validated['pricing_model'],
-            'base_price' => $validated['price'] ?? $validated['base_price'] ?? $validated['monthly_rate'],
+            'base_price' => $validated['price'] ?? $validated['base_price'] ?? $validated['monthly_rate']
+                ?? (isset($validated['rate_per_sqft'], $validated['total_area']) ? round($validated['rate_per_sqft'] * $validated['total_area'], 2) : null),
             'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
+            'rate_per_sqft' => $nullIfEmpty($validated['rate_per_sqft'] ?? null),
             'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
             'setup_fee' => $nullIfEmpty($validated['setup_fee'] ?? null),
             'tax_rate' => $normalizeTaxRate($validated['tax_rate'] ?? null),
@@ -532,6 +536,7 @@ class WarehouseUnitController extends Controller
                 'price' => $price, // Legacy price field
                 'base_price' => $unit->base_price ?? '',
                 'monthly_rate' => $unit->monthly_rate ?? '',
+                'rate_per_sqft' => $unit->rate_per_sqft ?? '',
                 'security_deposit' => $unit->security_deposit ?? '',
                 'setup_fee' => $unit->setup_fee ?? '',
                 'tax_rate' => $unit->tax_rate ?? '',
@@ -625,6 +630,7 @@ class WarehouseUnitController extends Controller
                 'base_price' => ['nullable', 'numeric', 'min:0'],
                 // Detailed pricing fields
                 'monthly_rate' => ['nullable', 'numeric', 'min:0'],
+                'rate_per_sqft' => ['nullable', 'numeric', 'min:0'],
                 'security_deposit' => ['nullable', 'numeric', 'min:0'],
                 'setup_fee' => ['nullable', 'numeric', 'min:0'],
                 'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -836,9 +842,11 @@ class WarehouseUnitController extends Controller
                 'type' => $validated['type'],
                 'services' => $services,
                 'pricing_model' => $validated['pricing_model'],
-                'base_price' => $nullIfEmpty($validated['price'] ?? $validated['base_price'] ?? null),
+                'base_price' => $nullIfEmpty($validated['price'] ?? $validated['base_price'] ?? null)
+                    ?? (isset($validated['rate_per_sqft'], $validated['total_area']) ? round($validated['rate_per_sqft'] * $validated['total_area'], 2) : null),
                 // Detailed pricing fields
                 'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
+            'rate_per_sqft' => $nullIfEmpty($validated['rate_per_sqft'] ?? null),
                 'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
                 'setup_fee' => $nullIfEmpty($validated['setup_fee'] ?? null),
                 'tax_rate' => $normalizeTaxRate($validated['tax_rate'] ?? null),
