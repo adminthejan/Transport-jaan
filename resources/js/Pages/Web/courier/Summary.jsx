@@ -69,6 +69,7 @@ const Summary = ({
     formStateOverride = null,
     showEditLinks = null,
     showHero = null,
+    onStepClick = null,
 }) => {
     const { props: inertiaProps } = usePage();
     const resolvedProps = pagePropsOverride || inertiaProps;
@@ -210,7 +211,9 @@ const Summary = ({
 
     const formatDeclaredValue = (value = 0) => {
         const numericValue = Number(value) || 0;
-        return lkrFormatter.format(numericValue);
+        return displayCurrency === "USD"
+            ? currencyFormatter.format(numericValue)
+            : lkrFormatter.format(numericValue);
     };
 
     const selectedQuotesMap = useMemo(() => {
@@ -243,7 +246,13 @@ const Summary = ({
     const codPaymentMethodLabel = formState.shipment?.codPaymentMethod
         ? String(formState.shipment.codPaymentMethod).replaceAll("_", " ")
         : "—";
-    const totalEstimateDisplay = formatCurrency(totalPriceUSD);
+    const isInternationalSummary = String(formState.shipment?.routeType || "").toLowerCase() === "international";
+    const courierServiceAmount = (displayCurrency === "LKR" ? Number(totalPriceUSD) * USD_TO_LKR_RATE : Number(totalPriceUSD)) || 0;
+    const codAmountNumber = codEnabled && codAmount !== null && Number.isFinite(codAmount) ? Number(codAmount) : 0;
+    const estimatedTotalAmount = courierServiceAmount + (isInternationalSummary ? 0 : codAmountNumber);
+    const courierFeePayer = formState.shipment?.courierFeePayer === "sender" ? "sender" : "receiver";
+    const deductFeeFromCod = courierFeePayer === "sender" && Boolean(formState.shipment?.deductFeeFromCod);
+    const totalEstimateDisplay = formatDeclaredValue(estimatedTotalAmount);
     const governanceAdjustments = useMemo(() => {
         if (!Array.isArray(pricingPreview?.policyAdjustments)) {
             return [];
@@ -534,29 +543,51 @@ const Summary = ({
 
                         <div className="mt-8 flex flex-col gap-6">
                             <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-4">
-                                {PROGRESS_STEPS.map((step, index) => (
-                                    <React.Fragment key={step.id}>
-                                        <div className="flex flex-1 items-center gap-3">
+                                {PROGRESS_STEPS.map((step, index) => {
+                                    const stepBody = (
+                                        <>
                                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0955AC] text-white shadow">
                                                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                                                 </svg>
                                             </div>
-                                            <div>
+                                            <div className="text-left">
                                                 <p className="text-xs font-semibold uppercase tracking-wide text-[#5B6887]">
                                                     Step {step.id}
                                                 </p>
                                                 <h3 className="text-sm font-semibold text-[#0B1739]">{step.title}</h3>
                                                 <p className="text-xs text-[#6B7893]">{step.description}</p>
                                             </div>
-                                        </div>
+                                        </>
+                                    );
+                                    const stepClassName = "flex flex-1 items-center gap-3 rounded-lg p-1 transition hover:bg-[#0955AC]/5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]/40";
+
+                                    return (
+                                    <React.Fragment key={step.id}>
+                                        {typeof onStepClick === "function" ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => onStepClick(step.id)}
+                                                className={`${stepClassName} cursor-pointer`}
+                                                title={`Go to ${step.title}`}
+                                            >
+                                                {stepBody}
+                                            </button>
+                                        ) : allowEditLinks ? (
+                                            <Link href={step.id === 4 ? createHref : detailsHref} className={stepClassName}>
+                                                {stepBody}
+                                            </Link>
+                                        ) : (
+                                            <div className="flex flex-1 items-center gap-3">{stepBody}</div>
+                                        )}
                                         {index < PROGRESS_STEPS.length - 1 && (
                                             <div className="hidden flex-1 md:block">
                                                 <div className="h-1 w-full rounded bg-[#0955AC]/30" />
                                             </div>
                                         )}
                                     </React.Fragment>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
@@ -690,11 +721,25 @@ const Summary = ({
                             <p><span className="font-medium text-[#0B1739]">Pickup date:</span> {formState.shipment?.pickupDate || "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Pickup window:</span> {formState.shipment?.pickupWindowStart && formState.shipment?.pickupWindowEnd ? `${formState.shipment.pickupWindowStart} - ${formState.shipment.pickupWindowEnd}` : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Insurance required:</span> {insuranceLabel}</p>
-                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {declaredValueTotal > 0 ? formatDeclaredValue(declaredValueTotal) : "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">Cash on delivery:</span> {codEnabled ? "Enabled" : "Disabled"}</p>
-                            <p><span className="font-medium text-[#0B1739]">COD amount:</span> {codEnabled && codAmount !== null ? formatDeclaredValue(codAmount) : "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">COD payment method:</span> {codEnabled ? codPaymentMethodLabel : "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">Total value (declared + COD):</span> {formatDeclaredValue(declaredValueTotal + (codEnabled && codAmount !== null ? Number(codAmount) : 0))}</p>
+                            {isInternationalSummary ? (
+                                <p><span className="font-medium text-[#0B1739]">Declared value (packing list total):</span> {declaredValueTotal > 0 ? formatDeclaredValue(declaredValueTotal) : "—"}</p>
+                            ) : (
+                                <>
+                                    <p><span className="font-medium text-[#0B1739]">Cash on delivery:</span> {codEnabled ? "Enabled" : "Disabled"}</p>
+                                    <p><span className="font-medium text-[#0B1739]">COD amount:</span> {codEnabled && codAmount !== null ? formatDeclaredValue(codAmount) : "—"}</p>
+                                    <p><span className="font-medium text-[#0B1739]">COD payment method:</span> {codEnabled ? codPaymentMethodLabel : "—"}</p>
+                                    {codEnabled && (
+                                        <p>
+                                            <span className="font-medium text-[#0B1739]">Courier fee paid by:</span>{" "}
+                                            {courierFeePayer === "receiver"
+                                                ? "Receiver (with the COD amount)"
+                                                : (deductFeeFromCod ? "Sender (deducted from the COD amount)" : "Sender (collected from the sender)")}
+                                        </p>
+                                    )}
+                                    <p><span className="font-medium text-[#0B1739]">Courier service amount:</span> {selectedQuotes.length > 0 ? formatDeclaredValue(courierServiceAmount) : "—"}</p>
+                                    <p><span className="font-medium text-[#0B1739]">Total value (COD + courier service):</span> {selectedQuotes.length > 0 || codAmountNumber > 0 ? formatDeclaredValue(estimatedTotalAmount) : "—"}</p>
+                                </>
+                            )}
                         </div>
                     </section>
 
@@ -740,7 +785,7 @@ const Summary = ({
                                                     : "—"}
                                             </p>
                                             <p><span className="font-medium text-[#0B1739]">Declared value:</span> {pkg.declaredValue ? formatDeclaredValue(Number(pkg.declaredValue)) : "—"}</p>
-                                            <p><span className="font-medium text-[#0B1739]">Type:</span> {pkg.packageType || "—"}</p>
+                                            <p><span className="font-medium text-[#0B1739]">Type:</span> {pkg.extras?.shipmentType ? (pkg.extras.shipmentType === "other" && pkg.extras.otherDescription ? `Other - ${pkg.extras.otherDescription}` : String(pkg.extras.shipmentType).replaceAll("_", " ")) : (pkg.packageType || "—")}</p>
                                             <p>
                                                 <span className="font-medium text-[#0B1739]">Volumetric weight:</span> {pkgVolumetricKg > 0 ? `${parseFloat(pkgVolumetricKg.toFixed(3))} kg` : "—"}
                                             </p>
@@ -754,17 +799,31 @@ const Summary = ({
                                             const handling = [
                                                 pkg.fragile && "Fragile",
                                                 extras.nonStackable && "Non-stackable",
+                                                extras.perishable && "Perishable",
                                                 extras.liquid && "Liquid",
                                                 extras.containsBatteries && "Contains batteries",
                                                 extras.dangerousGoods && "Dangerous goods",
                                             ].filter(Boolean);
-                                            const commodities = Array.isArray(extras.commodities) ? extras.commodities : [];
+                                            const commodities = Array.isArray(extras.commodities) ? extras.commodities.filter((row) => row && (row.hsCode || row.description || Number(row.unitPrice) > 0)) : [];
+                                            const packageItems = Array.isArray(extras.items) ? extras.items.filter((entry) => entry && (entry.name || entry.description)) : [];
                                             return (
                                                 <>
                                                     {extras.paymentMethod && (
                                                         <p className="mt-3 text-sm text-[#5B6887]">
                                                             <span className="font-medium text-[#0B1739]">Payment:</span> {extras.paymentMethod === "cod" ? "Cash on delivery" : "Debit / Credit"}
                                                         </p>
+                                                    )}
+                                                    {packageItems.length > 0 && (
+                                                        <div className="mt-3 text-sm text-[#5B6887]">
+                                                            <p className="font-medium text-[#0B1739]">Items</p>
+                                                            <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                                                                {packageItems.map((entry, entryIndex) => (
+                                                                    <li key={`summary-item-${index}-${entryIndex}`}>
+                                                                        {entry.name || "Item"} x {entry.quantity || 1}{entry.description ? ` - ${entry.description}` : ""}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
                                                     )}
                                                     {handling.length > 0 && (
                                                         <p className="mt-2 text-sm text-[#5B6887]">

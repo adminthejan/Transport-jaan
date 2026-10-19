@@ -5,6 +5,7 @@ import BackButton from "../../components/BackBtn";
 import WarehouseImages from "../../components/warehouseDetails/WarehouseImages";
 import WarehouseSearch from "../../components/warehouseDetails/WarehouseSearch";
 import WarehouseInfo from "../../components/warehouseDetails/WarehouseInfo";
+import AvailableVehicles from "../../components/warehouseDetails/AvailableVehicles";
 
 const WarehouseDetails = () => {
     const { props } = usePage();
@@ -41,8 +42,9 @@ const WarehouseDetails = () => {
                     <div className="flex flex-col gap-10 justify-start items-center w-full">
                         <WarehouseImages />
                         <WarehouseInfo />
+                        <AvailableVehicles />
                     </div>
-                    <div className="flex flex-col justify-start items-center gap-10">
+                    <div className="flex flex-col justify-start items-center gap-10 w-full min-w-0 xl:w-auto">
                         <WarehouseSearch />
                     </div>
                 </div>

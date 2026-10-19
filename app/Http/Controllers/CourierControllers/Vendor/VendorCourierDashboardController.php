@@ -2479,7 +2479,7 @@ class VendorCourierDashboardController extends Controller
                 'recipient:id,name',
                 'senderAddress:id,country,city,state',
                 'recipientAddress:id,country,city,state',
-                'packages:id,shipment_id,service_tier_label,service_tier_key,service_eta,courier_provider_name',
+                'packages:id,shipment_id,label,quantity,weight_kg,extras,service_tier_label,service_tier_key,service_eta,courier_provider_name',
                 'latestPayment',
                 'trackingEvents:id,shipment_id,status,location,description,recorded_at',
                 'labels:id,shipment_id',
@@ -2581,6 +2581,30 @@ class VendorCourierDashboardController extends Controller
                     'internalNotes' => $shipment->internal_notes,
                     'packageCount' => $shipment->packages->count(),
                     'totalWeight' => (float) $shipment->packages->sum('weight_kg'),
+                    // Packing list is generated from the customer's Add-unit rows
+                    // so the service provider can view/print it without retyping.
+                    'packingLists' => $shipment->packages->map(function ($package, $index) {
+                        $extras = is_array($package->extras) ? $package->extras : [];
+                        $items = collect($extras['commodities'] ?? [])
+                            ->filter(fn ($row) => is_array($row) && (trim((string) ($row['hsCode'] ?? '')) !== '' || trim((string) ($row['description'] ?? '')) !== ''))
+                            ->map(fn ($row) => [
+                                'hsCode' => (string) ($row['hsCode'] ?? ''),
+                                'description' => (string) ($row['description'] ?? ''),
+                                'quantity' => (float) ($row['quantity'] ?? 0),
+                                'weightKg' => (float) ($row['weightKg'] ?? 0),
+                                'unitPrice' => (float) ($row['unitPrice'] ?? 0),
+                                'total' => round((float) ($row['quantity'] ?? 0) * (float) ($row['unitPrice'] ?? 0), 2),
+                            ])
+                            ->values();
+
+                        return [
+                            'package' => $package->label ?: 'Package ' . ($index + 1),
+                            'items' => $items->all(),
+                            'total' => round((float) $items->sum('total'), 2),
+                        ];
+                    })->filter(fn ($list) => !empty($list['items']))->values()->all(),
+                    'courierFeePayer' => (string) data_get($shipment->packages->first(), 'extras.courierFeePayer', ''),
+                    'deductFeeFromCod' => (bool) data_get($shipment->packages->first(), 'extras.deductFeeFromCod', false),
                 ],
             ];
         })->values();

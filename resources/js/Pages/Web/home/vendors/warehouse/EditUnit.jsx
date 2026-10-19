@@ -56,6 +56,9 @@ const EditUnit = () => {
     capacity: '',
     type: '',
     pricing_model: '',
+    rate_type: 'per_sqft',
+    temperature_min_c: '',
+    temperature_max_c: '',
     price: '',
 
     // Detailed Pricing
@@ -195,6 +198,9 @@ const EditUnit = () => {
           capacity: safeNumber(data.capacity),
           type: safeString(data.type),
           pricing_model: safeString(data.pricing_model),
+          rate_type: safeString(data.rate_type) || 'per_sqft',
+          temperature_min_c: safeNumber(data.temperature_min_c),
+          temperature_max_c: safeNumber(data.temperature_max_c),
           price: safeNumber(data.price || data.base_price),
 
           // Detailed Pricing
@@ -661,6 +667,9 @@ const EditUnit = () => {
       data.append('capacity', form.capacity || '');
       data.append('type', form.type);
       data.append('pricing_model', form.pricing_model);
+      data.append('rate_type', form.rate_type || 'per_sqft');
+      data.append('temperature_min_c', form.temperature_min_c ?? '');
+      data.append('temperature_max_c', form.temperature_max_c ?? '');
       data.append('price', form.price || '');
 
       // Detailed pricing fields
@@ -938,6 +947,52 @@ const EditUnit = () => {
                     ))}
                   </select>
                   {errors.pricing_model && <div className="text-[#DC2626] text-[12px] mt-1">{errors.pricing_model}</div>}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="rate_type" className="block text-[14px] font-[600] text-[#000000]">Rate Type</label>
+                  <select
+                    id="rate_type"
+                    name="rate_type"
+                    className="w-full border border-[#D1D5DB] rounded-[6px] px-4 py-3 focus:ring-2 focus:ring-[#0955AC] focus:border-[#0955AC] bg-white text-[14px]"
+                    value={form.rate_type}
+                    onChange={handleChange}
+                  >
+                    <option value="per_sqft">Per sq ft</option>
+                    <option value="per_cbm">Per CBM</option>
+                    <option value="flat_rate">Flat rate</option>
+                  </select>
+                  <p className="text-[12px] text-gray-500">How customers search for and are priced on this listing.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[14px] font-[600] text-[#000000]">Storage Temperature Range (&deg;C)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      name="temperature_min_c"
+                      value={form.temperature_min_c}
+                      onChange={handleChange}
+                      placeholder="Min"
+                      step="0.5"
+                      min="-60"
+                      max="60"
+                      className="w-full border border-[#D1D5DB] rounded-[6px] px-4 py-3 focus:ring-2 focus:ring-[#0955AC] focus:border-[#0955AC] bg-white text-[14px]"
+                    />
+                    <span className="text-gray-400">to</span>
+                    <input
+                      type="number"
+                      name="temperature_max_c"
+                      value={form.temperature_max_c}
+                      onChange={handleChange}
+                      placeholder="Max"
+                      step="0.5"
+                      min="-60"
+                      max="60"
+                      className="w-full border border-[#D1D5DB] rounded-[6px] px-4 py-3 focus:ring-2 focus:ring-[#0955AC] focus:border-[#0955AC] bg-white text-[14px]"
+                    />
+                  </div>
+                  <p className="text-[12px] text-gray-500">Leave empty for ambient storage (no temperature control).</p>
                 </div>
 
                 <div className="space-y-2 col-span-full">

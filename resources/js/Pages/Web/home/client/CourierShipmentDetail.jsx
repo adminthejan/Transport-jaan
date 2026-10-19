@@ -101,6 +101,8 @@ const formatAmountWithCurrency = (amount, currencyCode = 'USD') => {
 const CourierShipmentDetail = () => {
     const { shipment, flash } = usePage().props;
     const [successNotice, setSuccessNotice] = useState(flash?.success || null);
+    // Right after an order is placed, show the order code in a popup that stays until dismissed.
+    const [showOrderPopup, setShowOrderPopup] = useState(Boolean(flash?.success));
     const [copiedField, setCopiedField] = useState(null);
     const trackingCode = shipment.code || '';
     const trackingPin = shipment.trackingPin || '';
@@ -240,6 +242,38 @@ const CourierShipmentDetail = () => {
                             {trackingCode && <p className="mt-1 opacity-90">Order code: {trackingCode}</p>}
                         </div>
                         <button type="button" onClick={() => setSuccessNotice(null)} className="text-white/80 hover:text-white text-lg leading-none" aria-label="Dismiss">×</button>
+                    </div>
+                )}
+                {showOrderPopup && trackingCode && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Order confirmed">
+                        <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-600">
+                                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h2 className="mt-4 text-xl font-semibold">Order confirmed</h2>
+                            <p className="mt-1 text-sm text-gray-500">{successNotice || 'Your courier request has been submitted.'}</p>
+
+                            <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">Your order code</p>
+                            <div className="mt-1 flex items-center justify-center gap-2">
+                                <span className="rounded-lg border border-gray-200 bg-[#F4F8FF] px-4 py-2 text-lg font-bold tracking-wide text-[#0955AC]">{trackingCode}</span>
+                                <button type="button" onClick={() => copyValue('popup-code', trackingCode)} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:border-[#0955AC] hover:text-[#0955AC]">
+                                    {copiedField === 'popup-code' ? 'Copied' : 'Copy'}
+                                </button>
+                            </div>
+                            {trackingPin && (
+                                <p className="mt-3 text-sm text-gray-600">
+                                    Tracking PIN: <strong>{trackingPin}</strong>
+                                </p>
+                            )}
+                            <p className="mt-2 text-xs text-gray-400">Keep these to track your shipment.</p>
+
+                            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                                <a href={trackingUrl} className="rounded-lg border border-[#0955AC] px-4 py-2 text-sm font-semibold text-[#0955AC] hover:bg-[#0955AC] hover:text-white">Track this shipment</a>
+                                <button type="button" onClick={() => setShowOrderPopup(false)} className="rounded-lg bg-[#0955AC] px-5 py-2 text-sm font-semibold text-white hover:bg-[#0a4b93]">Done</button>
+                            </div>
+                        </div>
                     </div>
                 )}
                 <div className="mx-auto max-w-[1200px]">

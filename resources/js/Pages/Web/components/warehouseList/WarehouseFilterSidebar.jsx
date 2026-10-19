@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
 import { Check, ChevronDown, PackageSearch, SlidersHorizontal, Warehouse, X } from "lucide-react";
+import { SERVICES, asArray } from "./warehouseFilters";
 
 // Warehouse Type describes the facility itself; Services describes what a
 // client can book on top of storage. Kept as two separate filter groups to
@@ -14,19 +15,7 @@ const WAREHOUSE_TYPES = [
   { id: "smart_warehouse", label: "Smart Warehouse" },
 ];
 
-const SERVICES = [
-  { id: "storage", label: "Storage" },
-  { id: "fulfillment", label: "Fulfillment" },
-  { id: "distribution", label: "Distribution" },
-  { id: "value_added_services", label: "Value Added Services" },
-  { id: "customs_services", label: "Customs Services" },
-  { id: "transportation", label: "Transportation" },
-];
 
-const asArray = (value) => {
-  if (!value) return [];
-  return Array.isArray(value) ? value : [value];
-};
 
 const FilterOption = ({ label, active, onClick }) => (
   <button

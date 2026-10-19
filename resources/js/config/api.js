@@ -2,7 +2,9 @@
  * API Configuration
  * Base URL for all API requests
  */
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/';
+// Always end with a single slash: callers build URLs as `${API_BASE_URL}vendors/...`, which breaks
+// ("http://host:8000vendors/...") when the env value has no trailing slash.
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/').replace(/\/*$/, '/');
 
 /**
  * Helper function to construct full API URL

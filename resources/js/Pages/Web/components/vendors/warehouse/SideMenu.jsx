@@ -4,6 +4,7 @@ import {
     Building2,
     Boxes,
     Calendar,
+    FileText,
     Users,
     Wallet,
     Route,
@@ -79,6 +80,21 @@ const SideMenu = ({ isOpen = false }) => {
                         >
                             <Calendar className="w-[22px] h-[22px]" />
                             <span>Reservations</span>
+                        </div>
+
+                        {/* Quote requests (vendor posts charges) */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/quotes" ||
+                                    currentPath === "/warehouse/quotes"
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                                }`}
+                            onClick={() =>
+                                (window.location.href = "/warehouse/quotes")
+                            }
+                        >
+                            <FileText className="w-[22px] h-[22px]" />
+                            <span>Quotes</span>
                         </div>
 
                         {/* Units */}

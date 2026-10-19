@@ -123,38 +123,53 @@ const SHIPMENT_TYPE_OPTIONS_BY_VALUE = SHIPMENT_TYPE_OPTIONS.reduce((accumulator
 // Shared "Type" select used in both the domestic and international package
 // sections — keeps per-type help text and the "Other" vendor-approval notice
 // consistent instead of duplicating this markup in each section.
-const ShipmentTypeField = ({ value, onChange }) => {
+const ShipmentTypeField = ({
+    value,
+    onChange,
+    disabled = false,
+    compact = false,
+    lockedMessage = "",
+    otherDescription = "",
+    onOtherDescriptionChange = null,
+    headerAction = null,
+}) => {
     const selectedOption = SHIPMENT_TYPE_OPTIONS_BY_VALUE[value] || null;
+    const controlHeight = compact ? "h-[40px]" : "h-[52px]";
 
     return (
         <div>
-            <div className="mb-2 flex items-center gap-2">
-                <label className="block text-sm font-medium text-[#0B1739]">Type</label>
-                <div className="group relative">
-                    <button
-                        type="button"
-                        className="flex h-5 w-5 items-center justify-center rounded-full border border-[#8A8A8A] text-[11px] font-semibold text-[#404040]"
-                        aria-label="What do these shipment types mean?"
-                    >
-                        ?
-                    </button>
-                    <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[320px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-xs text-[#333333] shadow-lg group-hover:block group-focus-within:block">
-                        <p className="font-semibold">What do these types mean?</p>
-                        <ul className="mt-2 space-y-2">
-                            {SHIPMENT_TYPE_OPTIONS.map((option) => (
-                                <li key={`shipment-type-help-${option.value}`}>
-                                    <span className="font-semibold text-[#0B1739]">{option.label}:</span>{" "}
-                                    <span className="text-[#5B6887]">{option.description}</span>
-                                </li>
-                            ))}
-                        </ul>
+            <div className="mb-1 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <label className="block text-sm font-medium text-[#0B1739]">Type</label>
+                    <div className="group relative">
+                        <button
+                            type="button"
+                            className="flex h-5 w-5 items-center justify-center rounded-full border border-[#8A8A8A] text-[11px] font-semibold text-[#404040]"
+                            aria-label="What do these shipment types mean?"
+                        >
+                            ?
+                        </button>
+                        <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[320px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-xs text-[#333333] shadow-lg group-hover:block group-focus-within:block">
+                            <p className="font-semibold">What do these types mean?</p>
+                            <ul className="mt-2 space-y-2">
+                                {SHIPMENT_TYPE_OPTIONS.map((option) => (
+                                    <li key={`shipment-type-help-${option.value}`}>
+                                        <span className="font-semibold text-[#0B1739]">{option.label}:</span>{" "}
+                                        <span className="text-[#5B6887]">{option.description}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     </div>
                 </div>
+                {headerAction}
             </div>
             <select
                 value={value || ""}
+                disabled={disabled}
+                aria-label="Shipment type"
                 onChange={(event) => onChange(event.target.value)}
-                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                className={`${controlHeight} w-full rounded-lg border border-[#D6DEEB] px-3 text-sm focus:border-[#0955AC] focus:outline-none ${disabled ? "cursor-not-allowed bg-[#F4F7FB] text-[#8C97B0]" : "bg-white text-[#0B1739]"}`}
             >
                 <option value="">Select type</option>
                 {SHIPMENT_TYPE_OPTIONS.map((option) => (
@@ -163,8 +178,21 @@ const ShipmentTypeField = ({ value, onChange }) => {
                     </option>
                 ))}
             </select>
-            {selectedOption && (
-                <p className="mt-1.5 text-xs text-[#5B6887]">{selectedOption.description}</p>
+            {disabled && lockedMessage && (
+                <p className="mt-1 text-[11px] text-[#8C6A1E]">{lockedMessage}</p>
+            )}
+            {value === "other" && typeof onOtherDescriptionChange === "function" && (
+                <input
+                    type="text"
+                    value={otherDescription}
+                    onChange={(event) => onOtherDescriptionChange(event.target.value)}
+                    maxLength={200}
+                    className={`mt-2 ${controlHeight} w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none`}
+                    placeholder="Describe the shipment type*"
+                />
+            )}
+            {selectedOption && value !== "other" && (
+                <p className="mt-1 text-[11px] text-[#5B6887]">{selectedOption.description}</p>
             )}
             {value === "other" && (
                 <p className="mt-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700">
@@ -174,6 +202,56 @@ const ShipmentTypeField = ({ value, onChange }) => {
         </div>
     );
 };
+
+// Shipment-level type fields are derived from the per-package types: the
+// backend stores a single shipment_type, so "other" wins (it needs vendor
+// approval) and otherwise the first package's type is used.
+const deriveShipmentTypeFields = (packages = []) => {
+    const list = Array.isArray(packages) ? packages : [];
+    const otherPackages = list.filter((pkg) => pkg?.extras?.shipmentType === "other");
+    const primaryType = otherPackages.length > 0
+        ? "other"
+        : (list.map((pkg) => pkg?.extras?.shipmentType || "").find(Boolean) || "");
+    const description = otherPackages
+        .map((pkg) => String(pkg?.extras?.otherDescription || "").trim())
+        .filter(Boolean)
+        .join("; ")
+        .slice(0, 200);
+
+    return {
+        shipmentType: primaryType,
+        shipmentTypeDescription: primaryType === "other" ? description : "",
+    };
+};
+
+const commodityRowTotal = (row) => (Number(row?.quantity) || 0) * (Number(row?.unitPrice) || 0);
+
+const hasCommodityContent = (row) => Boolean(
+    String(row?.hsCode || "").trim()
+    || String(row?.description || "").trim()
+    || Number(row?.weightKg) > 0
+    || Number(row?.unitPrice) > 0
+);
+
+const buildPackingListText = (rows = []) => rows
+    .filter(hasCommodityContent)
+    .map((row, rowIndex) => {
+        const parts = [
+            `${rowIndex + 1}. ${String(row.description || "").trim() || "Item"}`,
+            `qty ${Number(row.quantity) || 0}`,
+            `${Number(row.weightKg) || 0} kg`,
+            `unit ${(Number(row.unitPrice) || 0).toFixed(2)}`,
+            `total ${commodityRowTotal(row).toFixed(2)}`,
+        ];
+        if (String(row.hsCode || "").trim()) {
+            parts.push(`HS ${String(row.hsCode).trim()}`);
+        }
+        return parts.join(", ");
+    })
+    .join("\n")
+    .slice(0, 2000);
+
+const emptyCommodityRow = () => ({ hsCode: "", description: "", type: "", weightKg: "", quantity: 1, unitPrice: "" });
 
 const DOMESTIC_DIMENSION_ASSIST_PRESETS = [
     {
@@ -411,10 +489,70 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const shipmentSectionAutoScrollPendingRef = useRef(false);
     const detailsSectionRef = useRef(null);
     const summarySectionRef = useRef(null);
+    const packageScrollTargetRef = useRef(null);
+    const programmaticCityRef = useRef({ sender: "", recipient: "" });
+    // last country actually chosen per party; while a country is being retyped the field is
+    // briefly empty, so "changed" must be judged against this, not against the previous state
+    const lastCountryRef = useRef({ sender: "", recipient: "" });
+    const lookupResponseCacheRef = useRef(new Map());
 
     const markUpstreamChange = () => {
         upstreamChangeCounterRef.current += 1;
         setUpstreamChangeVersion((previous) => previous + 1);
+    };
+
+    // Order confirmation popup (shows the order code right after booking).
+    const [orderConfirmation, setOrderConfirmation] = useState(null);
+    const [orderCodeCopied, setOrderCodeCopied] = useState(false);
+
+    // Progress steps on the review screen scroll back to the matching section.
+    const handleStepNavigate = (stepId) => {
+        if (typeof document === "undefined") {
+            return;
+        }
+
+        const targetIds = {
+            1: "courier-step-sender",
+            2: "courier-step-recipient",
+            3: "courier-step-preferences",
+        };
+
+        const target = stepId === 4
+            ? (quotesSectionRef.current || document.getElementById("courier-package-section"))
+            : (document.getElementById(targetIds[stepId]) || detailsSectionRef.current);
+
+        if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    };
+
+    // Location/HS lookups hit external services on the backend, so repeat
+    // queries (typing back and forth, re-selecting a country) are answered
+    // from memory instead of waiting on the network again. Only non-empty
+    // results are cached so a transient miss is never remembered.
+    const cachedLookupFetch = async (url, options = {}) => {
+        const cached = lookupResponseCacheRef.current.get(url);
+        if (cached) {
+            return { ok: true, status: 200, json: async () => cached };
+        }
+
+        const response = await fetch(url, options);
+        if (response.ok) {
+            try {
+                const payload = await response.clone().json();
+                const hasResults = Object.values(payload || {}).some((value) => Array.isArray(value) && value.length > 0);
+                if (hasResults) {
+                    if (lookupResponseCacheRef.current.size >= 200) {
+                        lookupResponseCacheRef.current.clear();
+                    }
+                    lookupResponseCacheRef.current.set(url, payload);
+                }
+            } catch (error) {
+                // uncacheable body - ignore
+            }
+        }
+
+        return response;
     };
 
     const buildEmptyForm = (routeType) => {
@@ -468,6 +606,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 containsExclusivelyDocuments: false,
                 shipmentType: "",
                 shipmentTypeDescription: "",
+                courierFeePayer: "receiver",
+                deductFeeFromCod: false,
             },
             packages: [
                 {
@@ -481,7 +621,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     heightCm: "",
                     dimensionUnit: "cm",
                     fragile: false,
-                extras: { paymentMethod: "", nonStackable: false, liquid: false, containsBatteries: false, dangerousGoods: false, commodities: [], packingList: "" },
+                extras: { paymentMethod: "", shipmentType: "", otherDescription: "", items: [], perishable: false, nonStackable: false, liquid: false, containsBatteries: false, dangerousGoods: false, commodities: isDomestic ? [] : [emptyCommodityRow()], packingList: "" },
                     declaredValue: "",
                     description: "",
                     hsCode: "",
@@ -621,6 +761,98 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         setData("packages", nextPackages);
     };
 
+    // Each package carries its own type (and "other" description); the
+    // shipment-level fields the backend stores are derived from them.
+    const updatePackageType = (index, value) => {
+        markUpstreamChange();
+        setData((previous) => {
+            const nextPackages = previous.packages.map((item, idx) => (
+                idx === index
+                    ? {
+                        ...item,
+                        extras: {
+                            ...(item.extras || {}),
+                            shipmentType: value,
+                            otherDescription: value === "other" ? (item.extras?.otherDescription || "") : "",
+                        },
+                    }
+                    : item
+            ));
+
+            return {
+                ...previous,
+                packages: nextPackages,
+                shipment: { ...previous.shipment, ...deriveShipmentTypeFields(nextPackages) },
+            };
+        });
+    };
+
+    const updatePackageOtherDescription = (index, text) => {
+        markUpstreamChange();
+        setData((previous) => {
+            const nextPackages = previous.packages.map((item, idx) => (
+                idx === index
+                    ? { ...item, extras: { ...(item.extras || {}), otherDescription: text } }
+                    : item
+            ));
+
+            return {
+                ...previous,
+                packages: nextPackages,
+                shipment: { ...previous.shipment, ...deriveShipmentTypeFields(nextPackages) },
+            };
+        });
+    };
+
+    const addPackageItem = (index) => {
+        markUpstreamChange();
+        setData((previous) => ({
+            ...previous,
+            packages: previous.packages.map((item, idx) => {
+                if (idx !== index) {
+                    return item;
+                }
+
+                const entries = Array.isArray(item.extras?.items) ? item.extras.items : [];
+                // the API accepts at most 50 items per package
+                if (entries.length >= 50) {
+                    return item;
+                }
+
+                return { ...item, extras: { ...(item.extras || {}), items: [...entries, { name: "", quantity: 1, description: "" }] } };
+            }),
+        }));
+    };
+
+    const updatePackageItem = (index, itemIndex, field, value) => {
+        const current = data.packages[index]?.extras?.items || [];
+        updatePackageExtra(
+            index,
+            "items",
+            current.map((entry, idx) => (idx === itemIndex ? { ...entry, [field]: value } : entry))
+        );
+    };
+
+    const removePackageItem = (index, itemIndex) => {
+        const current = data.packages[index]?.extras?.items || [];
+        updatePackageExtra(index, "items", current.filter((_, idx) => idx !== itemIndex));
+    };
+
+    // Who pays the courier service fee on a COD shipment (method 1: receiver,
+    // method 2: sender). Stored on the shipment and mirrored into every
+    // package's extras, which is what the backend persists.
+    const setCourierFeeOption = (changes) => {
+        markUpstreamChange();
+        setData((previous) => ({
+            ...previous,
+            shipment: { ...previous.shipment, ...changes },
+            packages: previous.packages.map((item) => ({
+                ...item,
+                extras: { ...(item.extras || {}), ...changes },
+            })),
+        }));
+    };
+
     // Handling flags (fragile / non-stackable / liquid / batteries / dangerous goods)
     const updateHandlingFlag = (index, key, checked) => {
         const nextPackages = data.packages.map((item, idx) => {
@@ -644,7 +876,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const setPackagePaymentMethod = (_index, method) => {
         const nextPackages = data.packages.map((item) => ({
             ...item,
-            extras: { ...(item.extras || {}), paymentMethod: method },
+            extras: {
+                ...(item.extras || {}),
+                paymentMethod: method,
+                courierFeePayer: data.shipment?.courierFeePayer || "receiver",
+                deductFeeFromCod: Boolean(data.shipment?.deductFeeFromCod),
+            },
         }));
         const isCod = method === "cod";
         markUpstreamChange();
@@ -661,15 +898,31 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     };
 
     const addCommodity = (index) => {
-        const current = data.packages[index]?.extras?.commodities || [];
-        updatePackageExtra(index, "commodities", [
-            ...current,
-            { hsCode: "", description: "", type: "", weightKg: "", quantity: 1, unitPrice: "" },
-        ]);
+        markUpstreamChange();
+        setData((previous) => ({
+            ...previous,
+            packages: previous.packages.map((item, idx) => {
+                if (idx !== index) {
+                    return item;
+                }
+
+                const rows = Array.isArray(item.extras?.commodities) ? item.extras.commodities : [];
+                // the API accepts at most 100 units per package
+                if (rows.length >= 100) {
+                    return item;
+                }
+
+                return { ...item, extras: { ...(item.extras || {}), commodities: [...rows, emptyCommodityRow()] } };
+            }),
+        }));
     };
 
     const updateCommodity = (index, rowIndex, field, value) => {
         const current = data.packages[index]?.extras?.commodities || [];
+        // weight, quantity and unit price can never be negative
+        if (["weightKg", "quantity", "unitPrice"].includes(field) && value !== "" && !(Number(value) >= 0)) {
+            return;
+        }
         updatePackageExtra(
             index,
             "commodities",
@@ -680,6 +933,65 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const removeCommodity = (index, rowIndex) => {
         const current = data.packages[index]?.extras?.commodities || [];
         updatePackageExtra(index, "commodities", current.filter((_, idx) => idx !== rowIndex));
+    };
+
+    const updateCommodityFields = (index, rowIndex, fields) => {
+        const current = data.packages[index]?.extras?.commodities || [];
+        updatePackageExtra(
+            index,
+            "commodities",
+            current.map((row, idx) => (idx === rowIndex ? { ...row, ...fields } : row))
+        );
+    };
+
+    // HS code lookup runs per Add-unit row (keyed "<package>-<row>").
+    const handleCommodityHsSelect = (index, rowIndex, option) => {
+        const row = (data.packages[index]?.extras?.commodities || [])[rowIndex] || {};
+        updateCommodityFields(index, rowIndex, {
+            hsCode: option.code,
+            description: String(row.description || "").trim()
+                ? row.description
+                : String(option.description || "").slice(0, 300),
+        });
+        setHsCodeSuggestions((prev) => ({ ...prev, [`${index}-${rowIndex}`]: [] }));
+        setActiveHsCodeField(null);
+    };
+
+    const downloadPackingList = (index) => {
+        if (typeof document === "undefined") {
+            return;
+        }
+
+        const rows = (data.packages[index]?.extras?.commodities || []).filter(hasCommodityContent);
+        // Cells starting with = + - @ would be run as formulas by spreadsheet apps.
+        const escapeCsv = (value) => {
+            const text = String(value ?? "");
+            const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+            return `"${safe.replaceAll('"', '""')}"`;
+        };
+        const lines = [
+            ["#", "HS code", "Description", "Type", "Weight (kg)", "Quantity", "Unit price (USD)", "Total (USD)"].map(escapeCsv).join(","),
+            ...rows.map((row, rowIndex) => [
+                rowIndex + 1,
+                row.hsCode || "",
+                row.description || "",
+                SHIPMENT_TYPE_OPTIONS_BY_VALUE[row.type]?.label || "",
+                row.weightKg || 0,
+                row.quantity || 0,
+                (Number(row.unitPrice) || 0).toFixed(2),
+                commodityRowTotal(row).toFixed(2),
+            ].map(escapeCsv).join(",")),
+        ];
+
+        const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `packing-list-package-${index + 1}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     const applyDimensionPreset = (index, preset) => {
@@ -703,22 +1015,46 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     };
 
     const updateSenderCompany = (companyName) => {
-        setData("sender", {
-            ...data.sender,
-            company: companyName,
-        });
+        setData((previous) => ({
+            ...previous,
+            sender: {
+                ...previous.sender,
+                company: companyName,
+            },
+        }));
     };
 
+    // All address updaters use functional updates on purpose: the async
+    // city/postal lookups call them long after the render that created them,
+    // and a closure over stale `data` used to overwrite a freshly selected
+    // destination country with its old (empty) value.
     const updateAddressCountry = (party, countryCode) => {
-        const currentParty = party === "recipient" ? data.recipient : data.sender;
+        const nextCountry = String(countryCode || "").toUpperCase();
+        const lastCountry = lastCountryRef.current[party];
+        const isCountrySwitch = data.shipment?.routeType === "international"
+            && nextCountry !== ""
+            && lastCountry !== ""
+            && nextCountry !== lastCountry;
+        if (nextCountry !== "") {
+            lastCountryRef.current[party] = nextCountry;
+        }
 
         markUpstreamChange();
-        setData(party, {
-            ...currentParty,
-            address: {
-                ...currentParty.address,
-                country: countryCode,
-            },
+        setData((previous) => {
+            const currentParty = party === "recipient" ? previous.recipient : previous.sender;
+
+            return {
+                ...previous,
+                [party]: {
+                    ...currentParty,
+                    address: {
+                        ...currentParty.address,
+                        country: countryCode,
+                        // a city / postal code from the previous country no longer applies
+                        ...(isCountrySwitch ? { city: "", postalCode: "", state: "" } : {}),
+                    },
+                },
+            };
         });
 
         setPostalMismatchNotice(party, false);
@@ -833,7 +1169,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
             try {
                 const params = new URLSearchParams({ q: normalized, limit: "20" });
-                const response = await fetch(
+                const response = await cachedLookupFetch(
                     `${flowRoutes.hsCodeSearch}?${params.toString()}`,
                     {
                         method: "GET",
@@ -966,31 +1302,41 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     };
 
     const updateAddressCity = (party, cityName) => {
-        const currentParty = party === "recipient" ? data.recipient : data.sender;
-
         markUpstreamChange();
-        setData(party, {
-            ...currentParty,
-            address: {
-                ...currentParty.address,
-                city: cityName,
-                country: selectedRouteType === "domestic"
-                    ? DOMESTIC_COUNTRY_CODE
-                    : currentParty.address.country,
-            },
+        setData((previous) => {
+            const currentParty = party === "recipient" ? previous.recipient : previous.sender;
+
+            return {
+                ...previous,
+                [party]: {
+                    ...currentParty,
+                    address: {
+                        ...currentParty.address,
+                        city: cityName,
+                        country: previous.shipment?.routeType === "international"
+                            ? currentParty.address.country
+                            : DOMESTIC_COUNTRY_CODE,
+                    },
+                },
+            };
         });
     };
 
     const updateAddressPostalCode = (party, postalCode) => {
-        const currentParty = party === "recipient" ? data.recipient : data.sender;
-
         markUpstreamChange();
-        setData(party, {
-            ...currentParty,
-            address: {
-                ...currentParty.address,
-                postalCode,
-            },
+        setData((previous) => {
+            const currentParty = party === "recipient" ? previous.recipient : previous.sender;
+
+            return {
+                ...previous,
+                [party]: {
+                    ...currentParty,
+                    address: {
+                        ...currentParty.address,
+                        postalCode,
+                    },
+                },
+            };
         });
 
         setPostalCityNotice((previous) => ({
@@ -1000,15 +1346,20 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     };
 
     const updateAddressResidential = (party, isResidential) => {
-        const currentParty = party === "recipient" ? data.recipient : data.sender;
-
         markUpstreamChange();
-        setData(party, {
-            ...currentParty,
-            address: {
-                ...currentParty.address,
-                isResidential,
-            },
+        setData((previous) => {
+            const currentParty = party === "recipient" ? previous.recipient : previous.sender;
+
+            return {
+                ...previous,
+                [party]: {
+                    ...currentParty,
+                    address: {
+                        ...currentParty.address,
+                        isResidential,
+                    },
+                },
+            };
         });
     };
 
@@ -1136,7 +1487,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 params.set("query", normalizedQuery);
             }
 
-            const response = await fetch(`${flowRoutes.countrySuggestions}?${params.toString()}`, {
+            const response = await cachedLookupFetch(`${flowRoutes.countrySuggestions}?${params.toString()}`, {
                 method: "GET",
                 headers: {
                     Accept: "application/json",
@@ -1260,7 +1611,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 params.set("state", normalizedState);
             }
 
-            const response = await fetch(`${flowRoutes.postalByCity}?${params.toString()}`, {
+            const response = await cachedLookupFetch(`${flowRoutes.postalByCity}?${params.toString()}`, {
                 method: "GET",
                 headers: {
                     Accept: "application/json",
@@ -1413,7 +1764,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 limit: "20",
             });
 
-            const response = await fetch(`${flowRoutes.cityByPostal}?${params.toString()}`, {
+            const response = await cachedLookupFetch(`${flowRoutes.cityByPostal}?${params.toString()}`, {
                 method: "GET",
                 headers: {
                     Accept: "application/json",
@@ -1450,6 +1801,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             if (city) {
                 setPostalMismatchNotice(party, false);
 
+                programmaticCityRef.current[party] = city.toLowerCase();
                 updateAddressCity(party, city);
                 setCityLookupState((previous) => ({
                     ...previous,
@@ -1542,7 +1894,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 limit: "20",
             });
 
-            const response = await fetch(`${flowRoutes.cityByPostal}?${params.toString()}`, {
+            const response = await cachedLookupFetch(`${flowRoutes.cityByPostal}?${params.toString()}`, {
                 method: "GET",
                 headers: {
                     Accept: "application/json",
@@ -1595,17 +1947,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return;
         }
 
-        const currentParty = party === "recipient" ? data.recipient : data.sender;
         const nextPostalCode = String(suggestion.postalCode || "").trim();
-        const nextCity = String(suggestion.city || currentParty?.address?.city || "").trim();
+        const suggestedCity = String(suggestion.city || "").trim();
 
-        setData(party, {
-            ...currentParty,
-            address: {
-                ...currentParty.address,
-                postalCode: nextPostalCode,
-                city: nextCity,
-            },
+        if (suggestedCity) {
+            programmaticCityRef.current[party] = suggestedCity.toLowerCase();
+        }
+
+        setData((previous) => {
+            const currentParty = party === "recipient" ? previous.recipient : previous.sender;
+            const nextCity = suggestedCity || String(currentParty?.address?.city || "").trim();
+
+            return {
+                ...previous,
+                [party]: {
+                    ...currentParty,
+                    address: {
+                        ...currentParty.address,
+                        postalCode: nextPostalCode,
+                        city: nextCity,
+                    },
+                },
+            };
         });
 
         setPostalMismatchNotice(party, false);
@@ -1764,15 +2127,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         resetForRouteType(nextRouteType);
     };
 
-    const handleShipmentTypeChange = (value) => {
-        markUpstreamChange();
-        setData("shipment", {
-            ...data.shipment,
-            shipmentType: value,
-            shipmentTypeDescription: value === "other" ? (data.shipment.shipmentTypeDescription || "") : "",
-        });
-    };
-
     const updateShipmentPreference = (key, value) => {
         markUpstreamChange();
         setData("shipment", {
@@ -1836,6 +2190,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             && data.packages.every((_, packageIndex) => Boolean(revealedPackageDetails[packageIndex]));
 
         markUpstreamChange();
+        packageScrollTargetRef.current = nextPackageIndex;
         setData("packages", [
             ...data.packages,
             {
@@ -1849,7 +2204,21 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 heightCm: "",
                 dimensionUnit: "cm",
                 fragile: false,
-                extras: { paymentMethod: data.packages[0]?.extras?.paymentMethod || "", nonStackable: false, liquid: false, containsBatteries: false, dangerousGoods: false, commodities: [], packingList: "" },
+                extras: {
+                    paymentMethod: data.packages[0]?.extras?.paymentMethod || "",
+                    courierFeePayer: data.shipment?.courierFeePayer || "receiver",
+                    deductFeeFromCod: Boolean(data.shipment?.deductFeeFromCod),
+                    shipmentType: "",
+                    otherDescription: "",
+                    items: [],
+                    perishable: false,
+                    nonStackable: false,
+                    liquid: false,
+                    containsBatteries: false,
+                    dangerousGoods: false,
+                    commodities: isInternationalRoute ? [emptyCommodityRow()] : [],
+                    packingList: "",
+                },
                 declaredValue: "",
                 description: "",
                 hsCode: "",
@@ -1889,10 +2258,17 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
 
         markUpstreamChange();
-        setData(
-            "packages",
-            data.packages.filter((_, idx) => idx !== index)
-        );
+        setData((previous) => {
+            const remainingPackages = previous.packages.filter((_, idx) => idx !== index);
+
+            return {
+                ...previous,
+                packages: remainingPackages,
+                // the shipment-level type is derived from the packages, so a removed
+                // "Other" package must stop requiring vendor approval
+                shipment: { ...previous.shipment, ...deriveShipmentTypeFields(remainingPackages) },
+            };
+        });
     };
 
     const handleSubmit = (event) => {
@@ -2124,6 +2500,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }
 
         const timeoutId = window.setTimeout(() => {
+            const currentCity = String(data.sender?.address?.city || "").trim().toLowerCase();
+            if (currentCity && programmaticCityRef.current.sender === currentCity) {
+                return;
+            }
             lookupInternationalPostalCitySuggestionsByCity(
                 "sender",
                 data.sender?.address?.city,
@@ -2148,6 +2528,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }
 
         const timeoutId = window.setTimeout(() => {
+            const currentCity = String(data.recipient?.address?.city || "").trim().toLowerCase();
+            if (currentCity && programmaticCityRef.current.recipient === currentCity) {
+                return;
+            }
             lookupInternationalPostalCitySuggestionsByCity(
                 "recipient",
                 data.recipient?.address?.city,
@@ -2172,6 +2556,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }
 
         const timeoutId = window.setTimeout(() => {
+            const currentCity = String(data.sender?.address?.city || "").trim().toLowerCase();
+            if (currentCity && programmaticCityRef.current.sender === currentCity) {
+                return;
+            }
             lookupInternationalPostalCodes(
                 "sender",
                 data.sender?.address?.city,
@@ -2198,6 +2586,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }
 
         const timeoutId = window.setTimeout(() => {
+            const currentCity = String(data.recipient?.address?.city || "").trim().toLowerCase();
+            if (currentCity && programmaticCityRef.current.recipient === currentCity) {
+                return;
+            }
             lookupInternationalPostalCodes(
                 "recipient",
                 data.recipient?.address?.city,
@@ -2227,6 +2619,103 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             });
         };
     }, []);
+
+    // After "Add package", bring the new package into view so the client does
+    // not have to scroll down to it.
+    useEffect(() => {
+        const target = packageScrollTargetRef.current;
+        if (target === null || typeof window === "undefined") {
+            return undefined;
+        }
+
+        const frameId = window.requestAnimationFrame(() => {
+            const element = document.getElementById(`courier-package-${target}`);
+            if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+            packageScrollTargetRef.current = null;
+        });
+
+        return () => window.cancelAnimationFrame(frameId);
+    }, [data.packages.length]);
+
+    // International: the packing list is generated from the Add-unit rows and
+    // the declared value always equals the packing list total.
+    const commoditiesFingerprint = useMemo(
+        () => JSON.stringify((data.packages || []).map((pkg) => (
+            (pkg?.extras?.commodities || []).map((row) => [row.hsCode, row.description, row.type, row.weightKg, row.quantity, row.unitPrice])
+        ))),
+        [data.packages]
+    );
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return;
+        }
+
+        setData((previous) => {
+            let changed = false;
+            let grandTotal = 0;
+
+            const nextPackages = previous.packages.map((pkg) => {
+                const rows = Array.isArray(pkg?.extras?.commodities) ? pkg.extras.commodities : [];
+                const total = rows.filter(hasCommodityContent).reduce((sum, row) => sum + commodityRowTotal(row), 0);
+                grandTotal += total;
+
+                const packingList = buildPackingListText(rows);
+                const declared = total > 0 ? total.toFixed(2) : "";
+                const filledRows = rows.filter(hasCommodityContent);
+                const primaryHsCode = String(filledRows.map((row) => String(row.hsCode || "").trim()).find(Boolean) || "").slice(0, 20);
+                const goodsDescription = filledRows
+                    .map((row) => String(row.description || "").trim())
+                    .filter(Boolean)
+                    .join(", ")
+                    .slice(0, 500);
+
+                if (
+                    (pkg?.extras?.packingList || "") === packingList
+                    && String(pkg?.declaredValue ?? "") === declared
+                    && String(pkg?.hsCode || "") === primaryHsCode
+                    && String(pkg?.description || "") === goodsDescription
+                ) {
+                    return pkg;
+                }
+
+                changed = true;
+                return {
+                    ...pkg,
+                    declaredValue: declared,
+                    hsCode: primaryHsCode,
+                    description: goodsDescription,
+                    extras: { ...(pkg.extras || {}), packingList },
+                };
+            });
+
+            const nextEstimated = grandTotal > 0 ? grandTotal.toFixed(2) : "";
+            if (!changed && String(previous.shipment?.estimatedValue ?? "") === nextEstimated) {
+                return previous;
+            }
+
+            return {
+                ...previous,
+                packages: nextPackages,
+                shipment: { ...previous.shipment, estimatedValue: nextEstimated },
+            };
+        });
+    }, [selectedRouteType, commoditiesFingerprint]);
+
+    useEffect(() => {
+        if (!props.recentReference) {
+            return;
+        }
+
+        setOrderCodeCopied(false);
+        setOrderConfirmation({
+            reference: String(props.recentReference),
+            shipmentId: props.recentShipmentId || null,
+            message: flash?.success || "Your courier request has been submitted.",
+        });
+    }, [props.recentReference, props.recentShipmentId]);
 
     const packageMetrics = useMemo(() => computePackageMetrics(data.packages), [data.packages]);
 
@@ -2626,10 +3115,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 && recipientAddress.postalCode
             );
 
-        const hasShipmentType = Boolean(data.shipment?.shipmentType);
-        const needsShipmentDescription = data.shipment?.shipmentType === "other";
-        const hasShipmentDescription = !needsShipmentDescription
-            || Boolean(String(data.shipment?.shipmentTypeDescription || "").trim());
+        const hasShipmentType = data.packages.every((pkg) => Boolean(pkg?.extras?.shipmentType));
+        const hasShipmentDescription = data.packages.every((pkg) => (
+            pkg?.extras?.shipmentType !== "other"
+            || Boolean(String(pkg?.extras?.otherDescription || "").trim())
+        ));
 
         const packagesHaveNumbers = data.packages.every((pkg) => {
             const quantity = Number(pkg.quantity) || 0;
@@ -2680,10 +3170,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 && recipientAddress.postalCode
             );
 
-        const hasShipmentType = Boolean(data.shipment?.shipmentType);
-        const needsShipmentDescription = data.shipment?.shipmentType === "other";
-        const hasShipmentDescription = !needsShipmentDescription
-            || Boolean(String(data.shipment?.shipmentTypeDescription || "").trim());
+        const hasShipmentType = data.packages.every((pkg) => Boolean(pkg?.extras?.shipmentType));
+        const hasShipmentDescription = data.packages.every((pkg) => (
+            pkg?.extras?.shipmentType !== "other"
+            || Boolean(String(pkg?.extras?.otherDescription || "").trim())
+        ));
 
         const packagesHaveNumbers = data.packages.every((pkg) => {
             const quantity = Number(pkg.quantity) || 0;
@@ -2811,6 +3302,26 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         return token || "";
     };
 
+    const describeFailedResponse = (response) => {
+        if (response.status === 419) {
+            return "Your session has expired. Please refresh the page and try again.";
+        }
+
+        if (response.status === 401) {
+            return "Please sign in again to continue.";
+        }
+
+        if (response.status === 403) {
+            return "You do not have permission to continue with this booking.";
+        }
+
+        if (response.status === 429) {
+            return "Too many attempts. Please wait a moment and try again.";
+        }
+
+        return `Unable to continue. Please try again. (Error ${response.status})`;
+    };
+
     const prepareDetailsSession = async (payload) => {
         const csrfToken = getCsrfToken();
         if (!csrfToken) {
@@ -2847,7 +3358,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             if (!response.ok) {
                 return {
                     ok: false,
-                    message: "Unable to continue. Please try again.",
+                    message: describeFailedResponse(response),
                 };
             }
 
@@ -2897,7 +3408,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             if (!response.ok) {
                 return {
                     ok: false,
-                    message: "Unable to continue. Please try again.",
+                    message: describeFailedResponse(response),
                 };
             }
 
@@ -3330,7 +3841,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                             )}
                         </div>
 
-                        <section className="space-y-6">
+                        <section id="courier-package-section" className="scroll-mt-24 space-y-6">
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                 <div>
                                     <h2 className="text-2xl font-semibold text-[#0B1739]">Package details</h2>
@@ -3365,11 +3876,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                         ? INTERNATIONAL_DIMENSION_ASSIST_PRESETS
                                         : DOMESTIC_DIMENSION_ASSIST_PRESETS;
                                     const isPackageDetailsVisible = shouldShowShipmentDetailsSection;
+                                    const packageItems = Array.isArray(item.extras?.items) ? item.extras.items : [];
+                                    const typeLocked = selectedRouteType === "domestic" && packageItems.length > 2;
 
                                     return (
                                         <div
                                             key={`package-${index}`}
-                                            className="space-y-4"
+                                            id={`courier-package-${index}`}
+                                            className="scroll-mt-24 space-y-4"
                                         >
                                             {(selectedRouteType !== "international" || index === 0) && (
                                                 <div className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-6 shadow-sm">
@@ -3396,7 +3910,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 Locations*
                                                             </label>
                                                             <div
-                                                                className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "xl:grid-cols-3" : "xl:grid-cols-2"
+                                                                className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "max-w-4xl xl:grid-cols-3" : "xl:grid-cols-2"
                                                                     }`}
                                                             >
                                                                 {selectedRouteType === "domestic" && (
@@ -3405,7 +3919,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         <select
                                                                             value={DOMESTIC_COUNTRY_CODE}
                                                                             disabled
-                                                                            className="h-[52px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
+                                                                            aria-label="Country"
+                                                                            className="h-[42px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
                                                                         >
                                                                             <option value={DOMESTIC_COUNTRY_CODE}>
                                                                                 {DOMESTIC_COUNTRY_LABEL} ({DOMESTIC_COUNTRY_CODE})
@@ -3431,7 +3946,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                         }
                                                                                     }}
                                                                                     onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    className="h-[42px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                                     placeholder="Type to search city..."
                                                                                 />
                                                                                 {domesticCityLoading.sender && (
@@ -3473,7 +3988,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                         }
                                                                                     }}
                                                                                     onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    className="h-[42px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                                     placeholder="Type to search city..."
                                                                                 />
                                                                                 {domesticCityLoading.recipient && (
@@ -3804,701 +4319,793 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                         )}
 
                                                         {selectedRouteType === "domestic" && (
-                                                            <div className="border-t border-[#E4EAF5] pt-6">
-                                                                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
-                                                                    <div>
-                                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                                            Package weight*
-                                                                        </label>
+    <div className="border-t border-[#E4EAF5] pt-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[175px_minmax(0,1.2fr)_190px_minmax(0,1.6fr)] xl:items-start">
+            <div>
+                <label className="mb-1 block text-sm font-medium text-[#0B1739]">Package weight*</label>
+                <div className="grid grid-cols-[1fr_58px] gap-1.5">
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={toDisplayValue(item.weightKg, weightFactor, 2)}
+                        onChange={(event) => updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))}
+                        className="h-[40px] w-full min-w-0 rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                        placeholder="Weight"
+                    />
+                    <select
+                        value={weightUnit}
+                        onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
+                        aria-label="Weight unit"
+                        className="h-[40px] w-[58px] rounded-lg border border-[#D6DEEB] bg-white pl-2 pr-5 text-xs font-semibold text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                    >
+                        <option value="kg">kg</option>
+                    </select>
+                </div>
+                {errors[`packages.${index}.weightKg`] && (
+                    <p className="mt-1 text-xs text-red-500">{errors[`packages.${index}.weightKg`]}</p>
+                )}
+                <div className="mt-1.5 space-y-0.5 text-[11px] text-[#5B6887]">
+                    <p>Weight: <strong className="text-[#0B1739]">{formatWeightKg(item.weightKg)}</strong></p>
+                    <p>
+                        Volumetric: <strong className="text-[#0B1739]">{formatWeightKg(computeVolumetricWeightKg(itemLength, itemWidth, itemHeight))}</strong>
+                        <span className="text-[#8C97B0]"> (L×W×H cm ÷ 5000)</span>
+                    </p>
+                </div>
+            </div>
 
-                                                                        <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
-                                                                            <input
-                                                                                type="number"
-                                                                                min="0"
-                                                                                step="0.01"
-                                                                                value={toDisplayValue(item.weightKg, weightFactor, 2)}
-                                                                                onChange={(event) =>
-                                                                                    updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))
-                                                                                }
-                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Weight"
-                                                                            />
-                                                                            <select
-                                                                                value={weightUnit}
-                                                                                onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
-                                                                                className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            >
-                                                                                <option value="kg">kg</option>
-                                                                            </select>
-                                                                        </div>
-                                                                        {errors[`packages.${index}.weightKg`] && (
-                                                                            <p className="mt-2 text-sm text-red-500">
-                                                                                {errors[`packages.${index}.weightKg`]}
-                                                                            </p>
-                                                                        )}
-                                                                        {(
-                                                                            <div className="mt-2 space-y-0.5 text-xs text-[#5B6887]">
-                                                                                <p>Weight: <strong className="text-[#0B1739]">{formatWeightKg(item.weightKg)}</strong></p>
-                                                                                <p>
-                                                                                    Volumetric weight: <strong className="text-[#0B1739]">{formatWeightKg(computeVolumetricWeightKg(itemLength, itemWidth, itemHeight))}</strong>
-                                                                                    <span className="text-[#8C97B0]"> (L × W × H cm ÷ 5000)</span>
-                                                                                </p>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
+            <div>
+                <label className="mb-1 block text-sm font-medium text-[#0B1739]">Dimensions *</label>
+                <div className="grid grid-cols-[1fr_1fr_1fr_64px] gap-1.5">
+                    {[
+                        { field: "lengthCm", value: item.lengthCm, placeholder: "Length" },
+                        { field: "widthCm", value: item.widthCm, placeholder: "Width" },
+                        { field: "heightCm", value: item.heightCm, placeholder: "Height" },
+                    ].map((dimension) => (
+                        <input
+                            key={`domestic-dimension-${index}-${dimension.field}`}
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={toDisplayValue(dimension.value, dimensionFactor, 2)}
+                            onChange={(event) => updatePackage(index, dimension.field, toBaseValue(event.target.value, dimensionFactor))}
+                            className="h-[40px] w-full min-w-0 rounded-lg border border-[#D6DEEB] bg-white px-2 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                            placeholder={dimension.placeholder}
+                        />
+                    ))}
+                    <select
+                        value={dimensionUnit}
+                        onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
+                        aria-label="Dimension unit"
+                        className="h-[40px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-2 pr-5 text-xs font-semibold text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                    >
+                        <option value="mm">mm</option>
+                        <option value="cm">cm</option>
+                        <option value="m">m</option>
+                        <option value="yd">yd</option>
+                    </select>
+                </div>
+                {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
+                    <p className="mt-1 text-xs text-red-500">
+                        {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
+                    </p>
+                )}
+            </div>
 
-                                                                    <div>
-                                                                        <div className="mb-2 flex items-center gap-2">
-                                                                            <label className="block text-sm font-medium text-[#0B1739]">
-                                                                                Dimensions *
-                                                                            </label>
-                                                                        </div>
+            <ShipmentTypeField
+                compact
+                value={item.extras?.shipmentType || ""}
+                onChange={(value) => updatePackageType(index, value)}
+                disabled={typeLocked}
+                lockedMessage="Type is locked once a package has more than two items."
+                otherDescription={item.extras?.otherDescription || ""}
+                onOtherDescriptionChange={(text) => updatePackageOtherDescription(index, text)}
+            />
 
-                                                                        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
-                                                                            <input
-                                                                                type="number"
-                                                                                min="0"
-                                                                                step="0.1"
-                                                                                value={toDisplayValue(item.lengthCm, dimensionFactor, 2)}
-                                                                                onChange={(event) =>
-                                                                                    updatePackage(index, "lengthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                                }
-                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Length"
-                                                                            />
-                                                                            <input
-                                                                                type="number"
-                                                                                min="0"
-                                                                                step="0.1"
-                                                                                value={toDisplayValue(item.widthCm, dimensionFactor, 2)}
-                                                                                onChange={(event) =>
-                                                                                    updatePackage(index, "widthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                                }
-                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Width"
-                                                                            />
-                                                                            <input
-                                                                                type="number"
-                                                                                min="0"
-                                                                                step="0.1"
-                                                                                value={toDisplayValue(item.heightCm, dimensionFactor, 2)}
-                                                                                onChange={(event) =>
-                                                                                    updatePackage(index, "heightCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                                }
-                                                                                className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                                                placeholder="Height"
-                                                                            />
-                                                                            <select
-                                                                                value={dimensionUnit}
-                                                                                onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
-                                                                                className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                                            >
-                                                                                <option value="mm">mm</option>
-                                                                                <option value="cm">cm</option>
-                                                                                <option value="m">m</option>
-                                                                                <option value="yd">yd</option>
-                                                                            </select>
-                                                                        </div>
+            <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                    <label className="block text-sm font-medium text-[#0B1739]">
+                        Items <span className="font-normal text-[#8C97B0]">(optional)</span>
+                    </label>
+                    <button
+                        type="button"
+                        onClick={() => addPackageItem(index)}
+                        className="rounded-md bg-[#0955AC] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-[#0a4b93]"
+                    >
+                        + Add item
+                    </button>
+                </div>
+                {packageItems.length === 0 ? (
+                    <p className="text-[11px] text-[#8C97B0]">
+                        List what is packed in this package with a quantity and short description.
+                    </p>
+                ) : (
+                    <div className="space-y-1.5">
+                        <div className="grid grid-cols-[minmax(0,1fr)_56px_minmax(0,1.2fr)_20px] gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#8C97B0]">
+                            <span>Item</span>
+                            <span>Qty</span>
+                            <span>Description</span>
+                            <span />
+                        </div>
+                        {packageItems.map((entry, itemIndex) => (
+                            <div
+                                key={`package-${index}-item-${itemIndex}`}
+                                className="grid grid-cols-[minmax(0,1fr)_56px_minmax(0,1.2fr)_20px] items-center gap-1.5"
+                            >
+                                <input
+                                    type="text"
+                                    value={entry.name || ""}
+                                    onChange={(event) => updatePackageItem(index, itemIndex, "name", event.target.value)}
+                                    maxLength={80}
+                                    className="h-[36px] w-full min-w-0 rounded-md border border-[#D6DEEB] bg-white px-2 text-xs text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                    placeholder="Item name"
+                                />
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={entry.quantity ?? ""}
+                                    aria-label="Item quantity"
+                                    onChange={(event) => updatePackageItem(index, itemIndex, "quantity", event.target.value === "" ? "" : Math.max(1, parseInt(event.target.value, 10) || 1))}
+                                    className="h-[36px] w-full min-w-0 rounded-md border border-[#D6DEEB] bg-white px-2 text-xs text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                />
+                                <input
+                                    type="text"
+                                    value={entry.description || ""}
+                                    onChange={(event) => updatePackageItem(index, itemIndex, "description", event.target.value)}
+                                    maxLength={200}
+                                    className="h-[36px] w-full min-w-0 rounded-md border border-[#D6DEEB] bg-white px-2 text-xs text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                    placeholder="Description"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => removePackageItem(index, itemIndex)}
+                                    className="text-base leading-none text-red-500 hover:text-red-600"
+                                    aria-label="Remove item"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
 
-                                                                        {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
-                                                                            <p className="mt-2 text-sm text-red-500">
-                                                                                {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
+        <div className="mt-4 border-t border-[#E4EAF5] pt-4">
+            <p className="text-sm font-semibold text-[#0B1739]">Your item is...</p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px] text-[#8A8A8A]">
+                <label className="inline-flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={Boolean(item.fragile)}
+                        onChange={(event) => updateHandlingFlag(index, "fragile", event.target.checked)}
+                        className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                    />
+                    Fragile
+                </label>
+                <label className="inline-flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={Boolean(item.extras?.perishable)}
+                        onChange={(event) => updateHandlingFlag(index, "perishable", event.target.checked)}
+                        className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                    />
+                    Perishable
+                </label>
+                <label className="inline-flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={Boolean(item.extras?.liquid)}
+                        onChange={(event) => updateHandlingFlag(index, "liquid", event.target.checked)}
+                        className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                    />
+                    Liquid
+                </label>
 
-                                                                    <ShipmentTypeField
-                                                                        value={data.shipment.shipmentType}
-                                                                        onChange={handleShipmentTypeChange}
-                                                                    />
-                                                                </div>
+                <div className="group relative">
+                    <button
+                        type="button"
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-[#8A8A8A] text-sm font-semibold text-[#404040]"
+                        aria-label="Why do we need this information"
+                    >
+                        ?
+                    </button>
+                    <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
+                        <p className="font-semibold">Why do we need this information?</p>
+                        <p className="mt-2 leading-6">
+                            Please choose "Fragile" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. Mark food and similar goods as "Perishable" and "Liquid" for leak-prone items so the courier can prioritise and handle them correctly.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-                                                                {data.shipment.shipmentType === "other" && (
-                                                                    <div className="mt-4 w-full">
-                                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
-                                                                        <textarea
-                                                                            value={data.shipment.shipmentTypeDescription || ""}
-                                                                            onChange={(event) => {
-                                                                                markUpstreamChange();
-                                                                                setData("shipment", {
-                                                                                    ...data.shipment,
-                                                                                    shipmentTypeDescription: event.target.value,
-                                                                                });
-                                                                            }}
-                                                                            className="min-h-[96px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 py-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Describe the shipment type"
-                                                                        />
-                                                                    </div>
-                                                                )}
+            {item.extras?.paymentMethod === "cod" && (
+                <div className="mt-4 max-w-[300px]">
+                    <label className="mb-1 block text-xs font-medium text-[#0B1739]">COD amount (LKR)* <span className="font-normal text-[#8C97B0]">for this package</span></label>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.declaredValue ?? ""}
+                        onChange={(event) => updatePackage(index, "declaredValue", event.target.value)}
+                        className="h-[40px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                        placeholder="Amount to collect on delivery"
+                    />
+                </div>
+            )}
+        </div>
+    </div>
+)}
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                                                <div className="mt-5 border-t border-[#E4EAF5] pt-5">
-                                                                    <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
-                                                                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={Boolean(item.fragile)}
-                                                                            onChange={(event) => updateHandlingFlag(index, "fragile", event.target.checked)}
-                                                                            className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
-                                                                        />
-                                                                        <span className="text-[16px] leading-none text-[#8A8A8A]">Fragile</span>
+                                            {selectedRouteType === "international" && isPackageDetailsVisible && (
+    <div
+        ref={index === 0 ? shipmentDimensionSectionRef : null}
+        className="space-y-4 pt-11"
+    >
+        {index === 0 && (
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                    <h2 className="text-2xl font-semibold text-[#0B1739]">Packages</h2>
+                    <p className="mt-2 text-sm text-[#5B6887]">
+                        Add the units in each package first, then set the package weight, dimensions, and options.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={addPackage}
+                    className="inline-flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white transition hover:border-[#04356d] hover:text-white"
+                >
+                    + Add package
+                </button>
+            </div>
+        )}
 
-                                                                        <div className="group relative">
-                                                                            <button
-                                                                                type="button"
-                                                                                className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
-                                                                                aria-label="Why do we need this information"
-                                                                            >
-                                                                                ?
-                                                                            </button>
+        <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-[#0B1739]">
+                Package {index + 1}
+            </h3>
+            <button
+                type="button"
+                onClick={() => removePackage(index)}
+                className="text-sm text-red-500 hover:text-red-600 disabled:text-red-300"
+                disabled={data.packages.length === 1}
+            >
+                Remove
+            </button>
+        </div>
 
-                                                                            <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
-                                                                                <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
-                                                                                <p className="font-semibold">Why do we need this information?</p>
-                                                                                <p className="mt-2 leading-6">
-                                                                                    Please choose "Fragile" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
+        <div className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-6 shadow-sm">
+            {/* 1. Add unit (commodities) comes first: HS code + description live here */}
+            <div className="rounded-xl border border-[#E4EAF5] bg-[#F9FBFF] p-4">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <p className="text-sm font-semibold text-[#0B1739]">Units in this package</p>
+                        <p className="text-xs text-[#5B6887]">Add each commodity one by one. Start typing a product name or code to look up its HS code.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => addCommodity(index)}
+                        className="rounded-lg bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0a4b93]"
+                    >
+                        + Add unit
+                    </button>
+                </div>
 
-                                                                    {selectedRouteType === "domestic" && (
-                            <>
-                                {index === 0 && (
-                                    <>
-                                        <p className="mt-4 text-sm font-semibold text-[#0B1739]">Payment options* <span className="font-normal text-[#8C97B0]">(applies to every package)</span></p>
-                                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
-                                            <label className="inline-flex items-center gap-2">
+                {(item.extras?.commodities || []).length > 0 && (
+                    <div className="mt-4 overflow-x-auto lg:overflow-visible">
+                        <table className="w-full min-w-[760px] text-left text-xs text-[#5B6887]">
+                            <thead>
+                                <tr className="border-b border-[#E4EAF5] text-[#0B1739]">
+                                    <th className="px-2 py-2">#</th>
+                                    <th className="px-2 py-2">HS code</th>
+                                    <th className="px-2 py-2">Commodity specification</th>
+                                    <th className="px-2 py-2">Type</th>
+                                    <th className="px-2 py-2">Weight (kg)</th>
+                                    <th className="px-2 py-2">Quantity</th>
+                                    <th className="px-2 py-2">Unit price (USD)</th>
+                                    <th className="px-2 py-2">Total (USD)</th>
+                                    <th className="px-2 py-2"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(item.extras?.commodities || []).map((row, rowIndex) => {
+                                    const hsKey = `${index}-${rowIndex}`;
+                                    const cellClass = "h-[40px] w-full rounded-md border border-[#D6DEEB] bg-white px-2 text-xs text-[#0B1739] focus:border-[#0955AC] focus:outline-none";
+                                    return (
+                                        <tr key={`commodity-${index}-${rowIndex}`} className="border-b border-[#EEF2F8] align-top">
+                                            <td className="px-2 py-2 pt-4 text-[#0B1739]">{rowIndex + 1}</td>
+                                            <td className="relative px-2 py-2">
                                                 <input
-                                                    type="checkbox"
-                                                    className="h-4 w-4 accent-[#0955AC]"
-                                                    checked={item.extras?.paymentMethod === "cod"}
-                                                    onChange={(event) => setPackagePaymentMethod(index, event.target.checked ? "cod" : "")}
+                                                    className={cellClass}
+                                                    value={row.hsCode || ""}
+                                                    onChange={(event) => {
+                                                        updateCommodity(index, rowIndex, "hsCode", event.target.value);
+                                                        fetchHsCodeSuggestions(hsKey, event.target.value);
+                                                    }}
+                                                    onFocus={() => setActiveHsCodeField(hsKey)}
+                                                    onBlur={() => {
+                                                        window.setTimeout(() => {
+                                                            setActiveHsCodeField((current) => (current === hsKey ? null : current));
+                                                        }, 120);
+                                                    }}
+                                                    maxLength={20}
+                                                    placeholder="Name or code"
+                                                    autoComplete="off"
                                                 />
-                                                COD
-                                            </label>
-                                            <label className="inline-flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    className="h-4 w-4 accent-[#0955AC]"
-                                                    checked={item.extras?.paymentMethod === "card"}
-                                                    onChange={(event) => setPackagePaymentMethod(index, event.target.checked ? "card" : "")}
-                                                />
-                                                Debit / Credit
-                                            </label>
+                                                {activeHsCodeField === hsKey && hsCodeLoading[hsKey] && (
+                                                    <p className="mt-1 text-[11px] text-[#5B6887]">Searching HS codes...</p>
+                                                )}
+                                                {activeHsCodeField === hsKey && (hsCodeSuggestions[hsKey]?.length > 0) && (
+                                                    <ul className="absolute left-2 z-30 mt-1 max-h-64 w-[320px] overflow-y-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {hsCodeSuggestions[hsKey].map((option) => (
+                                                            <li key={option.code}>
+                                                                <button
+                                                                    type="button"
+                                                                    onMouseDown={(event) => event.preventDefault()}
+                                                                    onClick={() => handleCommodityHsSelect(index, rowIndex, option)}
+                                                                    className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-sm hover:bg-[#F4F7FC]"
+                                                                >
+                                                                    <span className="font-medium text-[#0B1739]">{option.code}</span>
+                                                                    <span className="text-xs text-[#5B6887]">{option.description}</span>
+                                                                </button>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </td>
+                                            <td className="px-2 py-2"><input className={cellClass} value={row.description || ""} onChange={(event) => updateCommodity(index, rowIndex, "description", event.target.value)} maxLength={300} placeholder="e.g. Cotton t-shirts, men's" /></td>
+                                            <td className="px-2 py-2">
+                                                <select className={cellClass} value={row.type || ""} onChange={(event) => updateCommodity(index, rowIndex, "type", event.target.value)}>
+                                                    <option value="">Select</option>
+                                                    {SHIPMENT_TYPE_OPTIONS.map((option) => (
+                                                        <option key={`commodity-type-${option.value}`} value={option.value}>{option.label}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="px-2 py-2"><input type="number" min="0" step="0.01" className={cellClass} value={row.weightKg ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "weightKg", event.target.value)} /></td>
+                                            <td className="px-2 py-2"><input type="number" min="0" step="1" className={cellClass} value={row.quantity ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "quantity", event.target.value)} /></td>
+                                            <td className="px-2 py-2"><input type="number" min="0" step="0.01" className={cellClass} value={row.unitPrice ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "unitPrice", event.target.value)} /></td>
+                                            <td className="px-2 py-2 pt-4 font-semibold text-[#0B1739]">{commodityRowTotal(row).toFixed(2)}</td>
+                                            <td className="px-2 py-2 pt-4"><button type="button" onClick={() => removeCommodity(index, rowIndex)} className="text-red-500 hover:underline">Remove</button></td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colSpan={7} className="px-2 py-2 text-right font-semibold text-[#0B1739]">Total amount (USD)</td>
+                                    <td className="px-2 py-2 font-semibold text-[#0B1739]">
+                                        {(item.extras?.commodities || []).reduce((sum, row) => sum + commodityRowTotal(row), 0).toFixed(2)}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                )}
+                {errors[`packages.${index}.extras.commodities`] && (
+                    <p className="mt-2 text-sm text-red-500">{errors[`packages.${index}.extras.commodities`]}</p>
+                )}
+            </div>
+
+            {/* 2. Package weight, dimensions, quantity and type - separate from Add unit */}
+            <div className="mt-6 border-t border-[#E4EAF5] pt-5">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">Package weight*</label>
+                        <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={toDisplayValue(item.weightKg, weightFactor, 2)}
+                                onChange={(event) => updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))}
+                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                placeholder="Weight"
+                            />
+                            <select
+                                value={weightUnit}
+                                onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
+                                aria-label="Weight unit"
+                        className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                            >
+                                <option value="kg">kg</option>
+                            </select>
+                        </div>
+                        {errors[`packages.${index}.weightKg`] && (
+                            <p className="mt-2 text-sm text-red-500">{errors[`packages.${index}.weightKg`]}</p>
+                        )}
+                        <div className="mt-2 space-y-0.5 text-xs text-[#5B6887]">
+                            <p>Weight: <strong className="text-[#0B1739]">{formatWeightKg(item.weightKg)}</strong></p>
+                            <p>
+                                Volumetric weight: <strong className="text-[#0B1739]">{formatWeightKg(computeVolumetricWeightKg(itemLength, itemWidth, itemHeight))}</strong>
+                                <span className="text-[#8C97B0]"> (L × W × H cm ÷ 5000)</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">Dimensions *</label>
+                        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
+                            {[
+                                { field: "lengthCm", value: item.lengthCm, placeholder: "Length" },
+                                { field: "widthCm", value: item.widthCm, placeholder: "Width" },
+                                { field: "heightCm", value: item.heightCm, placeholder: "Height" },
+                            ].map((dimension) => (
+                                <input
+                                    key={`intl-dimension-${index}-${dimension.field}`}
+                                    type="number"
+                                    min="0"
+                                    step="0.1"
+                                    value={toDisplayValue(dimension.value, dimensionFactor, 2)}
+                                    onChange={(event) => updatePackage(index, dimension.field, toBaseValue(event.target.value, dimensionFactor))}
+                                    className={`h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none ${dimension.field === "heightCm" ? "col-span-2 md:col-span-1" : ""}`}
+                                    placeholder={dimension.placeholder}
+                                />
+                            ))}
+                            <select
+                                value={dimensionUnit}
+                                onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
+                                aria-label="Dimension unit"
+                        className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
+                            >
+                                <option value="mm">mm</option>
+                                <option value="cm">cm</option>
+                                <option value="m">m</option>
+                                <option value="yd">yd</option>
+                            </select>
+                        </div>
+                        {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
+                            <p className="mt-2 text-sm text-red-500">
+                                {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="w-full">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-[#0B1739]">Item quantity</label>
+                                <div className="mt-2 flex h-[52px] items-center justify-between rounded-lg border border-[#D6DEEB] bg-white px-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => updatePackageQuantity(index, -1)}
+                                        className="flex h-7 w-7 items-center justify-center rounded-md border border-[#D6DEEB] text-base font-semibold text-[#0B1739] hover:border-[#0955AC]"
+                                        aria-label="Decrease item quantity"
+                                    >
+                                        -
+                                    </button>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        inputMode="numeric"
+                                        aria-label="Item quantity"
+                                        value={item.quantity ?? ""}
+                                        onChange={(event) => {
+                                            const raw = event.target.value;
+                                            updatePackage(index, "quantity", raw === "" ? "" : Math.max(1, parseInt(raw, 10) || 1));
+                                        }}
+                                        onBlur={() => {
+                                            if (!item.quantity) updatePackage(index, "quantity", 1);
+                                        }}
+                                        className="h-8 w-16 rounded-md border border-[#D6DEEB] bg-white text-center text-sm font-semibold text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => updatePackageQuantity(index, 1)}
+                                        className="flex h-7 w-7 items-center justify-center rounded-md border border-[#D6DEEB] text-base font-semibold text-[#0B1739] hover:border-[#0955AC]"
+                                        aria-label="Increase item quantity"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                                {errors[`packages.${index}.quantity`] && (
+                                    <p className="mt-2 text-sm text-red-500">{errors[`packages.${index}.quantity`]}</p>
+                                )}
+                            </div>
+
+                            <ShipmentTypeField
+                                value={item.extras?.shipmentType || ""}
+                                onChange={(value) => updatePackageType(index, value)}
+                                otherDescription={item.extras?.otherDescription || ""}
+                                onOtherDescriptionChange={(text) => updatePackageOtherDescription(index, text)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-4 border-t border-[#E4EAF5] pt-4">
+                    <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {dimensionAssistPresets.map((preset) => {
+                            const hasMatchingBase = itemLength === preset.lengthCm
+                                && itemWidth === preset.widthCm;
+                            const isActive = preset.prefillHeight
+                                ? (hasMatchingBase && itemHeight === preset.heightCm)
+                                : hasMatchingBase;
+
+                            return (
+                                <button
+                                    key={`preset-${index}-${preset.id}`}
+                                    type="button"
+                                    onClick={() => applyDimensionPreset(index, preset)}
+                                    className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
+                                        ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
+                                        : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
+                                        }`}
+                                >
+                                    {isActive && (
+                                        <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
+                                            ✓
+                                        </span>
+                                    )}
+                                    <div className="flex items-center gap-3">
+                                        <img
+                                            src={preset.imageSrc}
+                                            alt={preset.imageAlt}
+                                            className="h-10 w-20 object-contain"
+                                        />
+                                        <div>
+                                            <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
+                                            <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
                                         </div>
-                                        {item.extras?.paymentMethod === "cod" && (
-                                            <div className="mt-3 max-w-xs">
-                                                <label className="mb-1 block text-xs font-medium text-[#0B1739]">COD payment method*</label>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-5">
+                        <p className="text-sm font-semibold text-[#0B1739]">Your item is...</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[16px] text-[#8A8A8A]">
+                            <label className="inline-flex items-center gap-2">
+                                <input type="checkbox" checked={Boolean(item.fragile)} onChange={(event) => updateHandlingFlag(index, "fragile", event.target.checked)} className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+                                Fragile
+                            </label>
+                            <label className="inline-flex items-center gap-2">
+                                <input type="checkbox" checked={Boolean(item.extras?.nonStackable)} onChange={(event) => updateHandlingFlag(index, "nonStackable", event.target.checked)} className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+                                Non-stackable
+                            </label>
+                            <label className="inline-flex items-center gap-2">
+                                <input type="checkbox" checked={Boolean(item.extras?.liquid)} onChange={(event) => updateHandlingFlag(index, "liquid", event.target.checked)} className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+                                Liquid
+                            </label>
+                            <label className="inline-flex items-center gap-2">
+                                <input type="checkbox" checked={Boolean(item.extras?.containsBatteries)} onChange={(event) => updateHandlingFlag(index, "containsBatteries", event.target.checked)} className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+                                Contains batteries
+                            </label>
+                            <label className="inline-flex items-center gap-2">
+                                <input type="checkbox" checked={Boolean(item.extras?.dangerousGoods)} onChange={(event) => updateHandlingFlag(index, "dangerousGoods", event.target.checked)} className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
+                                Dangerous goods
+                            </label>
+
+                            <div className="group relative">
+                                <button
+                                    type="button"
+                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
+                                    aria-label="Why do we need this information"
+                                >
+                                    ?
+                                </button>
+
+                                <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
+                                    <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
+                                    <p className="font-semibold">Why do we need this information?</p>
+                                    <p className="mt-2 leading-6">
+                                        Please choose "Fragile" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-5 flex flex-col gap-3 border-t border-[#E4EAF5] pt-5 text-sm text-[#0B1739]">
+                    <label className="inline-flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            className="h-5 w-5 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                            checked={Boolean(data.shipment?.containsExclusivelyDocuments)}
+                            onChange={(event) => updateShipmentPreference("containsExclusivelyDocuments", event.target.checked)}
+                        />
+                        Shipment contains exclusively documents
+                    </label>
+                </div>
+            </div>
+
+            {/* 3. Packing list is generated automatically from the units above */}
+            {(() => {
+                const packingRows = (item.extras?.commodities || []).filter(hasCommodityContent);
+                const packingTotal = packingRows.reduce((sum, row) => sum + commodityRowTotal(row), 0);
+
+                return (
+                    <div className="mt-6 rounded-xl border border-[#E4EAF5] bg-white p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <p className="text-sm font-semibold text-[#0B1739]">
+                                    Packing list <span className="font-normal text-[#8C97B0]">(auto-generated from your units)</span>
+                                </p>
+                                <p className="text-xs text-[#5B6887]">
+                                    Updates automatically as you edit units and is shared with the service provider on your booking.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => downloadPackingList(index)}
+                                disabled={packingRows.length === 0}
+                                className={`rounded-lg border border-[#0955AC] px-3 py-1.5 text-xs font-semibold text-[#0955AC] transition ${packingRows.length === 0 ? "cursor-not-allowed opacity-40" : "hover:bg-[#0955AC] hover:text-white"}`}
+                            >
+                                Download CSV
+                            </button>
+                        </div>
+
+                        {packingRows.length === 0 ? (
+                            <p className="mt-3 rounded-lg border border-dashed border-[#D6DEEB] px-3 py-3 text-xs text-[#8C97B0]">
+                                Add at least one unit above to generate the packing list.
+                            </p>
+                        ) : (
+                            <div className="mt-3 overflow-x-auto">
+                                <table className="w-full min-w-[560px] text-left text-xs text-[#5B6887]">
+                                    <thead>
+                                        <tr className="border-b border-[#E4EAF5] text-[#0B1739]">
+                                            <th className="px-2 py-1.5">#</th>
+                                            <th className="px-2 py-1.5">Description</th>
+                                            <th className="px-2 py-1.5">HS code</th>
+                                            <th className="px-2 py-1.5">Qty</th>
+                                            <th className="px-2 py-1.5">Weight (kg)</th>
+                                            <th className="px-2 py-1.5">Unit price</th>
+                                            <th className="px-2 py-1.5">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {packingRows.map((row, rowIndex) => (
+                                            <tr key={`packing-row-${index}-${rowIndex}`} className="border-b border-[#EEF2F8]">
+                                                <td className="px-2 py-1.5">{rowIndex + 1}</td>
+                                                <td className="px-2 py-1.5">{row.description || "Item"}</td>
+                                                <td className="px-2 py-1.5">{row.hsCode || "-"}</td>
+                                                <td className="px-2 py-1.5">{Number(row.quantity) || 0}</td>
+                                                <td className="px-2 py-1.5">{Number(row.weightKg) || 0}</td>
+                                                <td className="px-2 py-1.5">{(Number(row.unitPrice) || 0).toFixed(2)}</td>
+                                                <td className="px-2 py-1.5 font-semibold text-[#0B1739]">{commodityRowTotal(row).toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        <div className="mt-3 flex items-center justify-between rounded-lg bg-[#F4F8FF] px-3 py-2 text-sm text-[#0B1739]">
+                            <span>Declared value <span className="text-xs text-[#5B6887]">(equals the packing list total)</span></span>
+                            <strong>USD {packingTotal.toFixed(2)}</strong>
+                        </div>
+                    </div>
+                );
+            })()}
+        </div>
+    </div>
+)}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={addPackage}
+                                    className="inline-flex items-center gap-2 rounded-lg border border-[#0955AC] bg-white px-5 py-2 text-sm font-semibold text-[#0955AC] transition hover:bg-[#0955AC] hover:text-white"
+                                >
+                                    + Add another package
+                                </button>
+                            </div>
+                        </section>
+
+                        {selectedRouteType === "domestic" && (data.packages || []).length > 0 && (
+                            <section
+                                id="courier-payment-options"
+                                className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-5 shadow-sm"
+                            >
+                                <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
+                                    <h3 className="text-base font-semibold text-[#0B1739]">Payment options*</h3>
+                                    <p className="text-xs text-[#8C97B0]">Applies to every package</p>
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap gap-5 text-sm text-[#5B6887]">
+                                    <label className="inline-flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 accent-[#0955AC]"
+                                            checked={data.packages[0]?.extras?.paymentMethod === "cod"}
+                                            onChange={(event) => setPackagePaymentMethod(0, event.target.checked ? "cod" : "")}
+                                        />
+                                        COD
+                                    </label>
+                                    <label className="inline-flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 accent-[#0955AC]"
+                                            checked={data.packages[0]?.extras?.paymentMethod === "card"}
+                                            onChange={(event) => setPackagePaymentMethod(0, event.target.checked ? "card" : "")}
+                                        />
+                                        Debit / Credit
+                                    </label>
+                                </div>
+
+                                {data.packages[0]?.extras?.paymentMethod === "cod" && (
+                                    <div className="mt-4 space-y-4">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                            <div>
+                                                <label htmlFor="cod-payment-method" className="mb-1 block text-xs font-medium text-[#0B1739]">COD payment method*</label>
                                                 <select
+                                                    id="cod-payment-method"
                                                     value={data.shipment?.codPaymentMethod || ""}
                                                     onChange={(event) => {
                                                         markUpstreamChange();
                                                         setData("shipment", { ...data.shipment, codPaymentMethod: event.target.value });
                                                     }}
-                                                    className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                    className="h-[42px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                 >
                                                     <option value="">Select method</option>
                                                     {availableCodMethods.includes("cash") && <option value="cash">Cash</option>}
                                                     {availableCodMethods.includes("bank_transfer") && <option value="bank_transfer">Bank transfer</option>}
                                                 </select>
                                             </div>
+
+                                            <div>
+                                                <p className="mb-1 text-xs font-medium text-[#0B1739]">Courier service fee is paid by</p>
+                                                <div className="space-y-1.5 text-sm text-[#5B6887]">
+                                                    <label className="flex items-start gap-2">
+                                                        <input
+                                                            type="radio"
+                                                            name="courier-fee-payer"
+                                                            className="mt-1 h-4 w-4 accent-[#0955AC]"
+                                                            checked={(data.shipment?.courierFeePayer || "receiver") === "receiver"}
+                                                            onChange={() => setCourierFeeOption({ courierFeePayer: "receiver", deductFeeFromCod: false })}
+                                                        />
+                                                        <span>Receiver <span className="text-[#8C97B0]">- pays the COD amount + courier service fee</span></span>
+                                                    </label>
+                                                    <label className="flex items-start gap-2">
+                                                        <input
+                                                            type="radio"
+                                                            name="courier-fee-payer"
+                                                            className="mt-1 h-4 w-4 accent-[#0955AC]"
+                                                            checked={data.shipment?.courierFeePayer === "sender"}
+                                                            onChange={() => setCourierFeeOption({ courierFeePayer: "sender" })}
+                                                        />
+                                                        <span>Sender <span className="text-[#8C97B0]">- pays only the courier service fee; receiver pays the COD amount</span></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {data.shipment?.courierFeePayer === "sender" && (
+                                            <label className="flex items-start gap-2 text-sm text-[#5B6887]">
+                                                <input
+                                                    type="checkbox"
+                                                    className="mt-1 h-4 w-4 accent-[#0955AC]"
+                                                    checked={Boolean(data.shipment?.deductFeeFromCod)}
+                                                    onChange={(event) => setCourierFeeOption({ deductFeeFromCod: event.target.checked })}
+                                                />
+                                                <span>Deduct the courier service fee from the COD amount instead of collecting it from the sender</span>
+                                            </label>
                                         )}
-                                    </>
-                                )}
-                                {item.extras?.paymentMethod === "cod" && (
-                                    <div className="mt-3 max-w-xs">
-                                        <label className="mb-1 block text-xs font-medium text-[#0B1739]">COD amount (LKR)* <span className="font-normal text-[#8C97B0]">for this package</span></label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={item.declaredValue ?? ""}
-                                            onChange={(event) => updatePackage(index, "declaredValue", event.target.value)}
-                                            className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                            placeholder="Amount to collect on delivery"
-                                        />
+
+                                        <p className="rounded-lg bg-[#F4F8FF] px-3 py-2 text-xs leading-5 text-[#1E3A8A]">
+                                            {(data.shipment?.courierFeePayer || "receiver") === "receiver"
+                                                ? "The receiver pays the COD amount plus the courier service fee on delivery."
+                                                : data.shipment?.deductFeeFromCod
+                                                    ? "The courier service fee is deducted from the COD amount collected, so the sender pays nothing upfront."
+                                                    : "The courier service fee is collected from the sender, and the receiver pays only the COD amount."}
+                                            {" "}Estimated total = COD amount + courier service fee. The declared value is not included.
+                                        </p>
                                     </div>
                                 )}
-                            </>
+                            </section>
                         )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {selectedRouteType === "international" && isPackageDetailsVisible && (
-                                                <div
-                                                    ref={index === 0 ? shipmentDimensionSectionRef : null}
-                                                    className="space-y-4 pt-11"
-                                                >
-                                                    {index === 0 && (
-                                                        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                                                            <div>
-                                                                <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment</h2>
-                                                                <p className="mt-2 text-sm text-[#5B6887]">
-                                                                    Use the quick calculator layout to set package weight, dimensions, and shipment options.
-                                                                </p>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={addPackage}
-                                                                className="inline-flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white transition hover:border-[#04356d] hover:text-white"
-                                                            >
-                                                                + Add shipment
-                                                            </button>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex items-center justify-between">
-                                                        <h3 className="text-base font-semibold text-[#0B1739]">
-                                                            Shipment {index + 1}
-                                                        </h3>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removePackage(index)}
-                                                            className="text-sm text-red-500 hover:text-red-600 disabled:text-red-300"
-                                                            disabled={data.packages.length === 1}
-                                                        >
-                                                            Remove
-                                                        </button>
-                                                    </div>
-
-                                                    <div
-                                                        className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-6 shadow-sm"
-                                                    >
-                                                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
-                                                            <div>
-                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                                    Package weight*
-                                                                </label>
-
-                                                                <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
-                                                                    <input
-                                                                        type="number"
-                                                                        min="0"
-                                                                        step="0.01"
-                                                                        value={toDisplayValue(item.weightKg, weightFactor, 2)}
-                                                                        onChange={(event) =>
-                                                                            updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))
-                                                                        }
-                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                        placeholder="Weight"
-                                                                    />
-                                                                    <select
-                                                                        value={weightUnit}
-                                                                        onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
-                                                                        className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                    >
-                                                                        <option value="kg">kg</option>
-                                                                    </select>
-                                                                </div>
-                                                                {errors[`packages.${index}.weightKg`] && (
-                                                                    <p className="mt-2 text-sm text-red-500">
-                                                                        {errors[`packages.${index}.weightKg`]}
-                                                                    </p>
-                                                                )}
-                                                                {(
-                                                                    <div className="mt-2 space-y-0.5 text-xs text-[#5B6887]">
-                                                                        <p>Weight: <strong className="text-[#0B1739]">{formatWeightKg(item.weightKg)}</strong></p>
-                                                                        <p>
-                                                                            Volumetric weight: <strong className="text-[#0B1739]">{formatWeightKg(computeVolumetricWeightKg(itemLength, itemWidth, itemHeight))}</strong>
-                                                                            <span className="text-[#8C97B0]"> (L × W × H cm ÷ 5000)</span>
-                                                                        </p>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            <div>
-                                                                <div className="mb-2 flex items-center gap-2">
-                                                                    <label className="block text-sm font-medium text-[#0B1739]">
-                                                                        Dimensions *
-                                                                    </label>
-                                                                </div>
-
-                                                                <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
-                                                                    <input
-                                                                        type="number"
-                                                                        min="0"
-                                                                        step="0.1"
-                                                                        value={toDisplayValue(item.lengthCm, dimensionFactor, 2)}
-                                                                        onChange={(event) =>
-                                                                            updatePackage(index, "lengthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                        }
-                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                        placeholder="Length"
-                                                                    />
-                                                                    <input
-                                                                        type="number"
-                                                                        min="0"
-                                                                        step="0.1"
-                                                                        value={toDisplayValue(item.widthCm, dimensionFactor, 2)}
-                                                                        onChange={(event) =>
-                                                                            updatePackage(index, "widthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                        }
-                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                        placeholder="Width"
-                                                                    />
-                                                                    <input
-                                                                        type="number"
-                                                                        min="0"
-                                                                        step="0.1"
-                                                                        value={toDisplayValue(item.heightCm, dimensionFactor, 2)}
-                                                                        onChange={(event) =>
-                                                                            updatePackage(index, "heightCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                        }
-                                                                        className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                                        placeholder="Height"
-                                                                    />
-                                                                    <select
-                                                                        value={dimensionUnit}
-                                                                        onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
-                                                                        className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                                    >
-                                                                        <option value="mm">mm</option>
-                                                                        <option value="cm">cm</option>
-                                                                        <option value="m">m</option>
-                                                                        <option value="yd">yd</option>
-                                                                    </select>
-                                                                </div>
-
-                                                                {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
-                                                                    <p className="mt-2 text-sm text-red-500">
-                                                                        {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="w-full">
-                                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                                    <div>
-                                                                        <label className="mb-1 block text-sm font-medium text-[#0B1739]">Item quantity</label>
-                                                                        <div className="mt-2 flex h-[52px] items-center justify-between rounded-lg border border-[#D6DEEB] bg-white px-2.5">
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => updatePackageQuantity(index, -1)}
-                                                                                className="flex h-7 w-7 items-center justify-center rounded-md border border-[#D6DEEB] text-base font-semibold text-[#0B1739] hover:border-[#0955AC]"
-                                                                                aria-label="Decrease item quantity"
-                                                                            >
-                                                                                -
-                                                                            </button>
-                                                                            <input
-                                                                                type="number"
-                                                                                min={1}
-                                                                                inputMode="numeric"
-                                                                                aria-label="Item quantity"
-                                                                                value={item.quantity ?? ""}
-                                                                                onChange={(event) => {
-                                                                                    const raw = event.target.value;
-                                                                                    updatePackage(index, "quantity", raw === "" ? "" : Math.max(1, parseInt(raw, 10) || 1));
-                                                                                }}
-                                                                                onBlur={() => {
-                                                                                    if (!item.quantity) updatePackage(index, "quantity", 1);
-                                                                                }}
-                                                                                className="h-8 w-16 rounded-md border border-[#D6DEEB] bg-white text-center text-sm font-semibold text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            />
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => updatePackageQuantity(index, 1)}
-                                                                                className="flex h-7 w-7 items-center justify-center rounded-md border border-[#D6DEEB] text-base font-semibold text-[#0B1739] hover:border-[#0955AC]"
-                                                                                aria-label="Increase item quantity"
-                                                                            >
-                                                                                +
-                                                                            </button>
-                                                                        </div>
-                                                                        {errors[`packages.${index}.quantity`] && (
-                                                                            <p className="mt-2 text-sm text-red-500">
-                                                                                {errors[`packages.${index}.quantity`]}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-
-                                                                    <ShipmentTypeField
-                                                                        value={data.shipment.shipmentType}
-                                                                        onChange={handleShipmentTypeChange}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="mt-4 border-t border-[#E4EAF5] pt-4">
-                                                            <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
-                                                            <div className={`mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "international" ? "xl:grid-cols-3" : "xl:grid-cols-4"}`}>
-                                                                {dimensionAssistPresets.map((preset) => {
-                                                                    const hasMatchingBase = itemLength === preset.lengthCm
-                                                                        && itemWidth === preset.widthCm;
-                                                                    const isActive = preset.prefillHeight
-                                                                        ? (hasMatchingBase && itemHeight === preset.heightCm)
-                                                                        : hasMatchingBase;
-
-                                                                    return (
-                                                                        <button
-                                                                            key={`preset-${index}-${preset.id}`}
-                                                                            type="button"
-                                                                            onClick={() => applyDimensionPreset(index, preset)}
-                                                                            className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
-                                                                                ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
-                                                                                : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
-                                                                                }`}
-                                                                        >
-                                                                            {isActive && (
-                                                                                <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
-                                                                                    ✓
-                                                                                </span>
-                                                                            )}
-                                                                            <div className="flex items-center gap-3">
-                                                                                <img
-                                                                                    src={preset.imageSrc}
-                                                                                    alt={preset.imageAlt}
-                                                                                    className="h-10 w-20 object-contain"
-                                                                                />
-                                                                                <div>
-                                                                                    <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
-                                                                                    <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
-                                                                                </div>
-                                                                            </div>
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-
-                                                            <div className="mt-5">
-                                                                <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
-                                                                <div className="mt-3 flex items-center gap-3">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={Boolean(item.fragile)}
-                                                                        onChange={(event) => updateHandlingFlag(index, "fragile", event.target.checked)}
-                                                                        className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
-                                                                    />
-                                                                    <span className="text-[16px] leading-none text-[#8A8A8A]">Fragile</span>
-<input type="checkbox" checked={Boolean(item.extras?.nonStackable)} onChange={(event) => updateHandlingFlag(index, "nonStackable", event.target.checked)} className="ml-2 h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
-<span className="text-[16px] leading-none text-[#8A8A8A]">Non-stackable</span>
-<input type="checkbox" checked={Boolean(item.extras?.liquid)} onChange={(event) => updateHandlingFlag(index, "liquid", event.target.checked)} className="ml-2 h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
-<span className="text-[16px] leading-none text-[#8A8A8A]">Liquid</span>
-<input type="checkbox" checked={Boolean(item.extras?.containsBatteries)} onChange={(event) => updateHandlingFlag(index, "containsBatteries", event.target.checked)} className="ml-2 h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
-<span className="text-[16px] leading-none text-[#8A8A8A]">Contains batteries</span>
-<input type="checkbox" checked={Boolean(item.extras?.dangerousGoods)} onChange={(event) => updateHandlingFlag(index, "dangerousGoods", event.target.checked)} className="ml-2 h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]" />
-<span className="text-[16px] leading-none text-[#8A8A8A]">Dangerous goods</span>
-
-                                                                    <div className="group relative">
-                                                                        <button
-                                                                            type="button"
-                                                                            className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
-                                                                            aria-label="Why do we need this information"
-                                                                        >
-                                                                            ?
-                                                                        </button>
-
-                                                                        <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
-                                                                            <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
-                                                                            <p className="font-semibold">Why do we need this information?</p>
-                                                                            <p className="mt-2 leading-6">
-                                                                                Please choose "Fragile" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {data.shipment.shipmentType === "other" && (
-                                                            <div className="w-full">
-                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
-                                                                <textarea
-                                                                    value={data.shipment.shipmentTypeDescription || ""}
-                                                                    onChange={(event) => {
-                                                                        markUpstreamChange();
-                                                                        setData("shipment", {
-                                                                            ...data.shipment,
-                                                                            shipmentTypeDescription: event.target.value,
-                                                                        });
-                                                                    }}
-                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                    placeholder="Describe the shipment type"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                        <div className="mt-5 flex flex-col gap-3 border-t border-[#E4EAF5] pt-5 text-sm text-[#0B1739]">
-
-                                                            <label className="inline-flex items-center gap-3">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="h-5 w-5 rounded border border-[#B8C4D8] accent-[#0955AC]"
-                                                                    checked={Boolean(data.shipment?.containsExclusivelyDocuments)}
-                                                                    onChange={(event) => updateShipmentPreference("containsExclusivelyDocuments", event.target.checked)}
-                                                                />
-                                                                Shipment contains exclusively documents
-                                                            </label>
-
-                                                            <div className="relative mt-2 max-w-xs">
-                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                                    HS Code <span className="font-normal text-[#8C97B0]">(for customs clearance)</span>
-                                                                </label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={item.hsCode || ""}
-                                                                    onChange={(event) => {
-                                                                        const value = event.target.value;
-                                                                        updatePackage(index, "hsCode", value);
-                                                                        fetchHsCodeSuggestions(index, value);
-                                                                    }}
-                                                                    onFocus={() => setActiveHsCodeField(index)}
-                                                                    onBlur={() => {
-                                                                        window.setTimeout(() => {
-                                                                            setActiveHsCodeField((current) => (current === index ? null : current));
-                                                                        }, 120);
-                                                                    }}
-                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                    placeholder="Search by product name or code, e.g. laptop or 851712"
-                                                                    autoComplete="off"
-                                                                />
-                                                                {activeHsCodeField === index && hsCodeLoading[index] && (
-                                                                    <p className="mt-1.5 text-xs text-[#5B6887]">Searching HS codes...</p>
-                                                                )}
-                                                                {activeHsCodeField === index && (hsCodeSuggestions[index]?.length > 0) && (
-                                                                    <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                        {hsCodeSuggestions[index].map((option) => (
-                                                                            <li key={option.code}>
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onMouseDown={(event) => event.preventDefault()}
-                                                                                    onClick={() => handleHsCodeSelect(index, option)}
-                                                                                    className="flex w-full flex-col gap-0.5 px-4 py-2 text-left text-sm hover:bg-[#F4F7FC]"
-                                                                                >
-                                                                                    <span className="font-medium text-[#0B1739]">{option.code}</span>
-                                                                                    <span className="text-xs text-[#5B6887]">{option.description}</span>
-                                                                                </button>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                )}
-                                                                <p className="mt-1.5 text-xs text-[#5B6887]">
-                                                                    The Harmonized System code for these goods. Helps customs classify your shipment and can speed up clearance.
-                                                                </p>
-                                                                {errors[`packages.${index}.hsCode`] && (
-                                                                    <p className="mt-2 text-sm text-red-500">{errors[`packages.${index}.hsCode`]}</p>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="mt-4 max-w-xl">
-                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">Description of goods</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={item.description || ""}
-                                                                    onChange={(event) => updatePackage(index, "description", event.target.value)}
-                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                    placeholder="e.g. Cotton t-shirts, men's, packed in cartons"
-                                                                    maxLength={500}
-                                                                />
-                                                            </div>
-
-                                                            <div className="mt-6 rounded-xl border border-[#E4EAF5] bg-[#F9FBFF] p-4">
-                                                                <div className="flex items-center justify-between gap-3">
-                                                                    <div>
-                                                                        <p className="text-sm font-semibold text-[#0B1739]">Commodities</p>
-                                                                        <p className="text-xs text-[#5B6887]">Add each commodity one by one. Rows appear in order below.</p>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => addCommodity(index)}
-                                                                        className="rounded-lg bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0a4b93]"
-                                                                    >
-                                                                        + Add unit
-                                                                    </button>
-                                                                </div>
-
-                                                                {(item.extras?.commodities || []).length > 0 && (
-                                                                    <div className="mt-4 overflow-x-auto">
-                                                                        <table className="w-full min-w-[860px] text-left text-xs text-[#5B6887]">
-                                                                            <thead>
-                                                                                <tr className="border-b border-[#E4EAF5] text-[#0B1739]">
-                                                                                    <th className="px-2 py-2">#</th>
-                                                                                    <th className="px-2 py-2">HS code</th>
-                                                                                    <th className="px-2 py-2">Commodity specification</th>
-                                                                                    <th className="px-2 py-2">Type</th>
-                                                                                    <th className="px-2 py-2">Weight (kg)</th>
-                                                                                    <th className="px-2 py-2">Quantity</th>
-                                                                                    <th className="px-2 py-2">Unit price (USD)</th>
-                                                                                    <th className="px-2 py-2">Total (USD)</th>
-                                                                                    <th className="px-2 py-2"></th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                {(item.extras?.commodities || []).map((row, rowIndex) => {
-                                                                                    const rowTotal = (Number(row.quantity) || 0) * (Number(row.unitPrice) || 0);
-                                                                                    const cellClass = "h-[40px] w-full rounded-md border border-[#D6DEEB] bg-white px-2 text-xs text-[#0B1739] focus:border-[#0955AC] focus:outline-none";
-                                                                                    return (
-                                                                                        <tr key={`commodity-${index}-${rowIndex}`} className="border-b border-[#EEF2F8]">
-                                                                                            <td className="px-2 py-2 text-[#0B1739]">{rowIndex + 1}</td>
-                                                                                            <td className="px-2 py-2"><input className={cellClass} value={row.hsCode || ""} onChange={(event) => updateCommodity(index, rowIndex, "hsCode", event.target.value)} maxLength={20} /></td>
-                                                                                            <td className="px-2 py-2"><input className={cellClass} value={row.description || ""} onChange={(event) => updateCommodity(index, rowIndex, "description", event.target.value)} maxLength={300} /></td>
-                                                                                            <td className="px-2 py-2">
-                                                                                                <select className={cellClass} value={row.type || ""} onChange={(event) => updateCommodity(index, rowIndex, "type", event.target.value)}>
-                                                                                                    <option value="">Select</option>
-                                                                                                    {SHIPMENT_TYPE_OPTIONS.map((option) => (
-                                                                                                        <option key={`commodity-type-${option.value}`} value={option.value}>{option.label}</option>
-                                                                                                    ))}
-                                                                                                </select>
-                                                                                            </td>
-                                                                                            <td className="px-2 py-2"><input type="number" min="0" step="0.01" className={cellClass} value={row.weightKg ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "weightKg", event.target.value)} /></td>
-                                                                                            <td className="px-2 py-2"><input type="number" min="0" step="1" className={cellClass} value={row.quantity ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "quantity", event.target.value)} /></td>
-                                                                                            <td className="px-2 py-2"><input type="number" min="0" step="0.01" className={cellClass} value={row.unitPrice ?? ""} onChange={(event) => updateCommodity(index, rowIndex, "unitPrice", event.target.value)} /></td>
-                                                                                            <td className="px-2 py-2 font-semibold text-[#0B1739]">{rowTotal.toFixed(2)}</td>
-                                                                                            <td className="px-2 py-2"><button type="button" onClick={() => removeCommodity(index, rowIndex)} className="text-red-500 hover:underline">Remove</button></td>
-                                                                                        </tr>
-                                                                                    );
-                                                                                })}
-                                                                            </tbody>
-                                                                            <tfoot>
-                                                                                <tr>
-                                                                                    <td colSpan={7} className="px-2 py-2 text-right font-semibold text-[#0B1739]">Total amount (USD)</td>
-                                                                                    <td className="px-2 py-2 font-semibold text-[#0B1739]">
-                                                                                        {(item.extras?.commodities || []).reduce((sum, row) => sum + (Number(row.quantity) || 0) * (Number(row.unitPrice) || 0), 0).toFixed(2)}
-                                                                                    </td>
-                                                                                    <td></td>
-                                                                                </tr>
-                                                                            </tfoot>
-                                                                        </table>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="mt-6">
-                                                                <div className="flex items-center justify-between gap-3">
-                                                                    <label className="block text-sm font-medium text-[#0B1739]">Packing list</label>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const lines = (item.extras?.commodities || []).map((row, rowIndex) =>
-                                                                                `${rowIndex + 1}. ${row.description || "Item"} - qty ${row.quantity || 0}, ${row.weightKg || 0} kg${row.hsCode ? `, HS ${row.hsCode}` : ""}`
-                                                                            );
-                                                                            updatePackageExtra(index, "packingList", lines.join("\n"));
-                                                                        }}
-                                                                        className="text-xs font-semibold text-[#0955AC] hover:underline"
-                                                                    >
-                                                                        Fill from commodities
-                                                                    </button>
-                                                                </div>
-                                                                <textarea
-                                                                    value={item.extras?.packingList || ""}
-                                                                    onChange={(event) => updatePackageExtra(index, "packingList", event.target.value)}
-                                                                    className="mt-2 min-h-[110px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 py-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                    placeholder="List the contents of this shipment, one line per item (item, quantity, weight)."
-                                                                    maxLength={2000}
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
 
                         {showQuotes && hasRequiredDetails && (
                             <section
@@ -5172,6 +5779,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                 </div>
                                 <SummaryView
                                     inline
+                                    onStepClick={handleStepNavigate}
                                     showEditLinks={false}
                                     showHero={false}
                                     formStateOverride={data}
@@ -5301,6 +5909,58 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                             document.body,
                         )}
 
+                        {orderConfirmation && typeof document !== "undefined" && createPortal(
+                            <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/50 p-4">
+                                <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-600">
+                                        <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="mt-4 text-xl font-semibold text-[#0B1739]">Order confirmed</h3>
+                                    <p className="mt-1 text-sm text-[#5B6887]">{orderConfirmation.message}</p>
+
+                                    <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-[#5B6887]">Your order code</p>
+                                    <div className="mt-1 flex items-center justify-center gap-2">
+                                        <span className="rounded-lg border border-[#D6DEEB] bg-[#F4F8FF] px-4 py-2 text-lg font-bold tracking-wide text-[#0955AC]">
+                                            {orderConfirmation.reference}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                                    navigator.clipboard.writeText(orderConfirmation.reference).then(() => setOrderCodeCopied(true)).catch(() => {});
+                                                }
+                                            }}
+                                            className="rounded-lg border border-[#D6DEEB] px-3 py-2 text-xs font-semibold text-[#5B6887] transition hover:border-[#0955AC] hover:text-[#0955AC]"
+                                        >
+                                            {orderCodeCopied ? "Copied" : "Copy"}
+                                        </button>
+                                    </div>
+                                    <p className="mt-2 text-xs text-[#8C97B0]">Keep this code to track your shipment.</p>
+
+                                    <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                                        {orderConfirmation.shipmentId && (
+                                            <a
+                                                href={`${flowRoutes.basePath}/${orderConfirmation.shipmentId}/bill`}
+                                                className="rounded-lg border border-[#0955AC] px-4 py-2 text-sm font-semibold text-[#0955AC] transition hover:bg-[#0955AC] hover:text-white"
+                                            >
+                                                Download bill
+                                            </a>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setOrderConfirmation(null)}
+                                            className="rounded-lg bg-[#0955AC] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#0a4b93]"
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>,
+                            document.body,
+                        )}
+
                         {routeSwitchPrompt && typeof document !== "undefined" && createPortal(
                             <div className="fixed inset-0 z-[2147483646] flex items-center justify-center bg-black/50 p-4">
                                 <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
@@ -5342,7 +6002,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                 )}
                                 {selectedRouteType === "domestic" && (data.packages || []).some((pkg) => pkg?.extras?.paymentMethod === "cod") && (
                                     <div className="w-full max-w-xl rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                                        Cash on delivery: request a quote now and pay the courier directly once the price is confirmed. No online payment is taken at this step.
+                                        Cash on delivery: check the available rates now, and pay the courier directly once the price is confirmed. No online payment is taken at this step.
                                     </div>
                                 )}
                                 {shouldShowDescribeShipmentCta ? (
@@ -5371,7 +6031,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                             className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!hasRequiredDetails || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
                                                 }`}
                                         >
-                                            {selectedRouteType === "domestic" && (data.packages || []).length > 0 && (data.packages || []).every((pkg) => pkg?.extras?.paymentMethod === "cod") ? "Get a quote" : "Continue to Courier service quotes"}
+                                            {selectedRouteType === "domestic" && (data.packages || []).length > 0 && (data.packages || []).every((pkg) => pkg?.extras?.paymentMethod === "cod") ? "Check Available Rates" : "Continue to Courier service quotes"}
                                         </button>
                                         {!hasRequiredDetails && (
                                             <p className="text-xs text-[#D14343]">

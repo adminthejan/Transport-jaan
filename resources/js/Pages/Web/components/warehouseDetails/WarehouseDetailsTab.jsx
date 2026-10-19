@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { usePage } from "@inertiajs/react";
 
 import size from "../../assets/rentAVehicle/collection/meter.png";
 import location from "../../assets/rentAVehicle/collection/user.png";
@@ -20,6 +21,7 @@ const SpecCard = ({ icon, label }) => (
 );
 
 const WarehouseDetailsTab = ({ warehouse }) => {
+  const platform = usePage().props?.platform || {};
   const specs = useMemo(() => {
     if (!warehouse) return {};
     
@@ -189,6 +191,40 @@ const WarehouseDetailsTab = ({ warehouse }) => {
                 <p className="text-gray-600">{specs.contactInfo.address}</p>
               </div>
             )}
+          </div>
+
+          {/* Xsarva handles booking, payment and support for the provider */}
+          <div className="mt-5 rounded-lg border border-[#0955AC33] bg-[#0955AC0D] p-4">
+            <h4 className="font-semibold text-gray-800 mb-1">
+              Booked through {platform.name || "Xsarva (Pvt) Ltd"}
+            </h4>
+            <p className="text-sm text-gray-600 mb-3">
+              Xsarva manages your booking, payment and support for this service provider.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-1">Company</h4>
+                <p className="text-gray-600">{platform.name || "Xsarva (Pvt) Ltd"}</p>
+              </div>
+              {platform.phone && (
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-1">Support Phone</h4>
+                  <a href={`tel:${platform.phone}`} className="text-[#0955AC] hover:underline">{platform.phone}</a>
+                </div>
+              )}
+              {platform.email && (
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-1">Support Email</h4>
+                  <a href={`mailto:${platform.email}`} className="text-[#0955AC] hover:underline">{platform.email}</a>
+                </div>
+              )}
+              {platform.address && (
+                <div className="md:col-span-2">
+                  <h4 className="font-semibold text-gray-700 mb-1">Address</h4>
+                  <p className="text-gray-600">{platform.address}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

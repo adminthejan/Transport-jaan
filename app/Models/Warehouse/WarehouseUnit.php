@@ -27,6 +27,9 @@ class WarehouseUnit extends Model
 
         // Pricing Information
         'pricing_model',
+        'rate_type',
+        'temperature_min_c',
+        'temperature_max_c',
         'base_price',
         'monthly_rate',
         'security_deposit',
@@ -67,6 +70,8 @@ class WarehouseUnit extends Model
         'total_area' => 'decimal:2',
         'capacity' => 'decimal:2',
         'base_price' => 'decimal:2',
+        'temperature_min_c' => 'float',
+        'temperature_max_c' => 'float',
         'monthly_rate' => 'decimal:2',
         'security_deposit' => 'decimal:2',
         'setup_fee' => 'decimal:2',

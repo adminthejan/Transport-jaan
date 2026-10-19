@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { ArrowLeft, MapPin, Menu, Search, UserCircle, Users } from "lucide-react";
+import { ArrowLeft, FileText, MapPin, Menu, Search, UserCircle, Users } from "lucide-react";
 import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
@@ -96,6 +96,7 @@ const SERVICE_CONFIG = {
         dashboard: () => route("vendors.warehouse.dashboard"),
         bookings: () => route("vendors.warehouse.reservations"),
         bookingsLabel: "Reservations",
+        quotes: () => route("vendors.warehouse.quotes"),
         units: () => route("vendors.warehouse.units"),
         calendar: () => route("vendors.warehouse.calendar"),
         clients: () => route("vendors.warehouse.clients"),
@@ -498,6 +499,13 @@ const VendorShellLayout = ({
                                     <div className={menuCls(isActive(cfg.bookings))} onClick={() => navigate(cfg.bookings)}>
                                         <img src={bookLogo} className="w-[22px]" alt="" />
                                         <span>{cfg.bookingsLabel || "Bookings"}</span>
+                                    </div>
+                                )}
+
+                                {cfg.quotes && (
+                                    <div className={menuCls(isActive(cfg.quotes))} onClick={() => navigate(cfg.quotes)}>
+                                        <FileText className="w-[22px] h-[22px] text-[#666666]" />
+                                        <span>Quotes</span>
                                     </div>
                                 )}
 

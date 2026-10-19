@@ -5,6 +5,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import WarehousePaymentPlan from "./WarehousePaymentPlan";
+import CancellationPolicyNotice from "./CancellationPolicyNotice";
 
 // Storage & Fulfillment is an optional add-on service (pick, pack, and ship
 // handling on the client's behalf) priced as a share of the base monthly rate.
@@ -45,7 +47,9 @@ const WarehouseCheckoutContent = () => {
         company_name: '',
         contact_person: '',
         email: '',
-        phone: ''
+        phone: '',
+        postal_code: '',
+        tax_identification_number: ''
     });
     const [userData, setUserData] = useState(null);
     const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -83,6 +87,7 @@ const WarehouseCheckoutContent = () => {
                 
                 // Pre-populate form with user data if form fields are empty
                 setFormData(prev => ({
+                    ...prev,
                     company_name: prev.company_name || user.company_name || '',
                     contact_person: prev.contact_person || user.name || '',
                     email: prev.email || user.email || '',
@@ -127,6 +132,7 @@ const WarehouseCheckoutContent = () => {
             console.log('Found user data in page props:', pageUser);
             setUserData(pageUser);
             setFormData(prev => ({
+                ...prev,
                 company_name: prev.company_name || pageUser.company_name || '',
                 contact_person: prev.contact_person || pageUser.name || '',
                 email: prev.email || pageUser.email || '',
@@ -145,12 +151,15 @@ const WarehouseCheckoutContent = () => {
                 
                 // Populate form fields with saved data if available (this will override user data)
                 if (parsedData.company_name || parsedData.contact_person || parsedData.email || parsedData.phone) {
-                    setFormData({
+                    setFormData(prev => ({
+                        ...prev,
                         company_name: parsedData.company_name || '',
                         contact_person: parsedData.contact_person || '',
                         email: parsedData.email || '',
-                        phone: parsedData.phone || ''
-                    });
+                        phone: parsedData.phone || '',
+                        postal_code: parsedData.postal_code || prev.postal_code || '',
+                        tax_identification_number: parsedData.tax_identification_number || prev.tax_identification_number || ''
+                    }));
                 }
                 
                 // If warehouse_id is available, fetch warehouse details
@@ -500,12 +509,13 @@ const WarehouseCheckoutContent = () => {
      */
     const resetToUserData = () => {
         if (userData) {
-            setFormData({
+            setFormData(prev => ({
+                ...prev,
                 company_name: userData.company_name || '',
                 contact_person: userData.name || '',
                 email: userData.email || '',
                 phone: userData.phone || ''
-            });
+            }));
             setIsEditingUserData(false);
             
             // Clear any existing errors
@@ -918,6 +928,40 @@ const WarehouseCheckoutContent = () => {
                                     )}
                                 </div>
                             </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Postal Code (Optional) :
+                                </label>
+                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                    <input
+                                        name="postal_code"
+                                        value={formData.postal_code || ''}
+                                        onChange={handleInputChange}
+                                        maxLength={20}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                        placeholder="e.g. 00300"
+                                    />
+                                </div>
+                            </div>
+
+                            {formData.company_name?.trim() && (
+                                <div>
+                                    <label className="text-[10px]/[24px] font-[600]">
+                                        Tax Identification Number (TIN) (Optional) :
+                                    </label>
+                                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                        <input
+                                            name="tax_identification_number"
+                                            value={formData.tax_identification_number || ''}
+                                            onChange={handleInputChange}
+                                            maxLength={50}
+                                            className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                            placeholder="Business tax / VAT number"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -1881,6 +1925,16 @@ const WarehouseCheckoutContent = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="mb-4">
+                                    <WarehousePaymentPlan
+                                        pricing={pricingDetails}
+                                        paymentOption="deposit"
+                                        moveInDate={bookingData?.move_in_date}
+                                    />
+                                </div>
+
+                                <CancellationPolicyNotice className="mb-4" />
 
                                 {/* Quote Validity */}
                                 {pricingDetails.final_amount > 0 && (

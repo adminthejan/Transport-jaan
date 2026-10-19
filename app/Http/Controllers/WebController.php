@@ -782,9 +782,45 @@ class WebController extends Controller
             });
         }
 
-        // Required space filter (from search form)
-        if (isset($searchParams['requiredSpace']) && !empty($searchParams['requiredSpace'])) {
+        // Rate type filter (search bar dropdown: per sq ft, per CBM or flat rate)
+        $rateType = $searchParams['rateType'] ?? null;
+        if (is_string($rateType) && in_array($rateType, ['per_sqft', 'per_cbm', 'flat_rate'], true)) {
+            $query->where('rate_type', $rateType);
+        }
+
+        // Required space filter (from search form). A flat-rate listing is
+        // priced per booking, not per unit of space, so space doesn't apply.
+        if (isset($searchParams['requiredSpace']) && !empty($searchParams['requiredSpace']) && $rateType !== 'flat_rate') {
             $query->where('total_area', '>=', $searchParams['requiredSpace']);
+        }
+
+        // Storage temperature filter: the listing's temperature range must
+        // cover the requested temperature (degrees C). Listings with no
+        // declared range are ambient storage and only match ambient values.
+        if (isset($searchParams['temperature']) && $searchParams['temperature'] !== '' && is_numeric($searchParams['temperature'])) {
+            $requestedTemperature = (float) $searchParams['temperature'];
+            $query->where(function ($q) use ($requestedTemperature) {
+                $q->where(function ($range) use ($requestedTemperature) {
+                    $range->whereNotNull('temperature_min_c')
+                        ->whereNotNull('temperature_max_c')
+                        ->where('temperature_min_c', '<=', $requestedTemperature)
+                        ->where('temperature_max_c', '>=', $requestedTemperature);
+                });
+
+                if ($requestedTemperature >= 15 && $requestedTemperature <= 35) {
+                    $q->orWhere(function ($ambient) {
+                        $ambient->whereNull('temperature_min_c')->whereNull('temperature_max_c');
+                    });
+                }
+            });
+        }
+
+        // Budget range filter (LKR per month)
+        if (isset($searchParams['budgetMin']) && is_numeric($searchParams['budgetMin'])) {
+            $query->where('monthly_rate', '>=', (float) $searchParams['budgetMin']);
+        }
+        if (isset($searchParams['budgetMax']) && is_numeric($searchParams['budgetMax']) && (float) $searchParams['budgetMax'] > 0) {
+            $query->where('monthly_rate', '<=', (float) $searchParams['budgetMax']);
         }
 
         // Size filter (from filter sidebar)
@@ -958,6 +994,26 @@ class WebController extends Controller
                     'terms_pdf_path' => $warehouse->terms_pdf_path,
                     'operating_hours' => $warehouse->operating_hours,
                     'security_level' => $warehouse->security_level ?? 'standard',
+
+                    // Authoritative listing data straight from the database. The
+                    // incoming `warehouse` query data comes from the browser URL
+                    // and can be partial or stale, so pricing and rate settings
+                    // are always overridden with the stored values.
+                    'name' => $warehouse->name,
+                    'address' => $warehouse->address,
+                    'description' => $warehouse->description,
+                    'type' => $warehouse->type,
+                    'rate_type' => $warehouse->rate_type ?? 'per_sqft',
+                    'temperature_min_c' => $warehouse->temperature_min_c,
+                    'temperature_max_c' => $warehouse->temperature_max_c,
+                    'pricing_model' => $warehouse->pricing_model,
+                    'monthly_rate' => $warehouse->monthly_rate,
+                    'security_deposit' => $warehouse->security_deposit,
+                    'setup_fee' => $warehouse->setup_fee,
+                    'tax_rate' => $warehouse->tax_rate,
+                    'offers_fulfillment' => (bool) $warehouse->offers_fulfillment,
+                    'fulfillment_fee_rate' => $warehouse->fulfillment_fee_rate,
+                    'total_area' => $warehouse->total_area,
                 ]);
             }
         }
@@ -979,10 +1035,59 @@ class WebController extends Controller
                 ->toArray();
         }
 
+        // Platform (Xsarva) details shown in the service provider section
+        $siteSettings = null;
+        try {
+            $siteSettings = \App\Models\WebsiteSetting::query()->first();
+        } catch (\Throwable $e) {
+            $siteSettings = null;
+        }
+
+        $platform = [
+            'name' => 'Xsarva (Pvt) Ltd',
+            'email' => $siteSettings?->contact_email ?: null,
+            'phone' => $siteSettings?->contact_phone ?: null,
+            'address' => trim(implode(', ', array_filter([
+                $siteSettings?->address,
+                $siteSettings?->city,
+                $siteSettings?->country,
+            ]))) ?: null,
+        ];
+
+        // Lorries / cargo vans that can be assigned to move goods to the
+        // warehouse. Booking them happens in the cargo & freight module.
+        $availableVehicles = [];
+        try {
+            $availableVehicles = \App\Models\Vehicle::query()
+                ->active()
+                ->where('type', 'land')
+                ->whereHas('category', fn ($q) => $q->whereIn('name', ['Truck', 'Van']))
+                ->with('category:id,name')
+                ->orderBy('rental_price_per_day')
+                ->limit(6)
+                ->get()
+                ->map(fn ($vehicle) => [
+                    'id' => $vehicle->id,
+                    'name' => trim(($vehicle->manufacturer ?? '') . ' ' . ($vehicle->model ?? '')) ?: 'Vehicle #' . $vehicle->id,
+                    'category' => $vehicle->category?->name,
+                    'capacity' => $vehicle->passenger_capacity,
+                    'price_per_day' => $vehicle->rental_price_per_day !== null ? (float) $vehicle->rental_price_per_day : null,
+                    'currency' => $vehicle->currency ?: 'LKR',
+                    'image' => $vehicle->primary_image_url,
+                ])
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return Inertia::render('Web/home/warehouse/WarehouseDetails', [
             'warehouse' => $warehouseData,
             'relatedWarehouses' => $relatedWarehouses,
-            'likedWarehouseIds' => $likedWarehouseIds
+            'likedWarehouseIds' => $likedWarehouseIds,
+            'platform' => $platform,
+            'availableVehicles' => $availableVehicles,
+            'cancellationPolicy' => \App\Support\WarehouseCancellationPolicy::describe(),
         ]);
     }
 

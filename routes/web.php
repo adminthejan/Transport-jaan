@@ -447,6 +447,9 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
         Route::get('/payhere/checkout/{booking}', [WarehouseBookingController::class, 'paymentCheckout'])->name('payhere.checkout');
         Route::get('/payhere/status/{booking}', [WarehouseBookingController::class, 'paymentStatus'])->name('payhere.status');
         Route::post('/payhere/retry/{booking}', [WarehouseBookingController::class, 'paymentRetry'])->name('payhere.retry');
+
+        // Customer asks the warehouse owner for a quote (owner replies with final charges)
+        Route::post('/quote-requests', [\App\Http\Controllers\WarehouseControllers\Client\WarehouseQuoteRequestController::class, 'store'])->middleware('throttle:10,1')->name('quote-requests.store');
     });
 });
 
@@ -980,6 +983,12 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     Route::post('/api/expenses', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'store'])->name('api.expenses.store');
     Route::put('/api/expenses/{id}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'update'])->name('api.expenses.update');
     Route::delete('/api/expenses/{id}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseExpenseController::class, 'destroy'])->name('api.expenses.destroy');
+
+    // Quote requests: the vendor posts their final charges once the discussion with the customer concludes
+    Route::get('/quotes', fn() => Inertia::render('Web/home/vendors/warehouse/Quotes'))->name('quotes');
+    Route::get('/api/quote-requests', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseQuoteController::class, 'index'])->name('api.quote-requests.index');
+    Route::post('/api/quote-requests/{quoteId}/respond', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseQuoteController::class, 'respond'])->name('api.quote-requests.respond');
+    Route::post('/api/quote-requests/{quoteId}/decline', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseQuoteController::class, 'decline'])->name('api.quote-requests.decline');
 });
 
 // NOTE: a duplicate/dead "admin/warehouse" approval route group used to live

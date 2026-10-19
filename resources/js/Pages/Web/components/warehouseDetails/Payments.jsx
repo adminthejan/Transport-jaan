@@ -4,6 +4,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import { Wallet as WalletIcon, AlertTriangle } from 'lucide-react';
+import WarehousePaymentPlan from "./WarehousePaymentPlan";
+import CancellationPolicyNotice from "./CancellationPolicyNotice";
 
 // Storage & Fulfillment is an optional add-on service (pick, pack, and ship
 // handling on the client's behalf) priced as a share of the base monthly rate.
@@ -395,6 +397,8 @@ const WarehousePayments = () => {
             email: updatedBookingData.email || updatedBookingData.contactEmail || '',
             phone: updatedBookingData.phone || updatedBookingData.contactPhone || updatedBookingData.phoneNumber || '',
             company_address: updatedBookingData.company_address || updatedBookingData.companyAddress || '',
+            postal_code: updatedBookingData.postal_code || '',
+            tax_identification_number: updatedBookingData.tax_identification_number || '',
             storage_type: updatedBookingData.storage_type || updatedBookingData.storageType || 'General Storage',
             fulfillment_service: Boolean(updatedBookingData.fulfillment_service || updatedBookingData.fulfillmentService),
             required_space: Number(updatedBookingData.required_space || updatedBookingData.requiredSpace || updatedBookingData.spaceNeeded || 0),
@@ -687,6 +691,26 @@ const WarehousePayments = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <div
+                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-auto bg-[#FFFFFF] px-10 py-10"
+                        style={{
+                            borderLeftWidth: "0.2px",
+                            borderTopWidth: "0.2px",
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <h1 className="text-[20px] font-[700] mb-5">
+                            Payment Summary
+                        </h1>
+                        <WarehousePaymentPlan
+                            pricing={pricingDetails}
+                            paymentOption={paymentOption}
+                            moveInDate={bookingData?.move_in_date}
+                            title={paymentOption === "full" ? "You pay today" : "Amount payable now and remaining balance"}
+                        />
+                        <CancellationPolicyNotice className="mt-5" />
                     </div>
 
                         <div

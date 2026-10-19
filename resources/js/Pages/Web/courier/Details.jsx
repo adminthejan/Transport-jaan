@@ -1565,7 +1565,7 @@ const Details = ({
                             </p>
                         </div>
                         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                            <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
+                            <div id="courier-step-sender" className="scroll-mt-24 rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
                                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                                     <div>
                                         <h2 className="text-base font-semibold text-[#0B1739]">Sender details</h2>
@@ -1837,7 +1837,7 @@ const Details = ({
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
+                            <div id="courier-step-recipient" className="scroll-mt-24 rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
                                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                                     <div>
                                         <h2 className="text-base font-semibold text-[#0B1739]">Recipient details</h2>
@@ -2100,7 +2100,7 @@ const Details = ({
                             </div>
                         </section>
 
-                        <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
+                        <section id="courier-step-preferences" className="scroll-mt-24 rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
                             <h2 className="text-base font-semibold text-[#0B1739]">Shipment preferences</h2>
                             <p className="mt-1 text-xs text-[#5B6887]">Pickup schedule and coverage options</p>
                             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -2153,15 +2153,21 @@ const Details = ({
                                     </label>
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-xs font-medium">Declared value ({shipmentCategory === "international" ? "USD" : "LKR"})</label>
+                                    <label className="mb-1 block text-xs font-medium">
+                                        Declared value ({shipmentCategory === "international" ? "USD" : "LKR"})
+                                        {shipmentCategory === "international" && (
+                                            <span className="font-normal text-[#8C97B0]"> - equals the packing list total</span>
+                                        )}
+                                    </label>
                                     <input
                                         type="number"
                                         min="0"
                                         step="0.01"
                                         value={data.shipment.estimatedValue}
                                         onChange={(event) => updateNestedField("shipment.estimatedValue", event.target.value)}
-                                        disabled={!data.shipment.insurance && !data.shipment.codEnabled}
-                                        className={`w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none ${data.shipment.insurance || data.shipment.codEnabled ? "bg-white" : "cursor-not-allowed bg-[#F3F6FB] opacity-60"}`}
+                                        disabled={shipmentCategory !== "international" && !data.shipment.insurance && !data.shipment.codEnabled}
+                                        readOnly={shipmentCategory === "international"}
+                                        className={`w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none ${shipmentCategory === "international" ? "cursor-not-allowed bg-[#F3F6FB]" : (data.shipment.insurance || data.shipment.codEnabled ? "bg-white" : "cursor-not-allowed bg-[#F3F6FB] opacity-60")}`}
                                         placeholder="0"
                                     />
                                     {combinedErrors["shipment.estimatedValue"] && (

@@ -1,15 +1,34 @@
 import React, { useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import clock from "../../assets/landVehicleDetails/clock.svg";
-import QuoteModal from "../LandVehicleDetails/QuoteModal";
-import useScrollLock from "../LandVehicleDetails/useScrollLock";
-import { Warehouse as WarehouseIcon, PackageCheck, Check } from "lucide-react";
+import { Warehouse as WarehouseIcon, PackageCheck, Check, Bookmark, FileText } from "lucide-react";
+import WarehouseQuoteRequestModal from "./WarehouseQuoteRequestModal";
+import WarehousePaymentPlan from "./WarehousePaymentPlan";
+import CancellationPolicyNotice from "./CancellationPolicyNotice";
+
+const SAVED_BOOKINGS_KEY = "warehouseSavedBookings";
+
+const readSavedBookings = () => {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SAVED_BOOKINGS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+};
 
 const WarehouseSearch = () => {
   const { props } = usePage();
   const { warehouse } = props;
   const [showQuoteModal, setShowQuoteModal] = useState(false);
-  useScrollLock(showQuoteModal);
+
+  // Listing is priced per sq ft, per CBM or as a flat rate (vendor setting).
+  const rateType = ['per_sqft', 'per_cbm', 'flat_rate'].includes(warehouse?.rate_type) ? warehouse.rate_type : 'per_sqft';
+  const isFlatRate = rateType === 'flat_rate';
+  const spaceUnitLabel = rateType === 'per_cbm' ? 'CBM' : 'sq ft';
+  const [planOption, setPlanOption] = useState('deposit');
+  const [savedDraft, setSavedDraft] = useState(null);
+  const [saveMessage, setSaveMessage] = useState('');
 
   const [formData, setFormData] = useState({
     warehouseLocation: warehouse?.address || '',
@@ -116,7 +135,7 @@ const WarehouseSearch = () => {
 
   // Calculate pricing based on warehouse data and user inputs
   const calculatePricing = (currentFormData = formData) => {
-    if (!warehouse || !currentFormData.requiredSpace || !currentFormData.leaseDuration) {
+    if (!warehouse || (!isFlatRate && !currentFormData.requiredSpace) || !currentFormData.leaseDuration) {
       setPricingCalculation({
         monthly_rate: 0,
         security_deposit: 0,
@@ -149,7 +168,7 @@ const WarehouseSearch = () => {
       const durationMonths = parseDurationToMonths(currentFormData.leaseDuration);
 
       // Calculate space utilization factor (if requiring partial space)
-      const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
+      const spaceUtilization = isFlatRate ? 1 : Math.min(requiredSpace / totalArea, 1);
       const adjustedMonthlyRate = baseMonthlyRate * spaceUtilization;
 
       // Calculate pricing breakdown
@@ -188,6 +207,43 @@ const WarehouseSearch = () => {
     } finally {
       setIsCalculating(false);
     }
+  };
+
+  const saveBooking = () => {
+    try {
+      const entry = {
+        warehouseId: warehouse?.id,
+        warehouseName: warehouse?.name,
+        formData,
+        pricing: pricingCalculation,
+        savedAt: new Date().toISOString(),
+      };
+      const others = readSavedBookings().filter((item) => item.warehouseId !== warehouse?.id);
+      window.localStorage.setItem(SAVED_BOOKINGS_KEY, JSON.stringify([entry, ...others].slice(0, 20)));
+      setSavedDraft(entry);
+      setSaveMessage('Booking saved on this device. You can restore it any time.');
+    } catch (error) {
+      setSaveMessage('Could not save the booking in this browser.');
+    }
+    setTimeout(() => setSaveMessage(''), 4000);
+  };
+
+  const restoreSavedBooking = () => {
+    if (!savedDraft?.formData) return;
+    setFormData((prev) => ({ ...prev, ...savedDraft.formData }));
+    calculatePricing({ ...formData, ...savedDraft.formData });
+    setSaveMessage('Saved booking restored.');
+    setTimeout(() => setSaveMessage(''), 3000);
+  };
+
+  const discardSavedBooking = () => {
+    try {
+      const remaining = readSavedBookings().filter((item) => item.warehouseId !== warehouse?.id);
+      window.localStorage.setItem(SAVED_BOOKINGS_KEY, JSON.stringify(remaining));
+    } catch (error) {
+      // ignore storage errors
+    }
+    setSavedDraft(null);
   };
 
   const handleSearch = (e) => {
@@ -259,7 +315,7 @@ const WarehouseSearch = () => {
   const validateForm = () => {
     const errors = {};
     
-    if (!formData.requiredSpace || parseFloat(formData.requiredSpace) <= 0) {
+    if (!isFlatRate && (!formData.requiredSpace || parseFloat(formData.requiredSpace) <= 0)) {
       errors.requiredSpace = 'Please enter required space';
     }
     
@@ -271,7 +327,7 @@ const WarehouseSearch = () => {
       errors.leaseDuration = 'Please select lease duration';
     }
 
-    if (formData.requiredSpace) {
+    if (!isFlatRate && formData.requiredSpace) {
       const numericRequired = parseFloat(formData.requiredSpace);
       if (hasAvailabilitySelection && currentMaxAvailableSpace === 0) {
         errors.requiredSpace = 'No space available for the selected dates';
@@ -333,7 +389,10 @@ const WarehouseSearch = () => {
         location: formData.warehouseLocation,
         
         // Space and Duration Requirements
-        required_space: parseFloat(formData.requiredSpace),
+        // A flat-rate listing is booked as a whole, so it reserves the full space.
+        required_space: isFlatRate ? (Number(warehouse?.total_area) || 1) : parseFloat(formData.requiredSpace),
+        rate_type: rateType,
+        storage_unit: rateType === 'per_cbm' ? 'cbm' : 'sqft',
         total_area: warehouse?.total_area,
         available_space: hasAvailabilitySelection ? availabilityInfo.availableSpace : availabilityInfo.totalSpace,
         booked_space_for_selection: availabilityInfo.bookedSpace,
@@ -465,16 +524,23 @@ const WarehouseSearch = () => {
 
   // Initialize pricing calculation on component mount and when dependencies change
   React.useEffect(() => {
-    if (warehouse && formData.requiredSpace && formData.leaseDuration) {
+    if (warehouse && (isFlatRate || formData.requiredSpace) && formData.leaseDuration) {
       calculatePricing();
     }
   }, [warehouse, formData.requiredSpace, formData.leaseDuration]);
+
+  // A previously saved booking for this warehouse (kept in this browser)
+  React.useEffect(() => {
+    if (!warehouse?.id) return;
+    const saved = readSavedBookings().find((entry) => entry.warehouseId === warehouse.id);
+    setSavedDraft(saved || null);
+  }, [warehouse?.id]);
 
   const hasAvailabilitySelection = Boolean(formData.moveinDate && formData.leaseDuration);
   const currentMaxAvailableSpace = getMaxAvailableSpace();
 
   React.useEffect(() => {
-    if (!hasAvailabilitySelection) {
+    if (!hasAvailabilitySelection || isFlatRate) {
       return;
     }
 
@@ -511,7 +577,7 @@ const WarehouseSearch = () => {
   }, [hasAvailabilitySelection, availabilityInfo.availableSpace]);
 
   React.useEffect(() => {
-    if (!hasAvailabilitySelection) {
+    if (!hasAvailabilitySelection || isFlatRate) {
       if (fieldErrors.requiredSpace) {
         setFieldErrors(prev => {
           if (!prev.requiredSpace) {
@@ -555,103 +621,248 @@ const WarehouseSearch = () => {
     });
   }, [hasAvailabilitySelection, formData.requiredSpace, availabilityInfo.availableSpace, fieldErrors.requiredSpace]);
 
+  const baseMonthlyRate = parseFloat(warehouse?.monthly_rate || warehouse?.price || warehouse?.base_price || 0) || 0;
+  const hasQuote = pricingCalculation.final_amount > 0;
+  const headerMonthly = hasQuote
+    ? pricingCalculation.monthly_rate + (pricingCalculation.add_ons_cost || 0)
+    : baseMonthlyRate;
+  const pricingPeriod = warehouse?.pricing_model && warehouse.pricing_model !== 'monthly'
+    ? warehouse.pricing_model
+    : 'month';
+
   return (
-    <div className="px-5 xl:px-0">
-      <QuoteModal
+    <div className="px-5 xl:px-0 w-full max-w-full min-w-0">
+      <WarehouseQuoteRequestModal
         open={showQuoteModal}
         onClose={() => setShowQuoteModal(false)}
-      >
-        <div className="flex flex-row justify-between items-center">
-          <div className="figtree text-[16px] font-[600]">
-            <h1>Company Name</h1>
-            <h1>Perahera Rd, </h1>
-            <h1>011 - 3 455 675</h1>
-            <h1>Colombo 03</h1>
-          </div>
+        warehouse={warehouse}
+        formData={formData}
+        pricing={pricingCalculation}
+        rateType={rateType}
+        user={props?.auth?.user}
+      />
 
-          <div className="text-center poppins text-[25px] font-[700] uppercase">
-            <h1>
-              Company <br /> <span className="text-[#0955AC]">Logo</span>
-            </h1>
-          </div>
-        </div>
-
-        <div className="figtree flex flex-row justify-end text-[35px] font-[700] text-[#0955AC]">
-          <h1>Quotation</h1>
-        </div>
-
-        <div className="flex flex-row justify-between items-end">
-          <div className="text-[16px] font-[600]">
-            <h1 className="text-[#0955AC]">Bill To</h1>
-            <h1>Client Name</h1>
-            <h1>Perahera Rd, </h1>
-            <h1>011 - 3 455 675</h1>
-            <h1>Colombo 03</h1>
-          </div>
-
-          <div className="text-right text-[16px] font-[600]">
-            <h1>
-              <span className="text-[#0955AC]">Quotation No:</span> #123456
-            </h1>
-            <h1>
-              <span className="text-[#0955AC]">Quotation Date:</span> March 23, 2025
-            </h1>
-            <h1>
-              <span className="text-[#0955AC]">Due Date:</span> May 23, 2025
-            </h1>
-          </div>
-        </div>
-
-        <div className="w-full h-[36px] bg-[#0955AC] mt-10 flex flex-row justify-center items-center text-[#FFFFFF] px-10 text-[14px] font-[700]">
-          <h1 className="w-[200px]">Description</h1>
-          <h1 className="w-[140px]">QTY.</h1>
-          <h1 className="w-[140px]">UNIT price</h1>
-          <h1 className="w-[140px] text-end">Sub Total</h1>
-        </div>
-
-        <div className="w-full h-[36px] flex flex-row justify-center items-center px-10 text-[14px] font-[600] mt-5">
-          <h1 className="w-[200px]">{warehouse?.name || 'Warehouse Unit'}</h1>
-          <h1 className="w-[140px]">1 Month</h1>
-          <h1 className="w-[140px]">{warehouse?.monthly_rate || warehouse?.price || '—'}</h1>
-          <h1 className="w-[140px] text-end">US$ {(warehouse?.monthly_rate || warehouse?.price || 0).toLocaleString?.() || warehouse?.monthly_rate || warehouse?.price || '—'}</h1>
-        </div>
-
-        <div className="w-full h-[1.5px] bg-[#0955AC] my-5" />
-
-        <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
-          <h1 className="w-[140px]">Subtotal</h1>
-          <h1 className="w-[140px] text-end">US$ {(warehouse?.monthly_rate || warehouse?.price || 0).toLocaleString?.() || warehouse?.monthly_rate || warehouse?.price || '—'}</h1>
-        </div>
-        <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
-          <h1 className="w-[140px]">Sales Tax (5%)</h1>
-          <h1 className="w-[140px] text-end">—</h1>
-        </div>
-        <div className="flex justify-end items-center">
-          <div className="flex flex-row items-center border-t-[1px] border-b-[1px] w-[340px] px-10 h-[39px] bg-[#E8EBEF] border-[#0955AC] text-[14px] font-[700] text-[#0955AC]">
-            <h1 className="w-[140px]">Total (USD)</h1>
-            <h1 className="w-[140px] text-end">US$ {(warehouse?.monthly_rate || warehouse?.price || 0).toLocaleString?.() || warehouse?.monthly_rate || warehouse?.price || '—'}</h1>
-          </div>
-        </div>
-
-        <h1 className="text-[14px] font-[700] text-[#0955AC]">Terms and Conditions</h1>
-        <h1 className="text-[14px] font-[500]">Payment is due in 14 days</h1>
-
-        <div className="flex justify-center items-center">
-          <div className="w-[231px] h-[41px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[600] text-[12px] poppins flex justify-center items-center cursor-pointer">
-            Download quotation
-          </div>
-        </div>
-      </QuoteModal>
-
-      <div className="poppins w-auto h-auto xl:w-[440px] xl:h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 xl:px-20 px-10">
+      <div className="poppins w-full min-w-0 h-auto xl:w-[440px] xl:h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-8 py-10 xl:px-8 px-6">
+        {/* Price: always at the top, updates as the requirements change */}
         <div className="text-[25px] font-[700]">
           <h1>
-            {warehouse?.monthly_rate || warehouse?.price ? `US$ ${(warehouse?.monthly_rate || warehouse?.price).toLocaleString?.() || (warehouse?.monthly_rate || warehouse?.price)}` : 'US$ —'}
-            <span className="text-[10px] text-[#00000080]">/{warehouse?.pricing_model || 'month'}</span>
+            {headerMonthly > 0 ? formatCurrency(headerMonthly) : 'LKR -'}
+            <span className="text-[10px] text-[#00000080]">/{pricingPeriod}</span>
           </h1>
-          <h1 className="text-[10px] font-[600] text-[#00000080] py-4">Total before taxes</h1>
-          <div className=" w-auto md:w-[346px] h-[1px] bg-[#0000001F]" />
+          <h1 className="text-[10px] font-[600] text-[#00000080] py-3">
+            {hasQuote
+              ? 'Monthly rate for your selected space'
+              : 'Listed rate. Choose your space and duration to see your own price.'}
+          </h1>
+          {hasQuote && (
+            <div className="rounded-[10px] bg-[#0955AC] px-4 py-3 text-white flex items-center justify-between text-[12px] font-[600]">
+              <span>Estimated total</span>
+              <span className="text-[16px] font-[700]">{formatCurrency(pricingCalculation.final_amount)}</span>
+            </div>
+          )}
+          <div className="mt-4 w-auto h-[1px] bg-[#0000001F]" />
         </div>
+
+        {/* Price breakdown and summary, moved to the top */}
+        <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-8 px-6">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="font-[600] text-[#000000D9]">Pricing Breakdown</h1>
+            {isCalculating && (
+              <div className="text-[#0955AC] text-[10px] font-[500]">Calculating...</div>
+            )}
+          </div>
+          <div className="w-full h-[1px] bg-[#CDD0D4]" />
+
+          {/* Monthly Rate */}
+          <div className="flex flex-col md:flex-row justify-between w-full px-2 py-4 font-[500]">
+            <div>
+              <h1 className="text-[#000000CC]">Monthly Rate</h1>
+              <div className="flex flex-row gap-3 text-[#00000061]">
+                <h1>{formatCurrency(pricingCalculation.monthly_rate)}/month</h1>
+                <h1 className="text-[#0955AC]">
+                  ({pricingCalculation.duration_months || 1} month{(pricingCalculation.duration_months || 1) > 1 ? 's' : ''})
+                </h1>
+              </div>
+            </div>
+            <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.monthly_rate * (pricingCalculation.duration_months || 1))}</div>
+          </div>
+
+          {/* Security Deposit */}
+          <div className="flex flex-col md:flex-row justify-between w-full px-2 font-[500]">
+            <div>
+              <h1 className="text-[#000000CC]">Security Deposit</h1>
+              <div className="flex flex-row gap-3 text-[#00000061]">
+                <h1>Refundable deposit</h1>
+                <h1 className="text-[#0955AC]">(One-time)</h1>
+              </div>
+            </div>
+            <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.security_deposit)}</div>
+          </div>
+
+          {/* Setup Fee */}
+          <div className="flex flex-col md:flex-row justify-between w-full px-2 py-4 font-[500]">
+            <div>
+              <h1 className="text-[#000000CC]">Setup Fee</h1>
+              <div className="flex flex-row gap-3 text-[#00000061]">
+                <h1>Initial setup and processing</h1>
+                <h1 className="text-[#0955AC]">(One-time)</h1>
+              </div>
+            </div>
+            <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.setup_fee)}</div>
+          </div>
+
+          {/* Storage & Fulfillment Add-on */}
+          {pricingCalculation.add_ons_cost > 0 && (
+            <div className="flex flex-col md:flex-row justify-between w-full px-2 pb-4 font-[500]">
+              <div>
+                <h1 className="text-[#000000CC]">Storage &amp; Fulfillment</h1>
+                <div className="flex flex-row gap-3 text-[#00000061]">
+                  <h1>Pick, pack &amp; ship handling</h1>
+                  <h1 className="text-[#0955AC]">(Monthly)</h1>
+                </div>
+              </div>
+              <div className="text-[#000000CC]">+{formatCurrency(pricingCalculation.add_ons_cost * (pricingCalculation.duration_months || 1))}</div>
+            </div>
+          )}
+
+          {/* Tax */}
+          {pricingCalculation.tax_amount > 0 && (
+            <div className="flex flex-col md:flex-row justify-between w-full px-2 pb-4 font-[500]">
+              <div>
+                <h1 className="text-[#000000CC]">Tax</h1>
+                <div className="flex flex-row gap-3 text-[#00000061]">
+                  <h1>VAT and other taxes</h1>
+                  <h1 className="text-[#0955AC]">({((pricingCalculation.tax_rate || 0) * 100).toFixed(1)}%)</h1>
+                </div>
+              </div>
+              <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.tax_amount)}</div>
+            </div>
+          )}
+
+          <div className="w-full h-[1px] bg-[#CDD0D4] my-3" />
+
+          {/* Space Utilization Info */}
+          {!isFlatRate && pricingCalculation.space_utilization && pricingCalculation.space_utilization < 1 && (
+            <div className="bg-blue-50 p-3 rounded mb-4">
+              <h2 className="text-[11px] font-[600] text-blue-800 mb-1">Space Utilization</h2>
+              <p className="text-[10px] text-blue-600">
+                You're using {(pricingCalculation.space_utilization * 100).toFixed(1)}% of the total warehouse space
+                ({formatSqFt(formData.requiredSpace)} / {formatSqFt(warehouse?.total_area)} {spaceUnitLabel})
+              </p>
+            </div>
+          )}
+
+          <h1 className="font-[600] mt-2 text-[#000000D9]">Summary</h1>
+
+          <div className="flex flex-col md:flex-row justify-between w-full px-2 py-4 font-[500]">
+            <div>
+              <h1 className="text-[#000000CC]">Initial Payment</h1>
+              <div className="flex flex-row gap-3 text-[#00000061] mt-2">
+                <h1>First month + deposit + setup</h1>
+                <h1 className="text-[#0955AC]">(Due at booking)</h1>
+              </div>
+            </div>
+            <div className="text-[#000000CC] text-[12px] font-[600]">
+              {formatCurrency(
+                pricingCalculation.monthly_rate
+                + (pricingCalculation.add_ons_cost || 0)
+                + pricingCalculation.security_deposit
+                + pricingCalculation.setup_fee
+                + (pricingCalculation.tax_amount / (pricingCalculation.duration_months || 1))
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row justify-between w-full px-2 pb-4 font-[500]">
+            <div>
+              <h1 className="text-[#000000CC]">Total Contract Value</h1>
+              <div className="flex flex-row gap-3 text-[#00000061] mt-2">
+                <h1>Complete lease term total</h1>
+                <h1 className="text-[#0955AC]">
+                  ({pricingCalculation.duration_months || 0} month{(pricingCalculation.duration_months || 0) !== 1 ? 's' : ''})
+                </h1>
+              </div>
+            </div>
+            <div className="text-[#000000CC] text-[16px] font-[700]">
+              {formatCurrency(pricingCalculation.final_amount)}
+            </div>
+          </div>
+
+          {/* Payment plan: payable now, remaining balance and instalment schedule */}
+          {hasQuote && (
+            <div className="mb-4">
+              <div className="flex gap-2 mb-3 text-[11px] font-[700]">
+                {[
+                  { value: 'deposit', label: 'Deposit + monthly' },
+                  { value: 'full', label: 'Pay in full' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPlanOption(option.value)}
+                    className={`flex-1 rounded-[6px] border px-3 py-2 transition-colors ${
+                      planOption === option.value
+                        ? 'bg-[#0955AC] border-[#0955AC] text-white'
+                        : 'bg-white border-[#0955AC55] text-[#0955AC]'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <WarehousePaymentPlan
+                pricing={pricingCalculation}
+                paymentOption={planOption}
+                moveInDate={formData.moveinDate}
+              />
+            </div>
+          )}
+
+          {/* Quote Validity */}
+          {hasQuote && (
+            <div className="bg-green-50 p-3 rounded mb-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-[11px] font-[600] text-green-800">Quote Valid Until</h2>
+                  <p className="text-[10px] text-green-600">
+                    {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-[11px] font-[600] text-green-800">Space Available</h2>
+                  <p className="text-[10px] text-green-600">
+                    {warehouse?.is_available ? 'Yes' : 'Limited'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <CancellationPolicyNotice className="mb-3" />
+
+          <div className="relative flex flex-col md:flex-row items-start justify-start px-2">
+            <span className="absolute top-[5px] left-[8px] w-[2px] h-[2px] bg-[#0955AC] rounded-full" />
+            <p className="text-[8.5px] text-[#00000061] ml-4">
+              Prices shown are estimates based on your requirements. Final pricing will be confirmed during checkout process.
+            </p>
+          </div>
+        </div>
+
+        {savedDraft && (
+          <div className="rounded-[8px] border border-[#0955AC33] bg-white px-4 py-3 text-[11px] flex items-center justify-between gap-3">
+            <span className="text-[#000000B2]">
+              You have a saved booking from {new Date(savedDraft.savedAt).toLocaleDateString()}.
+            </span>
+            <span className="flex gap-3 shrink-0 font-[700]">
+              <button type="button" onClick={restoreSavedBooking} className="text-[#0955AC] hover:underline">Restore</button>
+              <button type="button" onClick={discardSavedBooking} className="text-[#00000080] hover:underline">Discard</button>
+            </span>
+          </div>
+        )}
 
         <form onSubmit={handleSearch} className="text-[10px] text-[#00000080] font-[600]">
           <div>
@@ -667,7 +878,7 @@ const WarehouseSearch = () => {
                 className="appearance-none w-full h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
               />
             </div>
- 
+
             {/* Move-in Date */}
             <div>
               <label htmlFor="moveinDate" className="block mb-3">
@@ -693,65 +904,71 @@ const WarehouseSearch = () => {
           </div>
 
           <div>
-            {/* Required Space */}
-            <div>
-              <label htmlFor="requiredSpace" className="block mb-3">
-                Required Space (sq ft) <span className="text-red-500">*</span>
-                {hasAvailabilitySelection ? (
-                  availabilityLoading ? (
-                    <span className="text-[#0955AC] ml-2">Checking availability...</span>
-                  ) : availabilityError ? (
-                    <span className="text-red-500 ml-2">Availability unavailable</span>
+            {/* Required Space (not needed for a flat-rate listing) */}
+            {isFlatRate ? (
+              <div className="mb-3 rounded-[5px] bg-[#0955AC0D] px-4 py-3 text-[11px] text-[#000000B2]">
+                This warehouse is offered at a flat rate, so you don't need to enter a space requirement.
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="requiredSpace" className="block mb-3">
+                  Required Space ({spaceUnitLabel}) <span className="text-red-500">*</span>
+                  {hasAvailabilitySelection ? (
+                    availabilityLoading ? (
+                      <span className="text-[#0955AC] ml-2">Checking availability...</span>
+                    ) : availabilityError ? (
+                      <span className="text-red-500 ml-2">Availability unavailable</span>
+                    ) : (
+                      <span className="text-[#0955AC] ml-2">
+                        - Available: {formatSqFt(availabilityInfo.availableSpace)} {spaceUnitLabel}
+                        {availabilityInfo.bookedSpace > 0 ? ` (booked ${formatSqFt(availabilityInfo.bookedSpace)} ${spaceUnitLabel})` : ''}
+                      </span>
+                    )
                   ) : (
-                    <span className="text-[#0955AC] ml-2">
-                      - Available: {formatSqFt(availabilityInfo.availableSpace)} sq ft
-                      {availabilityInfo.bookedSpace > 0 ? ` (booked ${formatSqFt(availabilityInfo.bookedSpace)} sq ft)` : ''}
-                    </span>
-                  )
-                ) : (
-                  warehouse?.total_area && (
-                    <span className="text-[#0955AC] ml-2">
-                      - Total: {formatSqFt(warehouse.total_area)} sq ft
-                    </span>
-                  )
+                    warehouse?.total_area && (
+                      <span className="text-[#0955AC] ml-2">
+                        - Total: {formatSqFt(warehouse.total_area)} {spaceUnitLabel}
+                      </span>
+                    )
+                  )}
+                </label>
+                <input
+                  type="number"
+                  id="requiredSpace"
+                  name="requiredSpace"
+                  value={formData.requiredSpace}
+                  onChange={handleInputChange}
+                  min="1"
+                  max={currentMaxAvailableSpace > 0 ? currentMaxAvailableSpace : undefined}
+                  placeholder={hasAvailabilitySelection
+                    ? currentMaxAvailableSpace > 0
+                      ? `Enter up to ${formatSqFt(currentMaxAvailableSpace)} ${spaceUnitLabel}`
+                      : 'No space available for selected dates'
+                    : warehouse?.total_area
+                      ? `Enter up to ${formatSqFt(warehouse.total_area)} ${spaceUnitLabel}`
+                      : 'Enter required space'}
+                  className="w-full px-4 py-3 border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 leading-tight focus:outline-none placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
+                />
+                {hasAvailabilitySelection && !availabilityLoading && !availabilityError && (
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Available for selected dates: {formatSqFt(availabilityInfo.availableSpace)} {spaceUnitLabel}
+                  </p>
                 )}
-              </label>
-              <input
-                type="number"
-                id="requiredSpace"
-                name="requiredSpace"
-                value={formData.requiredSpace}
-                onChange={handleInputChange}
-                min="1"
-                max={currentMaxAvailableSpace > 0 ? currentMaxAvailableSpace : undefined}
-                placeholder={hasAvailabilitySelection
-                  ? currentMaxAvailableSpace > 0
-                    ? `Enter up to ${formatSqFt(currentMaxAvailableSpace)} sq ft`
-                    : 'No space available for selected dates'
-                  : warehouse?.total_area
-                    ? `Enter up to ${formatSqFt(warehouse.total_area)} sq ft`
-                    : 'Enter required space'}
-                className="w-full px-4 py-3 border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 leading-tight focus:outline-none placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
-              />
-              {hasAvailabilitySelection && !availabilityLoading && !availabilityError && (
-                <p className="text-[10px] text-gray-500 mt-1">
-                  Available for selected dates: {formatSqFt(availabilityInfo.availableSpace)} sq ft
-                </p>
-              )}
-              {!hasAvailabilitySelection && warehouse?.total_area && (
-                <p className="text-[10px] text-gray-500 mt-1">
-                  Total warehouse space: {formatSqFt(warehouse.total_area)} sq ft
-                </p>
-              )}
-              {availabilityError && (
-                <p className="text-[10px] text-red-500 mt-1">{availabilityError}</p>
-              )}
-              {fieldErrors.requiredSpace && (
-                <p className="text-[10px] text-red-500 mt-1">
-                  {fieldErrors.requiredSpace}
-                </p>
-              )}
-            </div>
+                {!hasAvailabilitySelection && warehouse?.total_area && (
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Total warehouse space: {formatSqFt(warehouse.total_area)} {spaceUnitLabel}
+                  </p>
+                )}
+                {availabilityError && (
+                  <p className="text-[10px] text-red-500 mt-1">{availabilityError}</p>
+                )}
+                {fieldErrors.requiredSpace && (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    {fieldErrors.requiredSpace}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Lease Duration */}
             <div>
@@ -849,169 +1066,39 @@ const WarehouseSearch = () => {
                 })}
               </div>
             </div>
-
           </div>
         </form>
 
-        <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
-          <div className="flex justify-between items-center mb-5">
-            <h1 className="font-[600] text-[#000000D9]">Pricing Breakdown</h1>
-            {isCalculating && (
-              <div className="text-[#0955AC] text-[10px] font-[500]">Calculating...</div>
-            )}
-          </div>
-          <div className="w-full h-[1px] bg-[#CDD0D4]" />
-          
-          {/* Monthly Rate */}
-          <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-            <div>
-              <h1 className="text-[#000000CC]">Monthly Rate</h1>
-              <div className="flex flex-row gap-3 text-[#00000061]">
-                <h1>{formatCurrency(pricingCalculation.monthly_rate)}/month</h1>
-                <h1 className="text-[#0955AC]">
-                  ({pricingCalculation.duration_months || 1} month{(pricingCalculation.duration_months || 1) > 1 ? 's' : ''})
-                </h1>
-              </div>
-            </div>
-            <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.subtotal)}</div>
-          </div>
-
-          {/* Security Deposit */}
-          <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
-            <div>
-              <h1 className="text-[#000000CC]">Security Deposit</h1>
-              <div className="flex flex-row gap-3 text-[#00000061]">
-                <h1>Refundable deposit</h1>
-                <h1 className="text-[#0955AC]">(One-time)</h1>
-              </div>
-            </div>
-            <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.security_deposit)}</div>
-          </div>
-
-          {/* Setup Fee */}
-          <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-            <div>
-              <h1 className="text-[#000000CC]">Setup Fee</h1>
-              <div className="flex flex-row gap-3 text-[#00000061]">
-                <h1>Initial setup and processing</h1>
-                <h1 className="text-[#0955AC]">(One-time)</h1>
-              </div>
-            </div>
-            <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.setup_fee)}</div>
-          </div>
-
-          {/* Storage & Fulfillment Add-on */}
-          {pricingCalculation.add_ons_cost > 0 && (
-            <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-              <div>
-                <h1 className="text-[#000000CC]">Storage &amp; Fulfillment</h1>
-                <div className="flex flex-row gap-3 text-[#00000061]">
-                  <h1>Pick, pack &amp; ship handling</h1>
-                  <h1 className="text-[#0955AC]">(Monthly)</h1>
-                </div>
-              </div>
-              <div className="text-[#000000CC]">+{formatCurrency(pricingCalculation.add_ons_cost * (pricingCalculation.duration_months || 1))}</div>
-            </div>
-          )}
-
-          {/* Tax */}
-          {pricingCalculation.tax_amount > 0 && (
-            <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
-              <div>
-                <h1 className="text-[#000000CC]">Tax</h1>
-                <div className="flex flex-row gap-3 text-[#00000061]">
-                  <h1>VAT and other taxes</h1>
-                  <h1 className="text-[#0955AC]">({((pricingCalculation.tax_rate || 0) * 100).toFixed(1)}%)</h1>
-                </div>
-              </div>
-              <div className="text-[#000000CC]">{formatCurrency(pricingCalculation.tax_amount)}</div>
-            </div>
-          )}
-
-          <div className="w-full h-[1px] bg-[#CDD0D4] my-5" />
-
-          {/* Space Utilization Info */}
-          {pricingCalculation.space_utilization && pricingCalculation.space_utilization < 1 && (
-            <div className="bg-blue-50 p-3 rounded mb-5">
-              <h2 className="text-[11px] font-[600] text-blue-800 mb-1">Space Utilization</h2>
-              <p className="text-[10px] text-blue-600">
-                You're using {(pricingCalculation.space_utilization * 100).toFixed(1)}% of the total warehouse space 
-                ({formatSqFt(formData.requiredSpace)} / {formatSqFt(warehouse?.total_area)} sq ft)
-              </p>
-            </div>
-          )}
-
-          <div className="w-full h-[1px] bg-[#CDD0D4]" />
-
-          <h1 className="font-[600] mt-5 text-[#000000D9]">Summary</h1>
-
-          <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-            <div>
-              <h1 className="text-[#000000CC]">Initial Payment</h1>
-              <div className="flex flex-row gap-3 text-[#00000061] mt-3">
-                <h1>First month + deposits + setup</h1>
-                <h1 className="text-[#0955AC]">(Due at booking)</h1>
-              </div>
-            </div>
-            <div className="text-[#000000CC] text-[12px] font-[600]">
-              {formatCurrency(pricingCalculation.monthly_rate + pricingCalculation.security_deposit + pricingCalculation.setup_fee + (pricingCalculation.tax_amount / (pricingCalculation.duration_months || 1)))}
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row justify-between w-full px-5 pb-5 font-[500]">
-            <div>
-              <h1 className="text-[#000000CC]">Total Contract Value</h1>
-              <div className="flex flex-row gap-3 text-[#00000061] mt-3">
-                <h1>Complete lease term total</h1>
-                <h1 className="text-[#0955AC]">
-                  ({pricingCalculation.duration_months || 0} month{(pricingCalculation.duration_months || 0) !== 1 ? 's' : ''})
-                </h1>
-              </div>
-            </div>
-            <div className="text-[#000000CC] text-[16px] font-[700]">
-              {formatCurrency(pricingCalculation.final_amount)}
-            </div>
-          </div>
-
-          {/* Quote Validity */}
-          {pricingCalculation.final_amount > 0 && (
-            <div className="bg-green-50 p-3 rounded mb-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-[11px] font-[600] text-green-800">Quote Valid Until</h2>
-                  <p className="text-[10px] text-green-600">
-                    {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long', 
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <h2 className="text-[11px] font-[600] text-green-800">Space Available</h2>
-                  <p className="text-[10px] text-green-600">
-                    {warehouse?.is_available ? 'Yes' : 'Limited'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="relative flex flex-col md:flex-row items-start justify-start px-5">
-            <span className="absolute top-[5px] left-[20px] w-[2px] h-[2px] bg-[#0955AC] rounded-full" />
-            <p className="text-[8.5px] text-[#00000061] ml-4">
-              Prices shown are estimates based on your requirements. Final pricing will be confirmed during checkout process.
-            </p>
-          </div>
-
-          <div className="flex justify-center items-center mt-10">
-            <div
-              className="w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer"
-              onClick={handleContinueToCheckout}
+        {/* Actions */}
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleContinueToCheckout}
+            className="w-full bg-[#0955AC] hover:bg-[#074494] px-4 py-3 rounded-[5px] flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center"
+          >
+            CONTINUE TO CHECKOUT
+          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setShowQuoteModal(true)}
+              className="flex items-center justify-center gap-2 rounded-[5px] border border-[#0955AC] bg-white px-3 py-2.5 text-[12px] font-[700] text-[#0955AC] hover:bg-[#0955AC0D]"
             >
-              CONTINUE TO CHECKOUT
-            </div>
+              <FileText className="w-4 h-4" />
+              Request a Quote
+            </button>
+            <button
+              type="button"
+              onClick={saveBooking}
+              className="flex items-center justify-center gap-2 rounded-[5px] border border-[#0955AC] bg-white px-3 py-2.5 text-[12px] font-[700] text-[#0955AC] hover:bg-[#0955AC0D]"
+            >
+              <Bookmark className="w-4 h-4" />
+              Save Booking
+            </button>
           </div>
+          {saveMessage && (
+            <p className="text-center text-[11px] font-[600] text-[#1F6B1A]">{saveMessage}</p>
+          )}
         </div>
       </div>
     </div>

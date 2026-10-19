@@ -1082,7 +1082,78 @@ const UnitContent = () => {
                             <p><span className="font-[700]">Total Weight:</span> {selectedShipment.details.totalWeight} kg</p>
                             <p><span className="font-[700]">Delivery Notes:</span> {selectedShipment.details.deliveryNotes || "-"}</p>
                             <p><span className="font-[700]">Internal Notes:</span> {selectedShipment.details.internalNotes || "-"}</p>
+                            {selectedShipment.codEnabled && selectedShipment.details.courierFeePayer && (
+                                <p>
+                                    <span className="font-[700]">Courier Fee Paid By:</span>{" "}
+                                    {selectedShipment.details.courierFeePayer === "sender"
+                                        ? (selectedShipment.details.deductFeeFromCod ? "Sender (deduct from COD)" : "Sender (collect from sender)")
+                                        : "Receiver (with COD amount)"}
+                                </p>
+                            )}
                         </div>
+                        {Array.isArray(selectedShipment.details.packingLists) && selectedShipment.details.packingLists.length > 0 && (
+                            <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="font-[700] text-[14px]">Packing List</p>
+                                    <button
+                                        type="button"
+                                        className="rounded-[8px] border border-[#0955AC] px-3 py-1 text-[12px] font-[700] text-[#0955AC] hover:bg-[#0955AC] hover:text-white"
+                                        onClick={() => {
+                                            const esc = (value) => {
+                                                const text = String(value ?? "");
+                                                const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+                                                return `"${safe.replaceAll('"', '""')}"`;
+                                            };
+                                            const lines = [["Package", "#", "HS code", "Description", "Qty", "Weight (kg)", "Unit price", "Total"].map(esc).join(",")];
+                                            selectedShipment.details.packingLists.forEach((list) => {
+                                                list.items.forEach((row, rowIndex) => {
+                                                    lines.push([list.package, rowIndex + 1, row.hsCode, row.description, row.quantity, row.weightKg, row.unitPrice.toFixed(2), row.total.toFixed(2)].map(esc).join(","));
+                                                });
+                                            });
+                                            const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+                                            const url = URL.createObjectURL(blob);
+                                            const link = document.createElement("a");
+                                            link.href = url;
+                                            link.download = `packing-list-${selectedShipment.reference || selectedShipment.id || "shipment"}.csv`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            URL.revokeObjectURL(url);
+                                        }}
+                                    >
+                                        Download CSV
+                                    </button>
+                                </div>
+                                {selectedShipment.details.packingLists.map((list, listIndex) => (
+                                    <div key={`packing-list-${listIndex}`} className="mt-3 text-[12px]">
+                                        <p className="font-[700]">{list.package}</p>
+                                        <table className="mt-1 w-full text-left">
+                                            <thead>
+                                                <tr className="text-[#0F0F0F]">
+                                                    <th className="py-1 pr-2">HS</th>
+                                                    <th className="py-1 pr-2">Description</th>
+                                                    <th className="py-1 pr-2">Qty</th>
+                                                    <th className="py-1 pr-2">Kg</th>
+                                                    <th className="py-1">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {list.items.map((row, rowIndex) => (
+                                                    <tr key={`packing-row-${listIndex}-${rowIndex}`}>
+                                                        <td className="py-1 pr-2">{row.hsCode || "-"}</td>
+                                                        <td className="py-1 pr-2">{row.description || "-"}</td>
+                                                        <td className="py-1 pr-2">{row.quantity}</td>
+                                                        <td className="py-1 pr-2">{row.weightKg}</td>
+                                                        <td className="py-1">{row.total.toFixed(2)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        <p className="mt-1 text-right font-[700]">Total: {list.total.toFixed(2)}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         <button
                             type="button"
                             className="mt-6 w-full h-[40px] rounded-[8px] bg-[#0955AC] text-white font-[700]"

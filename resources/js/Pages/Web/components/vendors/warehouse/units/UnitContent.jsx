@@ -20,6 +20,9 @@ const initialInlineUnitForm = {
     capacity: "",
     type: "",
     pricing_model: "",
+    rate_type: "per_sqft",
+    temperature_min_c: "",
+    temperature_max_c: "",
     price: "",
     monthly_rate: "",
     security_deposit: "",
@@ -212,6 +215,9 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
         payload.append("capacity", form.capacity || "");
         payload.append("type", form.type);
         payload.append("pricing_model", form.pricing_model);
+        payload.append("rate_type", form.rate_type || "per_sqft");
+        payload.append("temperature_min_c", form.temperature_min_c ?? "");
+        payload.append("temperature_max_c", form.temperature_max_c ?? "");
         payload.append("base_price", form.price || "");
         payload.append("price", form.price || "");
         payload.append("monthly_rate", form.monthly_rate || "");
@@ -421,6 +427,49 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
                                 ))}
                             </select>
                             {errors.pricing_model && <p className="mt-1 text-sm text-red-600">{errors.pricing_model}</p>}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Rate Type</label>
+                            <select
+                                name="rate_type"
+                                value={form.rate_type}
+                                onChange={handleInputChange}
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                            >
+                                <option value="per_sqft">Per sq ft</option>
+                                <option value="per_cbm">Per CBM</option>
+                                <option value="flat_rate">Flat rate</option>
+                            </select>
+                            <p className="mt-1 text-xs text-gray-500">How customers search for and are priced on this listing.</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Storage Temperature Range (&deg;C)</label>
+                            <div className="mt-1 flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    name="temperature_min_c"
+                                    value={form.temperature_min_c}
+                                    onChange={handleInputChange}
+                                    placeholder="Min"
+                                    step="0.5"
+                                    min="-60"
+                                    max="60"
+                                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                />
+                                <span className="text-gray-400">to</span>
+                                <input
+                                    type="number"
+                                    name="temperature_max_c"
+                                    value={form.temperature_max_c}
+                                    onChange={handleInputChange}
+                                    placeholder="Max"
+                                    step="0.5"
+                                    min="-60"
+                                    max="60"
+                                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">Leave empty for ambient storage (no temperature control).</p>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-gray-700">Base Price ({form.pricing_model || "model"})</label>

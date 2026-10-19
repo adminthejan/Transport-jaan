@@ -28,6 +28,8 @@ class WarehouseBooking extends Model
         'phone',
         'email',
         'company_address',
+        'postal_code',
+        'tax_identification_number',
         
         // Storage Requirements
         'storage_type',

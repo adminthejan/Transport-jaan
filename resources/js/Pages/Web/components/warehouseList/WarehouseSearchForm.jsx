@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { router } from "@inertiajs/react";
-import { CalendarDays, Loader2, LocateFixed, Ruler, Search } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ListChecks, Loader2, LocateFixed, Ruler, Search, Thermometer, Wallet } from "lucide-react";
 import locationBlue from "../../assets/vehicleList/locationBlue.png";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png";
 import WarehouseDatePicker from "./WarehouseDatePicker";
 import { PROVINCES } from "./warehouseLocations";
+import { RATE_TYPES, SERVICES, TEMPERATURE_PRESETS, asArray } from "./warehouseFilters";
 
 const DURATION_LABELS = {
   "6": "6 Months",
@@ -16,7 +17,14 @@ const GOOGLE_MAPS_API_KEY = "AIzaSyBWjVf-wK6rdmSON8eOXJCgxq2MI10QasE"; // fallba
 
 const WarehouseSearchForm = ({ formData, onFormChange }) => {
   const dateMode = formData.dateMode || "flexible";
-  const requiredSpaceUnit = formData.requiredSpaceUnit || "sqft";
+  const rateType = RATE_TYPES.some((r) => r.value === formData.rateType) ? formData.rateType : "per_sqft";
+  const activeRateType = RATE_TYPES.find((r) => r.value === rateType) || RATE_TYPES[0];
+  const requiredSpaceUnit = rateType === "per_cbm" ? "cbm" : "sqft";
+  const isFlatRate = rateType === "flat_rate";
+  const selectedServices = asArray(formData.services);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const servicesRef = useRef(null);
+  const [customTemperature, setCustomTemperature] = useState(false);
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState("");
@@ -48,6 +56,17 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
     onFormChange({ ...formData, warehouseLocation: label, nearLat: "", nearLng: "" });
     setLocationOpen(false);
   };
+
+  useEffect(() => {
+    if (!servicesOpen) return;
+    const handleClickOutside = (e) => {
+      if (servicesRef.current && !servicesRef.current.contains(e.target)) {
+        setServicesOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [servicesOpen]);
 
   useEffect(() => {
     if (!datePopoverOpen) return;
@@ -84,8 +103,42 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
     });
   };
 
-  const setRequiredSpaceUnit = (unit) => {
-    onFormChange({ ...formData, requiredSpaceUnit: unit });
+  const setRateType = (value) => {
+    onFormChange({
+      ...formData,
+      rateType: value,
+      requiredSpaceUnit: value === "per_cbm" ? "cbm" : "sqft",
+      // a flat rate is priced per booking, so any entered space no longer applies
+      ...(value === "flat_rate" ? { requiredSpace: "" } : {}),
+    });
+  };
+
+  const toggleService = (serviceId) => {
+    const next = selectedServices.includes(serviceId)
+      ? selectedServices.filter((id) => id !== serviceId)
+      : [...selectedServices, serviceId];
+    onFormChange({ ...formData, services: next });
+  };
+
+  const temperatureValue = formData.temperature === undefined || formData.temperature === null ? "" : String(formData.temperature);
+  const matchesPreset = TEMPERATURE_PRESETS.some((p) => p.value === temperatureValue);
+  const temperatureMode = customTemperature || !matchesPreset ? "custom" : temperatureValue;
+
+  const handleTemperatureSelect = (value) => {
+    if (value === "custom") {
+      setCustomTemperature(true);
+      return;
+    }
+    setCustomTemperature(false);
+    onFormChange({ ...formData, temperature: value });
+  };
+
+  const servicesSummary = () => {
+    if (selectedServices.length === 0) return "Any service";
+    if (selectedServices.length === 1) {
+      return SERVICES.find((s) => s.id === selectedServices[0])?.label || "1 selected";
+    }
+    return `${selectedServices.length} services selected`;
   };
 
   const dateSummary = () => {
@@ -161,9 +214,22 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
       searchParams.nearLat = formData.nearLat;
       searchParams.nearLng = formData.nearLng;
     }
-    if (formData.requiredSpace) {
+    searchParams.rateType = rateType;
+    if (formData.requiredSpace && !isFlatRate) {
       searchParams.requiredSpace = formData.requiredSpace;
       searchParams.requiredSpaceUnit = requiredSpaceUnit;
+    }
+    if (temperatureValue !== "" && Number.isFinite(Number(temperatureValue))) {
+      searchParams.temperature = temperatureValue;
+    }
+    if (selectedServices.length > 0) {
+      searchParams.services = selectedServices;
+    }
+    if (formData.budgetMin !== undefined && formData.budgetMin !== "" && Number(formData.budgetMin) >= 0) {
+      searchParams.budgetMin = formData.budgetMin;
+    }
+    if (formData.budgetMax !== undefined && formData.budgetMax !== "" && Number(formData.budgetMax) > 0) {
+      searchParams.budgetMax = formData.budgetMax;
     }
     searchParams.dateMode = dateMode;
     if (dateMode === "choose" && formData.moveinDate) {
@@ -254,38 +320,46 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                 {locateError && <p className="text-[10px] text-red-500 mt-1">{locateError}</p>}
               </div>
 
+              {/* Rate Type (price by sq ft, CBM or a flat rate) */}
+              <div className="w-full sm:flex-[0.8]">
+                <label htmlFor="rateType" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
+                  Rate Type
+                </label>
+                <div className="relative flex items-center border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors bg-white">
+                  <Wallet className="w-[18px] h-[18px] text-[#0955AC] flex-shrink-0" />
+                  <select
+                    id="rateType"
+                    value={rateType}
+                    onChange={(e) => setRateType(e.target.value)}
+                    className="appearance-none w-full py-[12px] sm:py-[13px] pl-2 pr-6 leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent text-[13px] text-[#0F0F0F] cursor-pointer"
+                  >
+                    {RATE_TYPES.map((rate) => (
+                      <option key={rate.value} value={rate.value}>
+                        {rate.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 pointer-events-none" />
+                </div>
+              </div>
+
               {/* Required Space */}
               <div className="w-full sm:flex-1">
                 <label htmlFor="requiredSpace" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
-                  Required Space
+                  Required Space{activeRateType.unit ? ` (${activeRateType.unit})` : ""}
                 </label>
-                <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors bg-white relative">
+                <div className={`flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors relative ${isFlatRate ? "bg-[#F4F7FB]" : "bg-white"}`}>
                   <Ruler className="w-[18px] h-[18px] text-[#0955AC] flex-shrink-0" />
                   <input
                     type="number"
                     id="requiredSpace"
-                    placeholder={requiredSpaceUnit === "cbm" ? "e.g., 500" : "e.g., 10000"}
-                    value={formData.requiredSpace}
+                    min="0"
+                    disabled={isFlatRate}
+                    placeholder={activeRateType.placeholder}
+                    value={isFlatRate ? "" : formData.requiredSpace}
                     onChange={handleInputChange}
-                    className="appearance-none w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px] pr-[85px]"
+                    className="appearance-none w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px] disabled:cursor-not-allowed"
                   />
-                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex rounded-[8px] bg-[#F1F5F9] p-0.5 text-[11px]">
-                    {[
-                      { value: "sqft", label: "Sq Ft" },
-                      { value: "cbm", label: "CBM" },
-                    ].map((u) => (
-                      <button
-                        type="button"
-                        key={u.value}
-                        onClick={() => setRequiredSpaceUnit(u.value)}
-                        className={`px-2 py-1 rounded-[6px] font-[700] transition-colors cursor-pointer ${
-                          requiredSpaceUnit === u.value ? "bg-[#0955AC] text-white shadow-sm" : "text-[#64748B] hover:text-[#0955AC]"
-                        }`}
-                      >
-                        {u.label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
 
@@ -329,6 +403,112 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
             >
               <Search className="w-5 h-5" />
             </button>
+          </div>
+
+          {/* More filters: storage temperature, required services and budget range */}
+          <div className="mt-4 pt-4 border-t border-[#0000000F] grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+            {/* Storage Temperature */}
+            <div>
+              <label htmlFor="storageTemperature" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
+                Storage Temperature
+              </label>
+              <div className="relative flex items-center border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors bg-white">
+                <Thermometer className="w-[18px] h-[18px] text-[#0955AC] flex-shrink-0" />
+                <select
+                  id="storageTemperature"
+                  value={temperatureMode}
+                  onChange={(e) => handleTemperatureSelect(e.target.value)}
+                  className="appearance-none w-full py-[12px] sm:py-[13px] pl-2 pr-6 leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent text-[13px] text-[#0F0F0F] cursor-pointer"
+                >
+                  {TEMPERATURE_PRESETS.map((preset) => (
+                    <option key={preset.value || "any"} value={preset.value}>
+                      {preset.label}
+                    </option>
+                  ))}
+                  <option value="custom">Custom temperature...</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 pointer-events-none" />
+              </div>
+              {temperatureMode === "custom" && (
+                <div className="mt-2 flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] bg-white">
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="-60"
+                    max="60"
+                    value={temperatureValue}
+                    onChange={(e) => onFormChange({ ...formData, temperature: e.target.value })}
+                    placeholder="Required temperature"
+                    className="appearance-none w-full py-[10px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
+                  />
+                  <span className="text-[12px] text-[#64748B] shrink-0">&deg;C</span>
+                </div>
+              )}
+            </div>
+
+            {/* Required Services (multi-select dropdown) */}
+            <div className="relative" ref={servicesRef}>
+              <label className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">Required Services</label>
+              <button
+                type="button"
+                onClick={() => setServicesOpen((v) => !v)}
+                className={`w-full flex items-center justify-between gap-2 border-[1px] rounded-[10px] px-3 py-[12px] sm:py-[13px] leading-tight text-left transition-colors bg-white cursor-pointer ${
+                  servicesOpen ? "border-[#0955AC]" : "border-[#0000001A]"
+                }`}
+              >
+                <span className="flex items-center gap-2 truncate">
+                  <ListChecks className="w-[18px] h-[18px] text-[#0955AC] flex-shrink-0" />
+                  <span className="truncate text-[13px] text-[#0F0F0F]">{servicesSummary()}</span>
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${servicesOpen ? "rotate-180" : ""}`} />
+              </button>
+              {servicesOpen && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-[#0000001A] rounded-[10px] shadow-[0_12px_32px_rgba(11,27,52,0.15)] py-1">
+                  {SERVICES.map((service) => {
+                    const checked = selectedServices.includes(service.id);
+                    return (
+                      <button
+                        type="button"
+                        key={service.id}
+                        onClick={() => toggleService(service.id)}
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-[13px] text-[#0F0F0F] hover:bg-[#0955AC0D] cursor-pointer"
+                      >
+                        <span className={checked ? "text-[#0955AC] font-[700]" : ""}>{service.label}</span>
+                        {checked && <Check className="w-4 h-4 text-[#0955AC]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Budget Range */}
+            <div>
+              <label htmlFor="budgetMin" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
+                Budget Range <span className="font-[400] text-[#64748B]">(LKR / month)</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  id="budgetMin"
+                  min="0"
+                  placeholder="Min"
+                  value={formData.budgetMin ?? ""}
+                  onChange={handleInputChange}
+                  className="w-full border-[1px] border-[#0000001A] rounded-[10px] px-3 py-[12px] sm:py-[13px] leading-tight focus:outline-none focus:border-[#0955AC] placeholder:text-[#286BB6]/70 bg-white text-[13px] text-[#0F0F0F]"
+                />
+                <span className="text-[#64748B]">-</span>
+                <input
+                  type="number"
+                  id="budgetMax"
+                  min="0"
+                  placeholder="Max"
+                  value={formData.budgetMax ?? ""}
+                  onChange={handleInputChange}
+                  className="w-full border-[1px] border-[#0000001A] rounded-[10px] px-3 py-[12px] sm:py-[13px] leading-tight focus:outline-none focus:border-[#0955AC] placeholder:text-[#286BB6]/70 bg-white text-[13px] text-[#0F0F0F]"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </form>

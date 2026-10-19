@@ -98,6 +98,9 @@ class WarehouseUnitController extends Controller
                     ];
                 }),
                 'pricing_model' => $unit->pricing_model,
+                'rate_type' => $unit->rate_type ?? 'per_sqft',
+                'temperature_min_c' => $unit->temperature_min_c,
+                'temperature_max_c' => $unit->temperature_max_c,
                 'base_price' => $unit->base_price,
                 'monthly_rate' => $unit->monthly_rate,
                 'security_deposit' => $unit->security_deposit,
@@ -225,6 +228,9 @@ class WarehouseUnitController extends Controller
                 'capacity' => ['nullable', 'numeric', 'min:0'],
                 'capacity_unit' => ['nullable', 'string', 'in:sq_ft,sq_m,cubic_ft,cubic_m'],
                 'type' => ['required', 'string', Rule::in(self::WAREHOUSE_TYPES)],
+                'rate_type' => ['nullable', 'string', Rule::in(['per_sqft', 'per_cbm', 'flat_rate'])],
+                'temperature_min_c' => ['nullable', 'numeric', 'between:-60,60'],
+                'temperature_max_c' => ['nullable', 'numeric', 'between:-60,60'],
                 // Sent as a JSON-encoded string over multipart form data, same as amenities.
                 'services' => ['nullable'],
                 'pricing_model' => ['required', 'string', Rule::in(['hourly', 'daily', 'monthly', 'yearly'])],
@@ -313,6 +319,7 @@ class WarehouseUnitController extends Controller
             'type' => $validated['type'],
             'services' => $services,
             'pricing_model' => $validated['pricing_model'],
+            ...$this->rateAndTemperatureFields($validated),
             'base_price' => $validated['price'] ?? $validated['base_price'] ?? $validated['monthly_rate'],
             'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
             'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
@@ -529,6 +536,9 @@ class WarehouseUnitController extends Controller
                 'services' => $unit->services ?? [],
                 'amenities' => $amenitiesArray,
                 'pricing_model' => $unit->pricing_model ?? '',
+                'rate_type' => $unit->rate_type ?? 'per_sqft',
+                'temperature_min_c' => $unit->temperature_min_c ?? '',
+                'temperature_max_c' => $unit->temperature_max_c ?? '',
                 'price' => $price, // Legacy price field
                 'base_price' => $unit->base_price ?? '',
                 'monthly_rate' => $unit->monthly_rate ?? '',
@@ -614,6 +624,9 @@ class WarehouseUnitController extends Controller
                 'total_area' => ['nullable', 'numeric', 'min:0'],
                 'capacity' => ['nullable', 'numeric', 'min:0'],
                 'type' => ['required', 'string', Rule::in(self::WAREHOUSE_TYPES)],
+                'rate_type' => ['nullable', 'string', Rule::in(['per_sqft', 'per_cbm', 'flat_rate'])],
+                'temperature_min_c' => ['nullable', 'numeric', 'between:-60,60'],
+                'temperature_max_c' => ['nullable', 'numeric', 'between:-60,60'],
                 // Sent as a JSON-encoded string over multipart form data, same as amenities.
                 'services' => ['nullable'],
                 'pricing_model' => ['required', 'string', Rule::in([
@@ -836,6 +849,7 @@ class WarehouseUnitController extends Controller
                 'type' => $validated['type'],
                 'services' => $services,
                 'pricing_model' => $validated['pricing_model'],
+                ...$this->rateAndTemperatureFields($validated),
                 'base_price' => $nullIfEmpty($validated['price'] ?? $validated['base_price'] ?? null),
                 // Detailed pricing fields
                 'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
@@ -977,5 +991,37 @@ class WarehouseUnitController extends Controller
                 'error' => 'Failed to delete warehouse unit. Please try again.'
             ], 500);
         }
+    }
+
+    /**
+     * Rate type (per sq ft / per CBM / flat rate) and the storage temperature
+     * range a listing supports. Only keys the vendor actually sent are returned
+     * so an edit that omits them never wipes existing values. A reversed range
+     * is swapped rather than rejected.
+     */
+    private function rateAndTemperatureFields(array $validated): array
+    {
+        $fields = [];
+
+        if (!empty($validated['rate_type'])) {
+            $fields['rate_type'] = $validated['rate_type'];
+        }
+
+        $hasMin = array_key_exists('temperature_min_c', $validated);
+        $hasMax = array_key_exists('temperature_max_c', $validated);
+
+        if ($hasMin || $hasMax) {
+            $min = isset($validated['temperature_min_c']) && $validated['temperature_min_c'] !== '' ? (float) $validated['temperature_min_c'] : null;
+            $max = isset($validated['temperature_max_c']) && $validated['temperature_max_c'] !== '' ? (float) $validated['temperature_max_c'] : null;
+
+            if ($min !== null && $max !== null && $max < $min) {
+                [$min, $max] = [$max, $min];
+            }
+
+            $fields['temperature_min_c'] = $min;
+            $fields['temperature_max_c'] = $max;
+        }
+
+        return $fields;
     }
 }

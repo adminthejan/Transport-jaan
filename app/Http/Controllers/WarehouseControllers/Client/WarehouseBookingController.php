@@ -359,7 +359,9 @@ class WarehouseBookingController extends Controller
      */
     public function checkout()
     {
-        return Inertia::render('Web/home/warehouse/WarehouseCheckout');
+        return Inertia::render('Web/home/warehouse/WarehouseCheckout', [
+            'cancellationPolicy' => \App\Support\WarehouseCancellationPolicy::describe(),
+        ]);
     }
 
     /**
@@ -378,6 +380,7 @@ class WarehouseBookingController extends Controller
 
         return Inertia::render('Web/home/warehouse/WarehousePayments', [
             'wallet' => $wallet,
+            'cancellationPolicy' => \App\Support\WarehouseCancellationPolicy::describe(),
         ]);
     }
 
@@ -560,6 +563,8 @@ class WarehouseBookingController extends Controller
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:20',
                 'company_address' => 'nullable|string|max:500',
+                'postal_code' => 'nullable|string|max:20',
+                'tax_identification_number' => 'nullable|string|max:50',
                 'storage_type' => 'required|string|max:100',
                 'fulfillment_service' => 'nullable|boolean',
                 'required_space' => 'required|numeric|min:0.01',
@@ -678,6 +683,8 @@ class WarehouseBookingController extends Controller
                 'phone' => $validated['phone'],
                 'email' => $validated['email'],
                 'company_address' => $validated['company_address'] ?? null,
+                'postal_code' => $validated['postal_code'] ?? null,
+                'tax_identification_number' => $validated['tax_identification_number'] ?? null,
                 
                 // Storage Requirements
                 'storage_type' => $validated['storage_type'],

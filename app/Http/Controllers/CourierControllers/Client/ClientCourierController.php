@@ -872,7 +872,43 @@ class ClientCourierController extends Controller
             ->all();
     }
 
+    /**
+     * Postal/city lookups call external services (Zipcodebase, OpenDataSoft)
+     * and can take several seconds, so successful non-empty answers are cached
+     * per query. Failures and empty results are never cached.
+     */
+    private function cachedLocationLookup(Request $request, string $name, \Closure $resolver)
+    {
+        $cacheKey = 'courier:location-lookup:' . $name . ':' . md5(json_encode([
+            (string) $request->route('flow'),
+            collect($request->query())->map(fn ($value) => is_string($value) ? mb_strtolower(trim($value)) : $value)->sortKeys()->all(),
+        ]));
+
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return response()->json($cached);
+        }
+
+        $response = $resolver();
+
+        if ($response instanceof \Illuminate\Http\JsonResponse && $response->getStatusCode() === 200) {
+            $payload = $response->getData(true);
+            $hasResults = collect($payload)->contains(fn ($value) => is_array($value) && !empty($value) && array_is_list($value));
+
+            if ($hasResults) {
+                Cache::put($cacheKey, $payload, now()->addHours(12));
+            }
+        }
+
+        return $response;
+    }
+
     public function lookupPostalCodesByCity(Request $request)
+    {
+        return $this->cachedLocationLookup($request, 'postal-by-city', fn () => $this->lookupPostalCodesByCityUncached($request));
+    }
+
+    private function lookupPostalCodesByCityUncached(Request $request)
     {
         $validated = $request->validate([
             'city' => ['required', 'string', 'max:120'],
@@ -1044,6 +1080,11 @@ class ClientCourierController extends Controller
     }
 
     public function lookupCityByPostalCode(Request $request)
+    {
+        return $this->cachedLocationLookup($request, 'city-by-postal', fn () => $this->lookupCityByPostalCodeUncached($request));
+    }
+
+    private function lookupCityByPostalCodeUncached(Request $request)
     {
         $validated = $request->validate([
             'postalCode' => ['nullable', 'string', 'max:20', 'required_without:city'],
@@ -1834,6 +1875,8 @@ class ClientCourierController extends Controller
             'shipment.internationalDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
             'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
             'shipment.shipmentTypeDescription' => ['nullable', 'string', 'max:200'],
+            'shipment.courierFeePayer' => ['nullable', 'string', 'in:sender,receiver'],
+            'shipment.deductFeeFromCod' => ['nullable', 'boolean'],
             'packages' => ['required', 'array', 'min:1'],
             'packages.*.label' => ['nullable', 'string', 'max:120'],
             'packages.*.packageType' => ['nullable', 'string', 'max:50'],
@@ -1857,6 +1900,18 @@ class ClientCourierController extends Controller
             'packages.*.extras.packingList' => ['nullable', 'string', 'max:2000'],
             'packages.*.extras.paymentMethod' => ['nullable', 'string', 'in:cod,card'],
             'packages.*.extras.otherDescription' => ['nullable', 'string', 'max:200'],
+            'packages.*.extras.shipmentType' => ['nullable', 'string', 'max:60'],
+            'packages.*.extras.courierFeePayer' => ['nullable', 'string', 'in:sender,receiver'],
+            'packages.*.extras.deductFeeFromCod' => ['nullable', 'boolean'],
+            'packages.*.extras.perishable' => ['nullable', 'boolean'],
+            'packages.*.extras.liquid' => ['nullable', 'boolean'],
+            'packages.*.extras.nonStackable' => ['nullable', 'boolean'],
+            'packages.*.extras.containsBatteries' => ['nullable', 'boolean'],
+            'packages.*.extras.dangerousGoods' => ['nullable', 'boolean'],
+            'packages.*.extras.items' => ['nullable', 'array', 'max:50'],
+            'packages.*.extras.items.*.name' => ['nullable', 'string', 'max:80'],
+            'packages.*.extras.items.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'packages.*.extras.items.*.description' => ['nullable', 'string', 'max:200'],
             'packages.*.description' => ['nullable', 'string', 'max:500'],
             'reviewContext' => ['required', 'array'],
             'reviewContext.displayCurrency' => ['nullable', 'string', 'max:4'],
@@ -2229,6 +2284,8 @@ class ClientCourierController extends Controller
                 'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
                 'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
                 'shipment.shipmentTypeDescription' => ['nullable', 'string', 'max:200'],
+                'shipment.courierFeePayer' => ['nullable', 'string', 'in:sender,receiver'],
+                'shipment.deductFeeFromCod' => ['nullable', 'boolean'],
                 'shipment.internationalDimensions' => ['nullable', 'array'],
                 'shipment.internationalDimensions.unitType' => ['nullable', 'string', 'max:40'],
                 'shipment.internationalDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
@@ -2258,6 +2315,18 @@ class ClientCourierController extends Controller
                 'packages.*.extras.packingList' => ['nullable', 'string', 'max:2000'],
                 'packages.*.extras.paymentMethod' => ['nullable', 'string', 'in:cod,card'],
                 'packages.*.extras.otherDescription' => ['nullable', 'string', 'max:200'],
+                'packages.*.extras.shipmentType' => ['nullable', 'string', 'max:60'],
+                'packages.*.extras.courierFeePayer' => ['nullable', 'string', 'in:sender,receiver'],
+                'packages.*.extras.deductFeeFromCod' => ['nullable', 'boolean'],
+                'packages.*.extras.perishable' => ['nullable', 'boolean'],
+                'packages.*.extras.liquid' => ['nullable', 'boolean'],
+                'packages.*.extras.nonStackable' => ['nullable', 'boolean'],
+                'packages.*.extras.containsBatteries' => ['nullable', 'boolean'],
+                'packages.*.extras.dangerousGoods' => ['nullable', 'boolean'],
+                'packages.*.extras.items' => ['nullable', 'array', 'max:50'],
+                'packages.*.extras.items.*.name' => ['nullable', 'string', 'max:80'],
+                'packages.*.extras.items.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100000'],
+                'packages.*.extras.items.*.description' => ['nullable', 'string', 'max:200'],
                 'packages.*.description' => ['nullable', 'string', 'max:500'],
                 'packages.*.hsCode' => ['nullable', 'string', 'max:20'],
                 'reviewContext' => ['nullable', 'array'],
