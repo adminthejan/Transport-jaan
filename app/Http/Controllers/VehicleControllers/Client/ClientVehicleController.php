@@ -840,6 +840,10 @@ class ClientVehicleController extends Controller
             "capacity",
             'body_type',
             'fuel',
+            'mileage',
+            'minPrice',
+            'maxPrice',
+            'minSeats',
         ]);
 
         $query = Vehicle::with([
@@ -1066,6 +1070,10 @@ class ClientVehicleController extends Controller
             "capacity",
             'body_type',
             'fuel',
+            'mileage',
+            'minPrice',
+            'maxPrice',
+            'minSeats',
         ]);
 
         $query = Vehicle::with([

@@ -6,6 +6,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import Header from "../../home/client/ClientHeader";
 import Footer from "../../layouts/Footer";
+import { monthlyRateForSpace } from '../../utils/warehousePricing';
 
 const INITIAL_PRICING_STATE = {
     monthly_rate: 0,
@@ -179,7 +180,9 @@ const BookingSummary = ({ booking }) => {
             const addOnsCost = Number(currentBooking?.add_ons_cost) || 0;
 
             const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
-            const monthlyRate = baseMonthlyRate * spaceUtilization;
+            const monthlyRate = currentBooking?.monthly_rate != null && currentBooking?.final_amount != null
+                ? parseFloat(currentBooking.monthly_rate) || 0
+                : monthlyRateForSpace(currentWarehouse, requiredSpace);
             const monthlyTotal = monthlyRate + addOnsCost;
             const subtotal = monthlyTotal * durationMonths;
             const taxAmount = subtotal * taxRate;

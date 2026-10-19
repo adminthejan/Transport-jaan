@@ -708,14 +708,16 @@ class ClientBookingController extends Controller
             })
             ->exists();
 
+        $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver);
+
         if ($overlap) {
-            return response()->json([
-                'message' => 'Vehicle is not available for the selected dates.'
-            ], 422);
+            return response()->json(array_merge($calc, [
+                'available' => false,
+                'message' => 'Vehicle is not available for the selected dates.',
+            ]), 422);
         }
 
-        $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq, $needsDriver);
-        return response()->json($calc);
+        return response()->json(array_merge($calc, ['available' => true]));
     }
 
     public function updateAirVehicleAddons(Request $request, AirVehicleBookings $airVehicleBooking)
@@ -1042,15 +1044,17 @@ class ClientBookingController extends Controller
         $payNow = $validated['payment_option'] === 'full'
             ? $airVehicleBooking->total_amount
             : min($airVehicleBooking->advance_amount ?: 0, $airVehicleBooking->total_amount);
+        $deposit = round((float) ($airVehicleBooking->deposit_amount ?? 0), 2);
+        $chargeNow = round((float) $payNow + $deposit, 2);
 
         $isPayHere = $validated['payment_method'] === 'PayHere';
 
         try {
-            DB::transaction(function () use ($airVehicleBooking, $validated, $payNow, $request, $wallets, $isPayHere) {
+            DB::transaction(function () use ($airVehicleBooking, $validated, $chargeNow, $deposit, $request, $wallets, $isPayHere) {
                 if ($validated['payment_method'] === 'Wallet') {
                     $wallets->debit(
                         Auth::user(),
-                        (float) $payNow,
+                        (float) $chargeNow,
                         'payment',
                         'Air vehicle booking #' . $airVehicleBooking->id,
                         'AirVehicleBooking',
@@ -1063,7 +1067,7 @@ class ClientBookingController extends Controller
                         'air_vehicle_booking_id' => $airVehicleBooking->id,
                         'method'           => 'PayHere',
                         'option'           => $validated['payment_option'],
-                        'amount_paid'      => $payNow,
+                        'amount_paid'      => $chargeNow,
                         'status'           => AirVehicleBookingPayment::STATUS_PENDING,
                         'tx_reference'     => null,
                         'provider'         => 'payhere',
@@ -1076,7 +1080,7 @@ class ClientBookingController extends Controller
                         'air_vehicle_booking_id' => $airVehicleBooking->id,
                         'method'       => $validated['payment_method'],
                         'option'       => $validated['payment_option'],
-                        'amount_paid'  => $payNow,
+                        'amount_paid'  => $chargeNow,
                         'status'       => 'paid',
                         'tx_reference' => null,
                     ]);
@@ -1115,6 +1119,13 @@ class ClientBookingController extends Controller
                     ->exists();
                 if ($overlap) {
                     abort(422, 'Vehicle is no longer available for those dates.');
+                }
+
+                if ($deposit > 0) {
+                    $airVehicleBooking->update([
+                        'deposit_status' => $isPayHere ? 'pending' : 'held',
+                        'deposit_held_amount' => $deposit,
+                    ]);
                 }
 
                 if (!$isPayHere) {
@@ -1246,14 +1257,16 @@ class ClientBookingController extends Controller
             })
             ->exists();
 
+        $calc = $this->calculateTotals($vehicle, $pickup, $dropoff, $addonsReq, $needsDriver);
+
         if ($overlap) {
-            return response()->json([
-                'message' => 'Vehicle is not available for the selected dates.'
-            ], 422);
+            return response()->json(array_merge($calc, [
+                'available' => false,
+                'message' => 'Vehicle is not available for the selected dates.',
+            ]), 422);
         }
 
-        $calc = $this->calculateTotals($vehicle, $pickup, $dropoff, $addonsReq, $needsDriver);
-        return response()->json($calc);
+        return response()->json(array_merge($calc, ['available' => true]));
     }
 
     public function seaVehicleStore(Request $request)
@@ -1450,15 +1463,17 @@ class ClientBookingController extends Controller
         $payNow = $validated['payment_option'] === 'full'
             ? $seaVehicleBooking->total_amount
             : min($seaVehicleBooking->advance_amount ?: 0, $seaVehicleBooking->total_amount);
+        $deposit = round((float) ($seaVehicleBooking->deposit_amount ?? 0), 2);
+        $chargeNow = round((float) $payNow + $deposit, 2);
 
         $isPayHere = $validated['payment_method'] === 'PayHere';
 
         try {
-            DB::transaction(function () use ($seaVehicleBooking, $validated, $payNow, $request, $wallets, $isPayHere) {
+            DB::transaction(function () use ($seaVehicleBooking, $validated, $chargeNow, $deposit, $request, $wallets, $isPayHere) {
                 if ($validated['payment_method'] === 'Wallet') {
                     $wallets->debit(
                         Auth::user(),
-                        (float) $payNow,
+                        (float) $chargeNow,
                         'payment',
                         'Sea vehicle booking #' . $seaVehicleBooking->id,
                         'SeaVehicleBooking',
@@ -1471,7 +1486,7 @@ class ClientBookingController extends Controller
                         'sea_vehicle_booking_id' => $seaVehicleBooking->id,
                         'method'           => 'PayHere',
                         'option'           => $validated['payment_option'],
-                        'amount_paid'      => $payNow,
+                        'amount_paid'      => $chargeNow,
                         'status'           => SeaVehicleBookingPayment::STATUS_PENDING,
                         'tx_reference'     => null,
                         'provider'         => 'payhere',
@@ -1484,7 +1499,7 @@ class ClientBookingController extends Controller
                         'sea_vehicle_booking_id' => $seaVehicleBooking->id,
                         'method'       => $validated['payment_method'],
                         'option'       => $validated['payment_option'],
-                        'amount_paid'  => $payNow,
+                        'amount_paid'  => $chargeNow,
                         'status'       => 'paid',
                         'tx_reference' => null,
                     ]);
@@ -1523,6 +1538,13 @@ class ClientBookingController extends Controller
                     ->exists();
                 if ($overlap) {
                     abort(422, 'Vehicle is no longer available for those dates.');
+                }
+
+                if ($deposit > 0) {
+                    $seaVehicleBooking->update([
+                        'deposit_status' => $isPayHere ? 'pending' : 'held',
+                        'deposit_held_amount' => $deposit,
+                    ]);
                 }
 
                 if (!$isPayHere) {
@@ -2022,6 +2044,66 @@ class ClientBookingController extends Controller
         return back()->with('success', 'Deposit released to the client\'s wallet.');
     }
 
+    public function releaseAirDeposit(AirVehicleBookings $airVehicleBooking, WalletService $wallets)
+    {
+        abort_unless((int) $airVehicleBooking->vehicle?->provider_id === (int) Auth::id(), 403);
+
+        if ($airVehicleBooking->deposit_status !== 'held' || (float) $airVehicleBooking->deposit_held_amount <= 0) {
+            return back()->withErrors(['deposit' => 'No held deposit to release for this booking.']);
+        }
+
+        DB::transaction(function () use ($airVehicleBooking, $wallets) {
+            $locked = AirVehicleBookings::where('id', $airVehicleBooking->id)->lockForUpdate()->first();
+            if ($locked->deposit_status !== 'held') {
+                return;
+            }
+
+            $client = User::findOrFail($locked->client_id);
+            $wallets->credit(
+                $client,
+                (float) $locked->deposit_held_amount,
+                'refund',
+                'Air vehicle deposit released for booking #' . $locked->id,
+                'AirVehicleBooking',
+                $locked->id
+            );
+
+            $locked->update(['deposit_status' => 'released']);
+        });
+
+        return back()->with('success', 'Deposit released to the client\'s wallet.');
+    }
+
+    public function releaseSeaDeposit(SeaVehicleBookings $seaVehicleBooking, WalletService $wallets)
+    {
+        abort_unless((int) $seaVehicleBooking->vehicle?->provider_id === (int) Auth::id(), 403);
+
+        if ($seaVehicleBooking->deposit_status !== 'held' || (float) $seaVehicleBooking->deposit_held_amount <= 0) {
+            return back()->withErrors(['deposit' => 'No held deposit to release for this booking.']);
+        }
+
+        DB::transaction(function () use ($seaVehicleBooking, $wallets) {
+            $locked = SeaVehicleBookings::where('id', $seaVehicleBooking->id)->lockForUpdate()->first();
+            if ($locked->deposit_status !== 'held') {
+                return;
+            }
+
+            $client = User::findOrFail($locked->client_id);
+            $wallets->credit(
+                $client,
+                (float) $locked->deposit_held_amount,
+                'refund',
+                'Sea vehicle deposit released for booking #' . $locked->id,
+                'SeaVehicleBooking',
+                $locked->id
+            );
+
+            $locked->update(['deposit_status' => 'released']);
+        });
+
+        return back()->with('success', 'Deposit released to the client\'s wallet.');
+    }
+
     /**
      * Resolves a PayHere order_id to its payment row + owning booking, purely
      * from the order_id's prefix (VEH-/AIR-/SEA-) — same reference-prefix
@@ -2136,9 +2218,7 @@ class ClientBookingController extends Controller
 
         $modelClass::where('id', $booking->id)->update(['status' => 'confirmed']);
 
-        if ($type === 'land') {
-            Booking::where('id', $booking->id)->where('deposit_status', 'pending')->update(['deposit_status' => 'held']);
-        }
+        $modelClass::where('id', $booking->id)->where('deposit_status', 'pending')->update(['deposit_status' => 'held']);
     }
 
     /**

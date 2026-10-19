@@ -54,6 +54,8 @@ const EditUnit = () => {
     longitude: '',
     total_area: '',
     capacity: '',
+    temp_min_c: '',
+    temp_max_c: '',
     type: '',
     pricing_model: '',
     rate_type: 'per_sqft',
@@ -63,6 +65,7 @@ const EditUnit = () => {
 
     // Detailed Pricing
     monthly_rate: '',
+    rate_per_sqft: '',
     security_deposit: '',
     setup_fee: '',
     tax_rate: '',
@@ -196,6 +199,8 @@ const EditUnit = () => {
           longitude: safeNumber(data.longitude),
           total_area: safeNumber(data.total_area),
           capacity: safeNumber(data.capacity),
+          temp_min_c: safeNumber(data.temp_min_c),
+          temp_max_c: safeNumber(data.temp_max_c),
           type: safeString(data.type),
           pricing_model: safeString(data.pricing_model),
           rate_type: safeString(data.rate_type) || 'per_sqft',
@@ -205,6 +210,7 @@ const EditUnit = () => {
 
           // Detailed Pricing
           monthly_rate: safeNumber(data.monthly_rate),
+          rate_per_sqft: safeNumber(data.rate_per_sqft),
           security_deposit: safeNumber(data.security_deposit),
           setup_fee: safeNumber(data.setup_fee),
           tax_rate: safeNumber(data.tax_rate),
@@ -316,12 +322,14 @@ const EditUnit = () => {
     if (String(form.longitude) !== String(originalData.longitude || '')) changes.push('Longitude');
     if (String(form.total_area) !== String(originalData.total_area || '')) changes.push('Total Area');
     if (String(form.capacity) !== String(originalData.capacity || '')) changes.push('Capacity');
+    if (String(form.temp_min_c) !== String(originalData.temp_min_c || '') || String(form.temp_max_c) !== String(originalData.temp_max_c || '')) changes.push('Temperature Range');
     if (form.type !== originalData.type) changes.push('Type');
     if (form.pricing_model !== originalData.pricing_model) changes.push('Pricing Model');
     if (String(form.price) !== String(originalData.price || '')) changes.push('Price');
 
     // Detailed pricing changes
     if (String(form.monthly_rate) !== String(originalData.monthly_rate || '')) changes.push('Monthly Rate');
+    if (String(form.rate_per_sqft) !== String(originalData.rate_per_sqft || '')) changes.push('Rate per Sq Ft');
     if (String(form.security_deposit) !== String(originalData.security_deposit || '')) changes.push('Security Deposit');
     if (String(form.setup_fee) !== String(originalData.setup_fee || '')) changes.push('Setup Fee');
     if (String(form.tax_rate) !== String(originalData.tax_rate || '')) changes.push('Tax Rate');
@@ -665,6 +673,8 @@ const EditUnit = () => {
       data.append('longitude', form.longitude || '');
       data.append('total_area', form.total_area || '');
       data.append('capacity', form.capacity || '');
+      data.append('temp_min_c', form.temp_min_c ?? '');
+      data.append('temp_max_c', form.temp_max_c ?? '');
       data.append('type', form.type);
       data.append('pricing_model', form.pricing_model);
       data.append('rate_type', form.rate_type || 'per_sqft');
@@ -674,6 +684,7 @@ const EditUnit = () => {
 
       // Detailed pricing fields
       data.append('monthly_rate', form.monthly_rate || '');
+      data.append('rate_per_sqft', form.rate_per_sqft || '');
       data.append('security_deposit', form.security_deposit || '');
       data.append('setup_fee', form.setup_fee || '');
       data.append('tax_rate', form.tax_rate || '');
@@ -1092,6 +1103,21 @@ const EditUnit = () => {
                   />
                   {errors.capacity && <div className="text-[#DC2626] text-[12px] mt-1">{errors.capacity}</div>}
                 </div>
+                  <div className="space-y-2">
+                    <label htmlFor="temp_min_c" className="block text-[14px] font-medium text-gray-700">Min temperature (°C)</label>
+                    <input id="temp_min_c" type="number" name="temp_min_c" min="-100" max="60" step="0.1"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={form.temp_min_c} onChange={handleChange} placeholder="e.g. -25" />
+                    {errors.temp_min_c && <div className="text-[#DC2626] text-[12px] mt-1">{errors.temp_min_c}</div>}
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="temp_max_c" className="block text-[14px] font-medium text-gray-700">Max temperature (°C)</label>
+                    <input id="temp_max_c" type="number" name="temp_max_c" min="-100" max="60" step="0.1"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={form.temp_max_c} onChange={handleChange} placeholder="e.g. -18" />
+                    <p className="text-xs text-gray-500">Range the facility can hold. Leave both blank for ambient (not temperature controlled).</p>
+                    {errors.temp_max_c && <div className="text-[#DC2626] text-[12px] mt-1">{errors.temp_max_c}</div>}
+                  </div>
               </div>
 
               {mapPreviewUrl && (
@@ -1160,6 +1186,23 @@ const EditUnit = () => {
                       required
                     />
                     {errors.monthly_rate && <div className="text-red-600 text-sm mt-1">{errors.monthly_rate}</div>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="rate_per_sqft" className="block text-[14px] font-medium text-gray-700">Rate per sq ft / month (optional)</label>
+                    <input
+                      id="rate_per_sqft"
+                      type="number"
+                      name="rate_per_sqft"
+                      min="0"
+                      step="0.01"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={form.rate_per_sqft}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                    />
+                    <p className="text-xs text-gray-500">If set, clients are charged booked sq ft &times; this rate. Leave blank to pro-rate the monthly rate by share of total area.</p>
+                    {errors.rate_per_sqft && <div className="text-red-600 text-sm mt-1">{errors.rate_per_sqft}</div>}
                   </div>
 
                   <div className="space-y-2">

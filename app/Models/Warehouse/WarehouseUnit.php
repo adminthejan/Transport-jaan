@@ -22,6 +22,8 @@ class WarehouseUnit extends Model
         'total_area',
         'capacity',
         'capacity_unit',
+        'temp_min_c',
+        'temp_max_c',
         'type',
         'services',
 
@@ -32,6 +34,7 @@ class WarehouseUnit extends Model
         'temperature_max_c',
         'base_price',
         'monthly_rate',
+        'rate_per_sqft',
         'security_deposit',
         'setup_fee',
         'tax_rate',
@@ -69,10 +72,13 @@ class WarehouseUnit extends Model
         'longitude' => 'float',
         'total_area' => 'decimal:2',
         'capacity' => 'decimal:2',
+        'temp_min_c' => 'decimal:1',
+        'temp_max_c' => 'decimal:1',
         'base_price' => 'decimal:2',
         'temperature_min_c' => 'float',
         'temperature_max_c' => 'float',
         'monthly_rate' => 'decimal:2',
+        'rate_per_sqft' => 'decimal:2',
         'security_deposit' => 'decimal:2',
         'setup_fee' => 'decimal:2',
         'tax_rate' => 'decimal:4',
@@ -312,5 +318,63 @@ class WarehouseUnit extends Model
     public function getReviewsCountAttribute()
     {
         return $this->reviewsCount();
+    }
+
+    /**
+     * Monthly price for $sqft of space. Per-sqft listings charge
+     * sqft x rate_per_sqft; legacy listings pro-rate the whole-unit monthly
+     * rate by the share of total_area being booked.
+     */
+    public function monthlyRateForSpace(float $sqft): float
+    {
+        if ($this->rate_per_sqft !== null && (float) $this->rate_per_sqft > 0) {
+            return round($sqft * (float) $this->rate_per_sqft, 2);
+        }
+
+        $base = (float) ($this->monthly_rate ?? $this->base_price ?? 0);
+        $totalArea = (float) ($this->total_area ?? 0);
+        $utilization = $totalArea > 0 ? min($sqft / $totalArea, 1) : 1;
+
+        return round($base * $utilization, 2);
+    }
+
+    /**
+     * Monthly cost for $sqft of space (or the whole unit when null), as SQL.
+     * Mirrors monthlyRateForSpace(); used by the budget filter.
+     */
+    public function scopeWithinMonthlyBudget($query, $min = null, $max = null, $sqft = null)
+    {
+        $space = is_numeric($sqft) && $sqft > 0 ? (float) $sqft : null;
+        $expr = 'CASE WHEN rate_per_sqft > 0 THEN rate_per_sqft * COALESCE(?, total_area, 0)
+                      ELSE COALESCE(monthly_rate, base_price, 0)
+                           * CASE WHEN ? IS NULL OR total_area IS NULL OR total_area <= 0 THEN 1 ELSE LEAST(? / total_area, 1) END
+                 END';
+        $bindings = [$space, $space, $space];
+
+        if (is_numeric($min)) {
+            $query->whereRaw("($expr) >= ?", array_merge($bindings, [(float) $min]));
+        }
+        if (is_numeric($max)) {
+            $query->whereRaw("($expr) <= ?", array_merge($bindings, [(float) $max]));
+        }
+        return $query;
+    }
+
+    /**
+     * Warehouses able to hold $tempC. Warehouses with no temperature range are
+     * ambient, so they only match when $tempC is at/above $ambientFrom.
+     */
+    public function scopeHoldsTemperature($query, float $tempC, float $ambientFrom = 20)
+    {
+        return $query->where(function ($q) use ($tempC, $ambientFrom) {
+            $q->where(function ($r) use ($tempC) {
+                $r->where('temp_min_c', '<=', $tempC)->where('temp_max_c', '>=', $tempC);
+            });
+            if ($tempC >= $ambientFrom) {
+                $q->orWhere(function ($r) {
+                    $r->whereNull('temp_min_c')->whereNull('temp_max_c');
+                });
+            }
+        });
     }
 }

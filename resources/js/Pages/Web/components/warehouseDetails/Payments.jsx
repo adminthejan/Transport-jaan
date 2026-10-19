@@ -6,6 +6,7 @@ import axios from 'axios';
 import { Wallet as WalletIcon, AlertTriangle } from 'lucide-react';
 import WarehousePaymentPlan from "./WarehousePaymentPlan";
 import CancellationPolicyNotice from "./CancellationPolicyNotice";
+import { monthlyRateForSpace, usesSqftRate } from '../../utils/warehousePricing';
 
 // Storage & Fulfillment is an optional add-on service (pick, pack, and ship
 // handling on the client's behalf) priced as a share of the base monthly rate.
@@ -165,9 +166,9 @@ const WarehousePayments = () => {
             const totalArea = parseFloat(warehouse.total_area || 1) || 1;
 
             const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
-            const monthlyRate = baseMonthlyRate * spaceUtilization;
+            const monthlyRate = monthlyRateForSpace(warehouse, requiredSpace);
             const addOnsCost = (warehouse?.offers_fulfillment && bookingDataToUse?.fulfillment_service)
-                ? baseMonthlyRate * fulfillmentRateFor(warehouse)
+                ? (usesSqftRate(warehouse) ? monthlyRate : baseMonthlyRate) * fulfillmentRateFor(warehouse)
                 : 0;
             const monthlyTotal = monthlyRate + addOnsCost;
             const subtotal = monthlyTotal * durationMonths;

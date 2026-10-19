@@ -16,6 +16,7 @@ const readSavedBookings = () => {
     return [];
   }
 };
+import { monthlyRateForSpace, usesSqftRate } from '../../utils/warehousePricing';
 
 const WarehouseSearch = () => {
   const { props } = usePage();
@@ -157,7 +158,7 @@ const WarehouseSearch = () => {
       const baseMonthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || warehouse.base_price || 0);
       const securityDeposit = parseFloat(warehouse.security_deposit || baseMonthlyRate * 0.5 || 0);
       const setupFee = parseFloat(warehouse.setup_fee || baseMonthlyRate * 0.2 || 0);
-      const addOnsCost = (offersFulfillment && currentFormData.fulfillmentService) ? baseMonthlyRate * FULFILLMENT_SERVICE_RATE : 0;
+
       // Tax is set per-vendor on their listing; no platform-wide default is
       // assumed if a vendor hasn't set one.
       const taxRate = Number(warehouse.tax_rate) || 0;
@@ -169,7 +170,9 @@ const WarehouseSearch = () => {
 
       // Calculate space utilization factor (if requiring partial space)
       const spaceUtilization = isFlatRate ? 1 : Math.min(requiredSpace / totalArea, 1);
-      const adjustedMonthlyRate = baseMonthlyRate * spaceUtilization;
+      const adjustedMonthlyRate = isFlatRate ? baseMonthlyRate : monthlyRateForSpace(warehouse, requiredSpace);
+      const feeBase = (!isFlatRate && usesSqftRate(warehouse)) ? adjustedMonthlyRate : baseMonthlyRate;
+      const addOnsCost = (offersFulfillment && currentFormData.fulfillmentService) ? feeBase * FULFILLMENT_SERVICE_RATE : 0;
 
       // Calculate pricing breakdown
       const monthlyRate = adjustedMonthlyRate;

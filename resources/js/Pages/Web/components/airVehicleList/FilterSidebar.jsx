@@ -34,8 +34,8 @@ const SEATS_FLOOR = 1;
 const SEATS_CEILING = 20;
 
 const PRICE_FLOOR = 0;
-const PRICE_CEILING = 10000;
-const PRICE_STEP = 100;
+const PRICE_CEILING = 3100000;
+const PRICE_STEP = 5000;
 
 const MILEAGES = [
   { id: "limited", label: "Limited" },
@@ -135,8 +135,8 @@ const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
         />
       </div>
       <div className="flex items-center justify-between text-[12px] font-[700] text-[#334155]">
-        <span>US$ {localMin}</span>
-        <span>US$ {localMax}{localMax >= max ? "+" : ""}</span>
+        <span>LKR {localMin.toLocaleString()}</span>
+        <span>LKR {localMax.toLocaleString()}{localMax >= max ? "+" : ""}</span>
       </div>
     </div>
   );
