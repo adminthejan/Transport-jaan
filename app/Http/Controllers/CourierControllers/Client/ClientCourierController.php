@@ -938,10 +938,29 @@ class ClientCourierController extends Controller
 
         $apiKey = trim((string) config('services.zipcodebase.api_key'));
         if ($apiKey === '') {
+            // No paid provider configured: use the free OpenDataSoft GeoNames dataset.
+            $city = trim((string) $validated['city']);
+            $country = strtoupper((string) $validated['country']);
+            $limit = (int) ($validated['limit'] ?? 10);
+            $postalCodes = collect($this->searchOpenDataPostalCitySuggestionsByCityPrefix($city, $country, max($limit, 1) * 3))
+                ->map(fn($item) => trim((string) ($item['postalCode'] ?? '')))
+                ->filter()
+                ->unique()
+                ->values()
+                ->take($limit)
+                ->all();
+
             return response()->json([
-                'message' => 'Postal code lookup service is not configured.',
-                'postalCodes' => [],
-            ], 503);
+                'postalCodes' => $postalCodes,
+                'meta' => [
+                    'city' => $city,
+                    'matchedCity' => $city,
+                    'country' => $country,
+                    'count' => count($postalCodes),
+                    'attemptedCities' => [$city],
+                    'source' => 'opendatasoft-geonames',
+                ],
+            ]);
         }
 
         $baseUrl = rtrim((string) config('services.zipcodebase.base_url', 'https://app.zipcodebase.com/api/v1'), '/');
@@ -1193,11 +1212,32 @@ class ClientCourierController extends Controller
 
         $apiKey = trim((string) config('services.zipcodebase.api_key'));
         if ($apiKey === '') {
+            // No paid provider configured: use the free OpenDataSoft GeoNames dataset.
+            $openSuggestions = $isCityLookup
+                ? $this->searchOpenDataPostalCitySuggestionsByCityPrefix($cityPrefix, $countryCode, $limit)
+                : $this->searchOpenDataPostalCitySuggestionsByPrefix($postalCodePrefix, $countryCode, $limit);
+            $openExactMatch = $isCityLookup
+                ? collect($openSuggestions)->first(fn($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0)
+                : collect($openSuggestions)->first(fn($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix);
+
             return response()->json([
-                'message' => 'Postal/city lookup service is not configured.',
-                'city' => null,
-                'cities' => [],
-            ], 503);
+                'city' => is_array($openExactMatch)
+                    ? ($openExactMatch['city'] ?? ($isCityLookup ? $cityPrefix : null))
+                    : ($isCityLookup ? $cityPrefix : null),
+                'cities' => collect($openSuggestions)
+                    ->map(fn($item) => trim((string) ($item['city'] ?? '')))
+                    ->filter()->unique()->values()->all(),
+                'suggestions' => collect($openSuggestions)->values()->take($limit)->all(),
+                'meta' => [
+                    'postalCode' => $postalCodePrefix !== '' ? $postalCodePrefix : null,
+                    'city' => $cityPrefix !== '' ? $cityPrefix : null,
+                    'country' => $countryCode,
+                    'count' => count($openSuggestions),
+                    'exactMatch' => is_array($openExactMatch),
+                    'queryType' => $isCityLookup ? 'city' : 'postalCode',
+                    'source' => 'opendatasoft-geonames',
+                ],
+            ]);
         }
 
         $baseUrl = rtrim((string) config('services.zipcodebase.base_url', 'https://app.zipcodebase.com/api/v1'), '/');

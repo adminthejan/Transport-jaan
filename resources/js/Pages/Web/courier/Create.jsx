@@ -491,6 +491,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const summarySectionRef = useRef(null);
     const packageScrollTargetRef = useRef(null);
     const programmaticCityRef = useRef({ sender: "", recipient: "" });
+    // Postal code is read-only while it was filled automatically from a selected city.
+    const [postalLocked, setPostalLocked] = useState({ sender: false, recipient: false });
     // last country actually chosen per party; while a country is being retyped the field is
     // briefly empty, so "changed" must be judged against this, not against the previous state
     const lastCountryRef = useRef({ sender: "", recipient: "" });
@@ -1972,6 +1974,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
 
         setPostalMismatchNotice(party, false);
+        setPostalLocked((previous) => ({
+            ...previous,
+            [party]: String(fieldKey).startsWith(`${party}-city`),
+        }));
 
         setCityLookupState((previous) => ({
             ...previous,
@@ -1981,6 +1987,15 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             },
         }));
         setActiveLocationField((current) => (current === fieldKey ? null : current));
+    };
+
+    // Editing the city invalidates an automatically filled postal code.
+    const handleInternationalCityInput = (party, value) => {
+        if (postalLocked[party]) {
+            setPostalLocked((previous) => ({ ...previous, [party]: false }));
+            updateAddressPostalCode(party, "");
+        }
+        updateAddressCity(party, value);
     };
 
     const handleCitySearchChange = (party, fieldKey, value) => {
@@ -2609,6 +2624,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         data.recipient?.address?.state,
         flowRoutes.postalByCity,
     ]);
+
+    useEffect(() => {
+        setPostalLocked((previous) => (previous.sender ? { ...previous, sender: false } : previous));
+    }, [data.sender?.address?.country]);
+
+    useEffect(() => {
+        setPostalLocked((previous) => (previous.recipient ? { ...previous, recipient: false } : previous));
+    }, [data.recipient?.address?.country]);
 
     useEffect(() => {
         return () => {
@@ -4066,7 +4089,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     <div className="relative">
                                                                                         <input
                                                                                             value={data.sender?.address?.city || ""}
-                                                                                            onChange={(event) => updateAddressCity("sender", event.target.value)}
+                                                                                            onChange={(event) => handleInternationalCityInput("sender", event.target.value)}
                                                                                             disabled={!data.sender?.address?.country}
                                                                                             onFocus={() => setActiveLocationField(`sender-city-${index}`)}
                                                                                             onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
@@ -4111,9 +4134,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             value={data.sender?.address?.postalCode || ""}
                                                                                             onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
                                                                                             disabled={!data.sender?.address?.country}
+                                                                                            readOnly={postalLocked.sender}
                                                                                             onFocus={() => setActiveLocationField(`sender-postal-${index}`)}
                                                                                             onBlur={() => handleLocationInputBlur(`sender-postal-${index}`)}
-                                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none read-only:cursor-not-allowed read-only:bg-[#F4F7FB] read-only:text-[#5B6887]"
                                                                                             placeholder={data.sender?.address?.country ? "Enter pickup postal code" : "Select pickup country first"}
                                                                                         />
                                                                                         {activeLocationField === `sender-postal-${index}` && postalCitySuggestions.sender.length > 0 && (
@@ -4204,7 +4228,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     <div className="relative">
                                                                                         <input
                                                                                             value={data.recipient?.address?.city || ""}
-                                                                                            onChange={(event) => updateAddressCity("recipient", event.target.value)}
+                                                                                            onChange={(event) => handleInternationalCityInput("recipient", event.target.value)}
                                                                                             disabled={!data.recipient?.address?.country}
                                                                                             onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
                                                                                             onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
@@ -4249,9 +4273,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             value={data.recipient?.address?.postalCode || ""}
                                                                                             onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
                                                                                             disabled={!data.recipient?.address?.country}
+                                                                                            readOnly={postalLocked.recipient}
                                                                                             onFocus={() => setActiveLocationField(`recipient-postal-${index}`)}
                                                                                             onBlur={() => handleLocationInputBlur(`recipient-postal-${index}`)}
-                                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none read-only:cursor-not-allowed read-only:bg-[#F4F7FB] read-only:text-[#5B6887]"
                                                                                             placeholder={data.recipient?.address?.country ? "Enter destination postal code" : "Select destination country first"}
                                                                                         />
                                                                                         {activeLocationField === `recipient-postal-${index}` && postalCitySuggestions.recipient.length > 0 && (

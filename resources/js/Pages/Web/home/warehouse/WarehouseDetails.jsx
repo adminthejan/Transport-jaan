@@ -37,14 +37,14 @@ const WarehouseDetails = () => {
             <div className="pt-6 px-5 md:px-10 max-w-[1800px] mx-auto">
                 <BackButton />
             </div>
-            <div className="main-content flex justify-center items-center">
-                <div className="py-10 md:px-10 flex flex-col xl:flex-row justify-between w-full gap-10">
-                    <div className="flex flex-col gap-10 justify-start items-center w-full">
+            <div className="main-content flex justify-center items-center w-full max-w-full">
+                <div className="py-10 px-5 md:px-10 flex flex-col xl:flex-row justify-between w-full max-w-full gap-10">
+                    <div className="flex flex-col gap-10 justify-start items-center w-full xl:w-auto xl:flex-1 min-w-0">
                         <WarehouseImages />
                         <WarehouseInfo />
                         <AvailableVehicles />
                     </div>
-                    <div className="flex flex-col justify-start items-center gap-10 w-full min-w-0 xl:w-auto">
+                    <div className="flex flex-col justify-start items-center gap-10 w-full min-w-0 xl:w-[440px] xl:shrink-0">
                         <WarehouseSearch />
                     </div>
                 </div>
