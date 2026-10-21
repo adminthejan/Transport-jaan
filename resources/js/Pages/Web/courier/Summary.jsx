@@ -8,6 +8,7 @@ import {
     preloadPayHereOnsiteSdk,
 } from "./payhereCheckout";
 import { computeVolumetricWeightKg, formatWeightKg } from "./courierPricing";
+import { fetchWithCsrf, refreshCsrfToken, friendlyFailureMessage } from "./csrfFetch";
 
 const PROGRESS_STEPS = [
     {
@@ -369,14 +370,11 @@ const Summary = ({
                 let checkoutSession = activeCheckoutSession;
 
                 if (!checkoutSession?.checkout?.isReady) {
-                    const response = await fetch(storeRoute, {
+                    const response = await fetchWithCsrf(storeRoute, {
                         method: "POST",
-                        credentials: "same-origin",
                         headers: {
                             Accept: "application/json",
                             "Content-Type": "application/json",
-                            "X-Requested-With": "XMLHttpRequest",
-                            "X-CSRF-TOKEN": getCsrfToken(),
                         },
                         body: JSON.stringify(payload),
                     });
@@ -393,7 +391,9 @@ const Summary = ({
                     }
 
                     if (!response.ok) {
-                        throw new Error("Unable to initialize checkout right now.");
+                        setSubmitError(friendlyFailureMessage(response.status));
+                        scrollToTop();
+                        return;
                     }
 
                     const result = await response.json();
@@ -442,6 +442,8 @@ const Summary = ({
                 setIsSubmitting(false);
             }
         }
+
+        await refreshCsrfToken();
 
         router.post(storeRoute, payload, {
             preserveScroll: false,

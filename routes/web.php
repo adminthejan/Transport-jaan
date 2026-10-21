@@ -93,6 +93,11 @@ Route::get('/landingPage/privacy-policy', [WebController::class, 'privacyPolicy'
 Route::get('/landingPage/return-policy', [WebController::class, 'returnPolicy'])->name('landingPage.returnPolicy');
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
+
+// Fresh CSRF token for long-open booking pages (see courier/csrfFetch.js). Never cached.
+Route::get('/csrf-token', fn () => response()->json(['token' => csrf_token()])->header('Cache-Control', 'no-store'))
+    ->middleware('throttle:60,1')
+    ->name('csrf.token');
 Route::get('/track', function () {
     return \Inertia\Inertia::render('Web/track/TrackOrder');
 })->name('track.order');

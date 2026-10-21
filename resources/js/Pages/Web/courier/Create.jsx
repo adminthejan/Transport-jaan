@@ -12,6 +12,7 @@ import presetPalletTwoImage from "../assets/courierService/size-pallet-2.svg";
 import presetMovingBoxImage from "../assets/courierService/size-moving-box.svg";
 import DetailsForm from "./Details";
 import SummaryView from "./Summary";
+import { fetchWithCsrf, friendlyFailureMessage } from "./csrfFetch";
 import {
     buildQuoteMatrix,
     buildReviewContext,
@@ -3325,42 +3326,15 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         return token || "";
     };
 
-    const describeFailedResponse = (response) => {
-        if (response.status === 419) {
-            return "Your session has expired. Please refresh the page and try again.";
-        }
-
-        if (response.status === 401) {
-            return "Please sign in again to continue.";
-        }
-
-        if (response.status === 403) {
-            return "You do not have permission to continue with this booking.";
-        }
-
-        if (response.status === 429) {
-            return "Too many attempts. Please wait a moment and try again.";
-        }
-
-        return `Unable to continue. Please try again. (Error ${response.status})`;
-    };
+    const describeFailedResponse = (response) => friendlyFailureMessage(response.status);
 
     const prepareDetailsSession = async (payload) => {
-        const csrfToken = getCsrfToken();
-        if (!csrfToken) {
-            return {
-                ok: false,
-                message: "Unable to continue. Please refresh and try again.",
-            };
-        }
-
         try {
-            const response = await fetch(flowRoutes.review, {
+            const response = await fetchWithCsrf(flowRoutes.review, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Accept": "application/json",
-                    "X-CSRF-TOKEN": csrfToken,
                     "X-Requested-With": "XMLHttpRequest",
                 },
                 credentials: "same-origin",
@@ -3389,27 +3363,18 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         } catch (error) {
             return {
                 ok: false,
-                message: "Unable to continue. Please check your connection and try again.",
+                message: "We could not reach the server. Please check your internet connection and try again.",
             };
         }
     };
 
     const prepareSummarySession = async (payload) => {
-        const csrfToken = getCsrfToken();
-        if (!csrfToken) {
-            return {
-                ok: false,
-                message: "Unable to continue. Please refresh and try again.",
-            };
-        }
-
         try {
-            const response = await fetch(flowRoutes.detailsStore, {
+            const response = await fetchWithCsrf(flowRoutes.detailsStore, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Accept": "application/json",
-                    "X-CSRF-TOKEN": csrfToken,
                     "X-Requested-With": "XMLHttpRequest",
                 },
                 credentials: "same-origin",
@@ -3439,7 +3404,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         } catch (error) {
             return {
                 ok: false,
-                message: "Unable to continue. Please check your connection and try again.",
+                message: "We could not reach the server. Please check your internet connection and try again.",
             };
         }
     };
