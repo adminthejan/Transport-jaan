@@ -39,6 +39,8 @@ class DemoModulesSeeder extends Seeder
         ]);
 
         $this->approveVendorRegistrations();
+
+        $this->call([VendorDataTallySeeder::class, VendorBookingTallySeeder::class]);
     }
 
     private function approveVendorRegistrations(): void

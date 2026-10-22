@@ -98,6 +98,31 @@ class VendorUsersSeeder extends Seeder
             ]
         );
 
+        // Additional verified vendors — one per remaining service line so every
+        // category (waterborne, private railway, specialised warehousing) has an
+        // owner. Their data is attached by VendorDataTallySeeder.
+        $extraVerified = [
+            ['verifiedvendor4@example.com', 'Nimal Perera', '+94-77-410-2201', 'Galle, Sri Lanka'],
+            ['verifiedvendor5@example.com', 'Dilani Fernando', '+94-71-520-3302', 'Colombo, Sri Lanka'],
+            ['verifiedvendor6@example.com', 'Kasun Wickramasinghe', '+94-76-630-4403', 'Negombo, Sri Lanka'],
+        ];
+
+        foreach ($extraVerified as [$email, $name, $phone, $address]) {
+            User::firstOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => Hash::make('password'),
+                    'role' => 'vendor',
+                    'status' => 'verified',
+                    'phone' => $phone,
+                    'address' => $address,
+                    'country' => 'Sri Lanka',
+                ]
+            );
+        }
+
         // Blocked vendors
         User::firstOrCreate(
             ['email' => 'blockedvendor1@example.com'],

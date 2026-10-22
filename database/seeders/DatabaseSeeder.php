@@ -83,6 +83,11 @@ class DatabaseSeeder extends Seeder
             CourierRbacSeeder::class ,
             SuperAdminCourierRbacSeeder::class ,
             LocationDataSeeder::class ,
+
+            // Must be last: aligns vendor profiles/registrations and the
+            // ownership of every dummy data set with the vendor accounts.
+            VendorDataTallySeeder::class ,
+            VendorBookingTallySeeder::class ,
         ]);
 
         // Safety net for fresh installs: BusSeeder/TrainSeeder run before the
