@@ -5,6 +5,7 @@ import TrainCard from "./TrainCard";
 import LocaleSelector from "./LocaleSelector";
 import TripRouteMap from "./TripRouteMap";
 import TransportCompareCard from "./TransportCompareCard";
+import ChatWithVendorButton from "@/Components/chat/ChatWithVendorButton";
 import { LocaleProvider, useLocale } from "../../context/LocaleContext";
 
 // Trains store facilities as short codes (see trains.facilities migration
@@ -143,18 +144,35 @@ function TripResultCard({ trip, mode, selected, onSelect, href }) {
         selected ? "border-green-400 ring-2 ring-green-100" : "border-[#EEF2F6]"
     }`;
 
+    const chatRow = (
+        <div className="mt-2 flex justify-end">
+            <ChatWithVendorButton
+                contextType="train"
+                contextId={trip.id}
+                label="Chat with operator"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-[#0955AC] text-[#0955AC] text-[12px] font-[600] hover:bg-[#0955AC] hover:text-white transition-colors"
+            />
+        </div>
+    );
+
     if (mode === "select") {
         return (
-            <button type="button" onClick={() => !trip.soldOut && onSelect(trip.id)} disabled={trip.soldOut} className={cardClass}>
-                {content}
-            </button>
+            <div>
+                <button type="button" onClick={() => !trip.soldOut && onSelect(trip.id)} disabled={trip.soldOut} className={cardClass}>
+                    {content}
+                </button>
+                {chatRow}
+            </div>
         );
     }
 
     return (
-        <Link href={trip.soldOut ? "#" : href} className={`${cardClass} ${trip.soldOut ? "pointer-events-none" : ""}`}>
-            {content}
-        </Link>
+        <div>
+            <Link href={trip.soldOut ? "#" : href} className={`${cardClass} ${trip.soldOut ? "pointer-events-none" : ""}`}>
+                {content}
+            </Link>
+            {chatRow}
+        </div>
     );
 }
 

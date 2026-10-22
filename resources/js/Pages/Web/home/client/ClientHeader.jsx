@@ -30,11 +30,14 @@ import {
     UserPlus,
     Wallet,
     PackageSearch,
+    MessageCircle,
 } from "lucide-react";
 import CompanyLogo from "../../components/CompanyLogo";
 import DashboardSearchModal from "@/Components/search/DashboardSearchModal";
 import { buildClientDashboardSearchEntries } from "@/search/dashboardSearchCatalog";
 import TrackWidget from "../../components/track/TrackWidget";
+import ChatWidget from "@/Components/chat/ChatWidget";
+import useChatUnread from "@/Components/chat/useChatUnread";
 
 const SidebarLink = ({ href, icon: Icon, label, active, onClick }) => (
     <Link
@@ -111,6 +114,9 @@ const ClientHeader = () => {
         courier: false,
         track: false,
     });
+
+    const isChatClient = auth?.user?.role === "client" && !auth?.user?.team_membership_role;
+    const chatUnread = useChatUnread(isChatClient);
 
     const clientSearchItems = useMemo(() => buildClientDashboardSearchEntries(), []);
 
@@ -606,6 +612,15 @@ const ClientHeader = () => {
                                 active={isActivePath("/clientAllBookings")}
                                 onClick={toggleMenu}
                             />
+                            {isChatClient && (
+                                <SidebarLink
+                                    href={route("chat.page")}
+                                    icon={MessageCircle}
+                                    label={chatUnread > 0 ? `Messages (${chatUnread > 99 ? "99+" : chatUnread})` : "Messages"}
+                                    active={isActivePath("/chat")}
+                                    onClick={toggleMenu}
+                                />
+                            )}
                             <SidebarLink
                                 href={route("client.wallet.dashboard")}
                                 icon={Wallet}
@@ -702,6 +717,8 @@ const ClientHeader = () => {
                 </div>,
                 document.body
             )}
+
+            <ChatWidget />
 
             {/* Logout Confirmation Modal */}
             <DashboardSearchModal

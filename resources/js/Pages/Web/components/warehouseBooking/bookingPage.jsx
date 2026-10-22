@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
 import Header from '../../home/client/ClientHeader';
 import Footer from '../../layouts/Footer';
+import ChatWithVendorButton from '@/Components/chat/ChatWithVendorButton';
 import axios from 'axios';
 import { ChevronLeft } from 'lucide-react';
 import PhoneInput from "react-phone-input-2";
@@ -885,6 +886,11 @@ export default function WarehouseBookingPage({ warehouse = {}, warehouseDetails 
                 <h1 className="figtree text-[20px] font-[700]">
                   {warehouse.name || 'Premium Warehouse Storage'}
                 </h1>
+                <ChatWithVendorButton
+                  contextType="warehouse"
+                  contextId={warehouse.id}
+                  className="self-start inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-[#0955AC] text-[#0955AC] text-[12px] font-[600] hover:bg-[#0955AC] hover:text-white transition-colors"
+                />
                 <div className="poppins flex flex-row gap-5 text-[9px] text-[#000000B2] font-[500]">
                   <div className="flex flex-col gap-2 justify-center items-center">
                     <div className="size-[17px] bg-blue-500 rounded-full"></div>

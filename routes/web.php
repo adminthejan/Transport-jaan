@@ -623,6 +623,24 @@ Route::prefix('client/seaBookings')->name('client.seaBookings.')->group(function
 
 /*
 |--------------------------------------------------------------------------
+| Chat (client <-> vendor messaging, shared by every service)
+|--------------------------------------------------------------------------
+| Auth only here; ChatController resolves the actor (client / vendor / vendor
+| team member) and 403s everyone else. Thread access is checked per request.
+*/
+Route::middleware(['auth'])->prefix('chat')->name('chat.')->group(function () {
+    $chat = \App\Http\Controllers\ChatController::class;
+    Route::get('/', [$chat, 'page'])->name('page');
+    Route::get('/conversations', [$chat, 'index'])->middleware('throttle:120,1')->name('conversations');
+    Route::post('/conversations', [$chat, 'start'])->middleware('throttle:30,1')->name('conversations.start');
+    Route::get('/unread-count', [$chat, 'unreadCount'])->middleware('throttle:120,1')->name('unread');
+    Route::get('/conversations/{conversation}/messages', [$chat, 'messages'])->middleware('throttle:240,1')->name('messages');
+    Route::post('/conversations/{conversation}/messages', [$chat, 'send'])->middleware('throttle:60,1')->name('send');
+    Route::post('/conversations/{conversation}/read', [$chat, 'markRead'])->middleware('throttle:120,1')->name('read');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Super Admin Routes
 |--------------------------------------------------------------------------
 */

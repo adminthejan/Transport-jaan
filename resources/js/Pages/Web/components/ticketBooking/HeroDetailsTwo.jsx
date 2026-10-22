@@ -5,6 +5,7 @@ import BusCard from "./BusCard";
 import LocaleSelector from "./LocaleSelector";
 import TripRouteMap from "./TripRouteMap";
 import TransportCompareCard from "./TransportCompareCard";
+import ChatWithVendorButton from "@/Components/chat/ChatWithVendorButton";
 import { LocaleProvider, useLocale } from "../../context/LocaleContext";
 
 const amenityIcons = {
@@ -168,14 +169,34 @@ function BusTripCard({ trip, mode, selected, onSelect, href }) {
         selected ? "border-green-400 ring-2 ring-green-100" : "border-[#EEF2F6]"
     }`;
 
+    // Sample trips shown when there are no real schedules have fake ids, so no chat for them.
+    const chatRow = trip.demo ? null : (
+        <div className="mt-2 flex justify-end">
+            <ChatWithVendorButton
+                contextType="bus"
+                contextId={trip.id}
+                label="Chat with operator"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-[#0955AC] text-[#0955AC] text-[12px] font-[600] hover:bg-[#0955AC] hover:text-white transition-colors"
+            />
+        </div>
+    );
+
     if (mode === "select") {
-        return <div className={cardClass}>{inner}</div>;
+        return (
+            <div>
+                <div className={cardClass}>{inner}</div>
+                {chatRow}
+            </div>
+        );
     }
 
     return (
-        <Link href={href} className={cardClass}>
-            {inner}
-        </Link>
+        <div>
+            <Link href={href} className={cardClass}>
+                {inner}
+            </Link>
+            {chatRow}
+        </div>
     );
 }
 
@@ -215,6 +236,7 @@ const HeroDetailsTwoInner = ({
             totalSeats: 45,
             expressway: false,
             soldOut: false,
+            demo: true,
         },
         {
             id: 2,
@@ -231,6 +253,7 @@ const HeroDetailsTwoInner = ({
             totalSeats: 49,
             expressway: true,
             soldOut: true,
+            demo: true,
         },
     ];
 

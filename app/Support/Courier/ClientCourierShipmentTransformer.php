@@ -130,6 +130,7 @@ class ClientCourierShipmentTransformer
             // shipment just looked "Pending" forever with no explanation.
             'vendorApprovalStatus' => $shipment->vendor_approval_status,
             'requiresVendorApproval' => $shipment->isVendorApprovalBlocking(),
+            'hasAssignedVendor' => ! empty($shipment->assigned_vendor_user_id),
             'vendorApprovalNotes' => $shipment->vendor_approval_notes,
             'vendorApprovalDecidedAt' => $shipment->vendor_approval_decided_at?->format('Y-m-d H:i:s'),
             'createdAt' => $shipment->created_at?->format('Y-m-d H:i:s'),

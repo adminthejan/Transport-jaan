@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { usePage, router } from '@inertiajs/react';
+import ChatWithVendorButton from '@/Components/chat/ChatWithVendorButton';
 import {
     launchPayHereOnsiteCheckout,
     launchPayHereRedirectCheckout,
@@ -343,6 +344,14 @@ const CourierShipmentDetail = () => {
                                         <Download className="mr-2 h-5 w-5" />
                                         Bill
                                     </button>
+                                    {shipment.hasAssignedVendor && (
+                                        <ChatWithVendorButton
+                                            contextType="courier"
+                                            contextId={shipment.id}
+                                            label="Chat with courier"
+                                            className="inline-flex items-center gap-2 h-10 px-6 rounded-2xl border border-[#0955AC] text-[#0955AC] text-[14px] font-medium hover:bg-[#EAF2FD]"
+                                        />
+                                    )}
                                 </div>
                                 {paymentActionError && (
                                     <p className="text-[12px] font-medium text-rose-600">{paymentActionError}</p>

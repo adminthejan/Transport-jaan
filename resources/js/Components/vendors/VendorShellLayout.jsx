@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { ArrowLeft, FileText, MapPin, Menu, Search, UserCircle, Users } from "lucide-react";
+import { ArrowLeft, FileText, MapPin, Menu, MessageCircle, Search, UserCircle, Users } from "lucide-react";
+import useChatUnread from "../chat/useChatUnread";
 import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
@@ -158,6 +159,7 @@ const VendorShellLayout = ({
         ? isVerifiedProp
         : (user?.status === "verified" || user?.status === "Verified");
 
+    const chatUnread = useChatUnread(Boolean(user && (user.role === "vendor" || user.team_membership_role)));
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showFinancial, setShowFinancial] = useState(false);
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -543,6 +545,16 @@ const VendorShellLayout = ({
                                         <span>Clients</span>
                                     </div>
                                 )}
+
+                                <div className={menuCls(isActive(() => route("chat.page")))} onClick={() => navigate(() => route("chat.page"))}>
+                                    <MessageCircle className="w-[22px] h-[22px] text-[#666666]" />
+                                    <span>Messages</span>
+                                    {chatUnread > 0 && (
+                                        <span className="ml-auto min-w-[22px] h-[22px] px-1.5 rounded-full bg-[#0955AC] text-white text-[11px] font-[700] flex items-center justify-center">
+                                            {chatUnread > 99 ? "99+" : chatUnread}
+                                        </span>
+                                    )}
+                                </div>
 
                                 {cfg.team && hasCourierPermission("courier.team.view") && (
                                     <div className={menuCls(isActive(cfg.team))} onClick={() => navigate(cfg.team)}>

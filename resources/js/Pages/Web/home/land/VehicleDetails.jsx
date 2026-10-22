@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { usePage } from "@inertiajs/react";
 import Header from "../client/ClientHeader";
+import ChatWithVendorButton from "@/Components/chat/ChatWithVendorButton";
 import BackButton from "../../components/BackBtn";
 import VehicleImages from "../../components/LandVehicleDetails/VehicleImages";
 import VehicleSearch from "../../components/LandVehicleDetails/VehicleSearch";
@@ -33,8 +34,9 @@ const VehicleDetails = () => {
     return (
         <div>
             <Header />
-            <div className="pt-6 px-5 md:px-10 max-w-[1800px] mx-auto">
+            <div className="pt-6 px-5 md:px-10 max-w-[1800px] mx-auto flex items-center justify-between gap-3">
                 <BackButton />
+                <ChatWithVendorButton contextType="vehicle" contextId={memoizedVehicle.id} />
             </div>
             <div className="main-content flex justify-center items-center">
                 <div className="py-10 md:px-10 flex flex-col xl:flex-row justify-between w-full gap-10">
