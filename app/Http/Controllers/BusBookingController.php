@@ -384,6 +384,7 @@ class BusBookingController extends Controller
                 'passenger_name' => 'required|string|max:255',
                 'passenger_email' => 'nullable|email|max:255',
                 'passenger_phone' => 'required|string|max:20',
+                'passenger_nic' => ['required', 'regex:/^(\d{9}[VvXx]|\d{12})$/'],
                 'seat_numbers' => 'required',
                 'seat_genders' => 'nullable',
                 'passenger_count' => 'required|integer|min:1',
@@ -414,7 +415,8 @@ class BusBookingController extends Controller
         $seatGenders = $this->parseSeatGenders($request->seat_genders, $seatNumbers);
         $returnSeatGenders = $isRoundTrip ? $this->parseSeatGenders($request->return_seat_genders, $returnSeatNumbers) : [];
 
-        $passengerData = $request->only(['passenger_name', 'passenger_email', 'passenger_phone', 'boarding_point', 'destination_point']);
+        $passengerData = $request->only(['passenger_name', 'passenger_email', 'passenger_phone', 'passenger_nic', 'boarding_point', 'destination_point']);
+        \App\Support\ProfileIdentity::remember($request->user(), $passengerData);
         $paymentMethod = $request->input('payment_method');
 
         try {

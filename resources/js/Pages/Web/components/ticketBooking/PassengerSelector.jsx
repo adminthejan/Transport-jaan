@@ -48,8 +48,8 @@ const PassengerSelector = ({ value, onChange, label = "Passengers" }) => {
     const total = (value.adults || 0) + (value.youth || 0) + (value.seniors || 0);
 
     const tiers = [
-        { key: "adults", label: "Adults", hint: "19-59 years", min: 1 },
-        { key: "youth", label: "Youth", hint: "0-18 years", min: 0 },
+        { key: "adults", label: "Adults", hint: "18-59 years", min: 1 },
+        { key: "youth", label: "Youth", hint: "0-17 years", min: 0 },
         { key: "seniors", label: "Seniors", hint: "60+ years", min: 0 },
     ];
 

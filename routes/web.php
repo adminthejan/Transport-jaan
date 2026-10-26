@@ -317,6 +317,10 @@ Route::post('/flight-bookings/{reference}/cancel', [FlightBookingController::cla
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store')->middleware('auth');
 
+// Sea tickets (Ferry / Cruise / Boat & Water Transfer / Yacht & Experiences) — request-based, like flights
+Route::get('/seaTicketBooking', [\App\Http\Controllers\SeaTicketRequestController::class, 'page'])->name('seaTicket.page');
+Route::post('/sea-ticket-requests', [\App\Http\Controllers\SeaTicketRequestController::class, 'store'])->name('sea-ticket-requests.store')->middleware('auth');
+
 // Skyscanner-style flight search demo — dummy/client-generated data only,
 // no live inventory, no backend writes (see FlightResults.jsx and its
 // generateDummyFlights.js seed-based generator).
@@ -483,6 +487,7 @@ Route::prefix('api')->name('api.')->group(function () {
     Route::get('/location/provinces', [LocationLookupController::class, 'provinces'])->name('location.provinces');
     Route::get('/location/districts', [LocationLookupController::class, 'districts'])->name('location.districts');
     Route::get('/location/cities', [LocationLookupController::class, 'cities'])->name('location.cities');
+    Route::get('/location/city-search', [LocationLookupController::class, 'citySearch'])->middleware('throttle:120,1')->name('location.city-search');
 
     // Public warehouse units list
     Route::get('/warehouse-units', [WarehouseBookingController::class, 'getWarehouseUnits'])->name('warehouse-units.index');

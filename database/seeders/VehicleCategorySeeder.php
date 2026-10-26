@@ -20,6 +20,14 @@ class VehicleCategorySeeder extends Seeder
             ['type' => 'sea', 'name' => 'Boat'],
         ];
 
+        // Oct-07 amendment: every air / sea vehicle type is also a selectable category.
+        foreach (config('vehicle_types.air') as $label) {
+            $categories[] = ['type' => 'air', 'name' => $label];
+        }
+        foreach (config('vehicle_types.sea') as $label) {
+            $categories[] = ['type' => 'sea', 'name' => $label];
+        }
+
         foreach ($categories as $category) {
             VehicleCategory::firstOrCreate(['type' => $category['type'], 'name' => $category['name']]);
         }

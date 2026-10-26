@@ -495,7 +495,7 @@ class VehicleController extends Controller
             'fuelTankCapacity'   => ['nullable','numeric','min:0'],
 
             // air
-            'aircraft_type'          => ['nullable', Rule::in(['fixed_wing','private_jet','commercial_airliner','helicopter','charter_aircraft','light_aircraft','business_jet','turboprop_aircraft','glider','seaplane','cargo_aircraft','hot_air_balloon','other'])],
+            'aircraft_type'          => ['nullable', Rule::in(config('vehicle_types.air_all'))],
             'icao_type_designator'   => ['nullable','string','max:8'],
             'base_airport_iata'      => ['nullable','string','max:3'],
             'base_airport_icao'      => ['nullable','string','max:4'],
@@ -507,7 +507,7 @@ class VehicleController extends Controller
             'flight_hours_total'     => ['nullable','integer','min:0'],
 
             // sea
-            'vessel_type'        => ['nullable', Rule::in(['boat','speedboat','yacht','catamaran','sailboat','fishing_boat','cruise_ship','ferry','houseboat','jet_ski','tugboat','cargo_vessel','other'])],
+            'vessel_type'        => ['nullable', Rule::in(config('vehicle_types.sea_all'))],
             'hull_material'      => ['nullable','string','max:64'],
             'length_m'           => ['nullable','numeric','min:0'],
             'beam_m'             => ['nullable','numeric','min:0'],

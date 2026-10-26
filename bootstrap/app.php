@@ -72,5 +72,21 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Background fetch()/XHR calls (polling for notifications, unread counts, ...)
+        // that hit a protected route after the session has expired must NOT go through
+        // redirect()->guest(): that saves the call's URL as "url.intended", and the next
+        // login then lands on a raw JSON endpoint ("All Inertia requests must receive a
+        // valid Inertia response ..." / blank screen until cookies are cleared).
+        // Answer them with a plain 401 instead. Real page visits (document navigations
+        // and Inertia visits) keep the normal redirect-to-login behaviour.
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, Request $request) {
+            $isBackgroundCall = $request->header('Sec-Fetch-Dest') === 'empty'
+                && ! $request->header('X-Inertia');
+
+            if ($isBackgroundCall) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+
+            return null; // default handling
+        });
     })->create();

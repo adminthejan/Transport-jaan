@@ -1,21 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
 import { Anchor, Check, Fuel, Gauge, Ship, SlidersHorizontal, Tag, Users, X } from "lucide-react";
+import { SEA_VEHICLE_TYPES } from "../../../../constants/vehicleTypes";
 
-const BODY_TYPES = [
-  { id: "speedboat", label: "Speedboat" },
-  { id: "yacht", label: "Yacht" },
-  { id: "catamaran", label: "Catamaran" },
-  { id: "sailboat", label: "Sailboat" },
-  { id: "fishing_boat", label: "Fishing Boat" },
-  { id: "cruise_ship", label: "Cruise Ship" },
-  { id: "ferry", label: "Ferry" },
-  { id: "houseboat", label: "Houseboat" },
-  { id: "jet_ski", label: "Jet Ski" },
-  { id: "tugboat", label: "Tugboat" },
-  { id: "cargo_vessel", label: "Cargo Vessel" },
-  { id: "other", label: "Other" },
-];
+const BODY_TYPES = SEA_VEHICLE_TYPES;
 
 const BRANDS = [
   { id: "yamahaMarine", label: "Yamaha Marine" },

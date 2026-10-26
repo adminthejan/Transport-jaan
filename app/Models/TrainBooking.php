@@ -21,6 +21,8 @@ class TrainBooking extends Model
         'passenger_name',
         'passenger_email',
         'passenger_phone',
+        'passenger_nic',
+        'passenger_class',
         'adults',
         'children',
         'infants',

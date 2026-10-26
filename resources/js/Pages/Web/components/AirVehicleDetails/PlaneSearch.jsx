@@ -613,15 +613,6 @@ const PlaneSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) =>
 
           <div className="flex justify-center items-center">
             <div
-              className=" w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer"
-              onClick={getQuote}
-            >
-              GET A QUOTE
-            </div>
-          </div>
-
-          <div className="flex justify-center items-center">
-            <div
               className="w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer"
               onClick={continueToCheckout}
             >

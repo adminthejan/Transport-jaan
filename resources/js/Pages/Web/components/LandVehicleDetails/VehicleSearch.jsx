@@ -592,12 +592,6 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
 
           
           <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
-            <div
-              className="w-full sm:w-auto xl:w-[261px] h-auto xl:h-auto px-4 py-2.5 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-6 sm:mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer hover:bg-[#0955AC] hover:text-white transition-colors"
-              onClick={getQuote}
-            >
-              GET A QUOTE
-            </div>
 
             <div
               className="w-full sm:w-auto xl:w-[261px] h-auto xl:h-auto bg-[#0955AC] px-4 py-2.5 rounded-[5px] mt-0 sm:mt-10 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer hover:bg-[#074489] transition-colors"

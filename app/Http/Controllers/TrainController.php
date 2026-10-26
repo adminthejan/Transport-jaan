@@ -40,6 +40,7 @@ class TrainController extends Controller
         $seniors = $toCount($request->input('seniors'), 0);
         $student = $request->boolean('student');
         $wheelchair = $request->boolean('wheelchair');
+        $passengerClass = trim((string) $request->input('class', ''));
 
         // Parse station names and get station IDs
         $fromStationRecord = null;
@@ -74,6 +75,7 @@ class TrainController extends Controller
                 ->where('date', Carbon::parse($departureDate)->format('Y-m-d'))
                 ->where('status', 'active')
                 ->get()
+                ->when($passengerClass !== '', fn ($c) => $c->filter(fn ($sch) => $sch->train?->class_type === $passengerClass)->values())
                 ->map(function ($schedule) {
                     return [
                         'id' => $schedule->id,
@@ -133,6 +135,7 @@ class TrainController extends Controller
                 ->orderBy('departure_time')
                 ->limit(20) // Limit to prevent overwhelming the UI
                 ->get()
+                ->when($passengerClass !== '', fn ($c) => $c->filter(fn ($sch) => $sch->train?->class_type === $passengerClass)->values())
                 ->map(function ($schedule) {
                     return [
                         'id' => $schedule->id,
@@ -378,6 +381,7 @@ class TrainController extends Controller
             'passenger_name' => 'required|string|max:255',
             'passenger_email' => 'required|email|max:255',
             'passenger_phone' => 'required|string|max:20',
+            'passenger_nic' => ['required', 'regex:/^(\d{9}[VvXx]|\d{12})$/'],
             'adults' => 'required|integer|min:1',
             'children' => 'nullable|integer|min:0',
             'infants' => 'nullable|integer|min:0',
@@ -385,7 +389,8 @@ class TrainController extends Controller
         ]);
 
         $isRoundTrip = (bool) $request->return_schedule_id;
-        $passengerData = $request->only(['passenger_name', 'passenger_email', 'passenger_phone']);
+        $passengerData = $request->only(['passenger_name', 'passenger_email', 'passenger_phone', 'passenger_nic']);
+        \App\Support\ProfileIdentity::remember($request->user(), $passengerData);
         $adults = $request->adults;
         $children = $request->children ?? 0;
         $infants = $request->infants ?? 0;
@@ -568,6 +573,7 @@ class TrainController extends Controller
         $booking = TrainBooking::create(array_merge($passengerData, [
             'user_id' => Auth::id(),
             'train_schedule_id' => $scheduleId,
+            'passenger_class' => $schedule->train?->class_type,
             'adults' => $adults,
             'children' => $children,
             'infants' => $infants,

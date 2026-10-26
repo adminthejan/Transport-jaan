@@ -158,6 +158,7 @@ const Settings = ({ user = {} }) => {
             email: user.email || "",
             phone: user.phone || "",
             date_of_birth: user.date_of_birth || "",
+            nic_number: user.nic_number || "",
             // address
             address_line1: user.address_line1 || user.address || "",
             address_line2: user.address_line2 || "",
@@ -550,6 +551,39 @@ const Settings = ({ user = {} }) => {
                                                     <ReadOnly value={data.phone ? `+${data.phone}` : ""} />
                                                 )}
                                                 <ErrorText>{errors.phone}</ErrorText>
+                                            </Field>
+
+                                            <Field label="Birthday" htmlFor="date_of_birth" help="Used to pre-fill rental and ticket forms.">
+                                                {editing.profile ? (
+                                                    <input
+                                                        id="date_of_birth"
+                                                        type="date"
+                                                        value={data.date_of_birth || ""}
+                                                        max={new Date().toISOString().slice(0, 10)}
+                                                        onChange={(e) => setData("date_of_birth", e.target.value)}
+                                                        className="w-full h-12 px-3 rounded-[10px] border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                                    />
+                                                ) : (
+                                                    <ReadOnly value={data.date_of_birth} />
+                                                )}
+                                                <ErrorText>{errors.date_of_birth}</ErrorText>
+                                            </Field>
+
+                                            <Field label="NIC Number" htmlFor="nic_number" help="Required on every booking; saved here so you only type it once.">
+                                                {editing.profile ? (
+                                                    <input
+                                                        id="nic_number"
+                                                        type="text"
+                                                        value={data.nic_number}
+                                                        maxLength={12}
+                                                        placeholder="199012345678"
+                                                        onChange={(e) => setData("nic_number", e.target.value.toUpperCase().replace(/\s/g, ""))}
+                                                        className="w-full h-12 px-3 rounded-[10px] border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                                    />
+                                                ) : (
+                                                    <ReadOnly value={data.nic_number} />
+                                                )}
+                                                <ErrorText>{errors.nic_number}</ErrorText>
                                             </Field>
                                         </div>
                                     </div>

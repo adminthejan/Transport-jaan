@@ -6,6 +6,7 @@ import Footer from "../../layouts/Footer";
 import TripRouteMap from "../../components/ticketBooking/TripRouteMap";
 import LocaleSelector from "../../components/ticketBooking/LocaleSelector";
 import { LocaleProvider, useLocale } from "../../context/LocaleContext";
+import { validateNic } from "../../../../Components/forms/IdentityFields";
 
 function JourneyCard({ label, schedule }) {
     if (!schedule) return null;
@@ -66,9 +67,10 @@ const TrainTicketBookingPreviewInner = () => {
     const { data, setData, post, processing, errors } = useForm({
         train_schedule_id: outboundSchedule?.id || '',
         return_schedule_id: returnSchedule?.id || '',
-        passenger_name: '',
-        passenger_email: '',
-        passenger_phone: '',
+        passenger_name: props.auth?.user?.name || '',
+        passenger_email: props.auth?.user?.email || '',
+        passenger_phone: props.auth?.user?.phone || '',
+        passenger_nic: props.auth?.user?.nic_number || '',
         adults: passengers.adults || 1,
         children: passengers.children || 0,
         infants: passengers.infants || 0,
@@ -76,8 +78,11 @@ const TrainTicketBookingPreviewInner = () => {
         payment_method: 'PayHere',
     });
 
+    const nicError = data.passenger_nic ? validateNic(data.passenger_nic) : null;
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (validateNic(data.passenger_nic)) return;
         post('/train-bookings');
     };
 
@@ -135,6 +140,26 @@ const TrainTicketBookingPreviewInner = () => {
                                         />
                                     </div>
                                     {errors.passenger_name && <p className="text-red-500 text-xs mt-1">{errors.passenger_name}</p>}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="passenger_nic" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
+                                        NIC NUMBER *
+                                    </label>
+                                    <div className="relative">
+                                        <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC]" />
+                                        <input
+                                            type="text"
+                                            id="passenger_nic"
+                                            value={data.passenger_nic}
+                                            onChange={(e) => setData('passenger_nic', e.target.value.toUpperCase().replace(/\s/g, ''))}
+                                            maxLength={12}
+                                            placeholder="199012345678"
+                                            className={inputClass(errors.passenger_nic || nicError)}
+                                            required
+                                        />
+                                    </div>
+                                    {(errors.passenger_nic || nicError) && <p className="text-red-500 text-xs mt-1">{errors.passenger_nic || nicError}</p>}
                                 </div>
 
                                 <div>

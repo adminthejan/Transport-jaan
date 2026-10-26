@@ -1,5 +1,6 @@
 // resources/js/Pages/vendors/units/AddUnit.jsx
 import React, { useEffect, useRef, useState } from "react";
+import { AIR_VEHICLE_TYPES, SEA_VEHICLE_TYPES, airTypeLabel, seaTypeLabel } from "../../../../constants/vehicleTypes";
 import { router, usePage } from "@inertiajs/react";
 import VendorShellLayout from "../../../../Components/vendors/VendorShellLayout";
 
@@ -97,9 +98,9 @@ const transmissionOptions = ["Manual", "Automatic", "Semi-Automatic", "CVT", "Ot
 const conditionOptions = ["New", "Excellent", "Good", "Fair", "Needs Repair"];
 const ownershipTypeOptions = ["Owned", "Financed", "Leased", "Rented"];
 const categoryOptions = ["Land", "Air", "Sea"];
-const aircraftTypeOptions = ["private_jet", "commercial_airliner", "helicopter", "charter_aircraft", "light_aircraft", "business_jet", "turboprop_aircraft", "glider", "seaplane", "cargo_aircraft", "hot_air_balloon", "other"];
+const aircraftTypeOptions = AIR_VEHICLE_TYPES.map((t) => t.id);
 const airFuelTypeOptions = ["jet_a1", "avgas", "electric", "other"];
-const vesselTypeOptions = ["speedboat", "yacht", "catamaran", "sailboat", "fishing_boat", "cruise_ship", "ferry", "houseboat", "jet_ski", "tugboat", "cargo_vessel", "other"];
+const vesselTypeOptions = SEA_VEHICLE_TYPES.map((t) => t.id);
 const hullMaterialOptions = ["Fiberglass", "Aluminum", "Steel", "Wood", "Composite", "Other"];
 const engineTypeOptions = ["inboard", "outboard", "sail", "hybrid", "electric", "other"];
 const seaFuelTypeOptions = ["diesel", "petrol", "electric", "other"];
@@ -755,7 +756,7 @@ const AddUnit = () => {
                     <div className="space-y-2">
                       <label htmlFor="aircraft_type" className="block text-[14px] font-medium text-gray-700">Aircraft Type <Req /></label>
                       <select id="aircraft_type" name="aircraft_type" className={selectClasses("aircraft_type")} value={form.aircraft_type} onChange={handleChange} {...req("Please select an aircraft type.")}>
-                        <option value="">Select aircraft type</option>{aircraftTypeOptions.map((a) => <option key={a} value={a}>{a.replace("_", " ").toUpperCase()}</option>)}
+                        <option value="">Select aircraft type</option>{aircraftTypeOptions.map((a) => <option key={a} value={a}>{airTypeLabel(a)}</option>)}
                       </select>{errors.aircraft_type && <div className="text-red-500 text-xs mt-1">{errors.aircraft_type}</div>}
                     </div>
                     <div className="space-y-2">
@@ -788,7 +789,7 @@ const AddUnit = () => {
                     <div className="space-y-2">
                       <label htmlFor="vessel_type" className="block text-[14px] font-medium text-gray-700">Vessel Type <Req /></label>
                       <select id="vessel_type" name="vessel_type" className={selectClasses("vessel_type")} value={form.vessel_type} onChange={handleChange} {...req("Please select a vessel type.")}>
-                        <option value="">Select vessel type</option>{vesselTypeOptions.map((v) => <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>)}
+                        <option value="">Select vessel type</option>{vesselTypeOptions.map((v) => <option key={v} value={v}>{seaTypeLabel(v)}</option>)}
                       </select>{errors.vessel_type && <div className="text-red-500 text-xs mt-1">{errors.vessel_type}</div>}
                     </div>
                     <div className="space-y-2">

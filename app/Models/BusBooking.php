@@ -21,6 +21,7 @@ class BusBooking extends Model
         'passenger_name',
         'passenger_email',
         'passenger_phone',
+        'passenger_nic',
         'seat_numbers',
         'seat_genders',
         'passenger_count',

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import VehicleStatusBadges from "../../../../Components/vehicle/VehicleStatusBadges";
 import { router, Link } from "@inertiajs/react";
 import axios from "axios";
 import { Fuel, Gauge, Heart, Plane as PlaneIcon, Settings2, Users } from "lucide-react";
@@ -145,6 +146,7 @@ const AirVehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehic
                   className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />
+                <VehicleStatusBadges vehicle={v} />
 
                 <button
                   onClick={() => toggleLike(v.id)}

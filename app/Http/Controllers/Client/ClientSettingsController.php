@@ -38,6 +38,7 @@ class ClientSettingsController extends Controller
                 'postal_code' => $user->postal_code,
                 'country' => $user->country,
                 'date_of_birth' => $user->date_of_birth,
+                'nic_number' => $user->nic_number,
                 'image' => $user->image_url,
                 'avatar_url' => $user->avatar_url ?? $user->image_url,
                 'role' => $user->role,
@@ -75,7 +76,8 @@ class ClientSettingsController extends Controller
             'state' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:50'],
             'country' => ['nullable', 'string', 'max:100'],
-            'date_of_birth' => ['nullable', 'date'],
+            'date_of_birth' => ['nullable', 'date', 'before_or_equal:today'],
+            'nic_number' => ['nullable', 'regex:/^(\d{9}[VvXx]|\d{12})$/'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:3072'], // 3MB max
             'current_password' => ['nullable', 'required_with:new_password', 'current_password'],
             'new_password' => ['nullable', 'required_with:current_password', 'same:confirm_password', Password::defaults(), new PasswordStrength()],

@@ -4,6 +4,10 @@ namespace App\Http\Controllers\VehicleControllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
+use Carbon\Carbon;
+use App\Models\SeaVehicleBookings;
+use App\Models\AirVehicleBookings;
+use App\Models\Booking;
 use App\Models\VehicleCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -100,6 +104,7 @@ class ClientVehicleController extends Controller
     public function vehicleList(Request $request)
     {
         $filters = $request->only([
+            'withDriver',
             'pickupLocation',
             'pickupDate',
             'dropoffLocation',
@@ -379,6 +384,8 @@ class ClientVehicleController extends Controller
             ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
             : [];
 
+        $vehicles = $this->withAvailability($vehicles, 'land', $request);
+
         return Inertia::render('Web/home/vehicleList', [
             'vehicles'         => $vehicles,
             'filters'          => [
@@ -631,7 +638,7 @@ class ClientVehicleController extends Controller
 
         $rawBodyType = $request->input('bodyType') ?? $request->input('body_type');
         if (!empty($rawBodyType)) {
-            $allowed = ['speedboat','yacht','catamaran','sailboat','fishing_boat','cruise_ship','ferry','houseboat','jet_ski','tugboat','cargo_vessel','boat','other'];
+            $allowed = config('vehicle_types.sea_all');
             $bodyTypes = array_filter(array_map(fn ($bt) => mb_strtolower(trim($bt)), explode(',', $rawBodyType)));
             $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
             if (!empty($bodyTypes)) {
@@ -756,7 +763,7 @@ class ClientVehicleController extends Controller
 
         $rawBodyType = $request->input('bodyType') ?? $request->input('body_type');
         if (!empty($rawBodyType)) {
-            $allowed = ['private_jet','commercial_airliner','helicopter','charter_aircraft','light_aircraft','business_jet','turboprop_aircraft','glider','seaplane','cargo_aircraft','hot_air_balloon','fixed_wing','other'];
+            $allowed = config('vehicle_types.air_all');
             $bodyTypes = array_filter(array_map(fn ($bt) => mb_strtolower(trim($bt)), explode(',', $rawBodyType)));
             $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
             if (!empty($bodyTypes)) {
@@ -830,6 +837,7 @@ class ClientVehicleController extends Controller
      public function seaVehicleList(Request $request)
     {
         $filters = $request->only([
+            'withSkipper',
             'pickupLocation',
             'pickupDate',
             'dropoffLocation',
@@ -889,7 +897,7 @@ class ClientVehicleController extends Controller
         // Comma-separated so more than one vessel type can be selected at once.
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
-            $allowed = ['speedboat','yacht','catamaran','sailboat','fishing_boat','cruise_ship','ferry','houseboat','jet_ski','tugboat','cargo_vessel','boat','other'];
+            $allowed = config('vehicle_types.sea_all');
             $bodyTypes = array_filter(array_map(fn ($bt) => mb_strtolower(trim($bt)), explode(',', $rawBodyType)));
             $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
             if (!empty($bodyTypes)) {
@@ -1045,6 +1053,8 @@ class ClientVehicleController extends Controller
             ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
             : [];
 
+        $vehicles = $this->withAvailability($vehicles, 'sea', $request);
+
         return Inertia::render('Web/home/seaVehicleList', [
             'vehicles'         => $vehicles,
             'filters'          => [
@@ -1119,7 +1129,7 @@ class ClientVehicleController extends Controller
         // Comma-separated so more than one aircraft type can be selected at once.
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
-            $allowed = ['private_jet','commercial_airliner','helicopter','charter_aircraft','light_aircraft','business_jet','turboprop_aircraft','glider','seaplane','cargo_aircraft','hot_air_balloon','fixed_wing','other'];
+            $allowed = config('vehicle_types.air_all');
             $bodyTypes = array_filter(array_map(fn ($bt) => mb_strtolower(trim($bt)), explode(',', $rawBodyType)));
             $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
             if (!empty($bodyTypes)) {
@@ -1274,6 +1284,8 @@ class ClientVehicleController extends Controller
         $likedVehicleIds = Auth::check()
             ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
             : [];
+
+        $vehicles = $this->withAvailability($vehicles, 'air', $request);
 
         return Inertia::render('Web/home/airVehicleList', [
             'vehicles'         => $vehicles,
@@ -1604,4 +1616,47 @@ class ClientVehicleController extends Controller
         ]);
     }
 
+    /**
+     * Adds `is_booked` (already booked for the searched pickup/drop-off dates) and
+     * `vendor_verified` to each listed vehicle. Booked vehicles stay in the list so
+     * the card can say "Currently booked" instead of silently disappearing.
+     */
+    private function withAvailability($paginator, string $kind, Request $request)
+    {
+        $bookedIds = [];
+        $from = $request->input('pickupDate');
+        $to = $request->input('dropoffDate') ?: $from;
+
+        if ($from) {
+            try {
+                $start = Carbon::parse($from)->startOfDay();
+                $end = Carbon::parse($to)->endOfDay();
+            } catch (\Throwable $e) {
+                $start = $end = null;
+            }
+
+            if ($start && $end && $end->gte($start)) {
+                $model = match ($kind) {
+                    'air' => AirVehicleBookings::class,
+                    'sea' => SeaVehicleBookings::class,
+                    default => Booking::class,
+                };
+                $bookedIds = $model::whereIn('status', ['pending', 'confirmed'])
+                    ->whereHas('schedule', fn ($q) => $q->where('pickup_at', '<', $end)->where('dropoff_at', '>', $start))
+                    ->pluck('vehicle_id')
+                    ->all();
+            }
+        }
+
+        $ids = collect($paginator->items())->pluck('id')->all();
+        $ownerStatus = $ids
+            ? DB::table('vehicles')->join('users', 'users.id', '=', 'vehicles.provider_id')
+                ->whereIn('vehicles.id', $ids)->pluck('users.status', 'vehicles.id')
+            : collect();
+
+        return $paginator->through(fn ($row) => array_merge((array) $row, [
+            'is_booked' => in_array($row['id'], $bookedIds, true),
+            'vendor_verified' => ($ownerStatus[$row['id']] ?? null) === 'verified',
+        ]));
+    }
 }

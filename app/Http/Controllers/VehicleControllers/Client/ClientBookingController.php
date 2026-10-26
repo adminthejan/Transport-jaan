@@ -198,6 +198,10 @@ class ClientBookingController extends Controller
                 'phone',
                 'country_code',
                 'age',
+                'nic_number',
+                'date_of_birth',
+                'license_number',
+                'license_expiry_date',
                 'city',
                 'zip_code',
                 'notes',
@@ -244,6 +248,10 @@ class ClientBookingController extends Controller
             'phone',
             'country_code',
             'age',
+            'nic_number',
+            'date_of_birth',
+            'license_number',
+            'license_expiry_date',
             'city',
             'zip_code',
             'notes',
@@ -461,10 +469,16 @@ class ClientBookingController extends Controller
                         'city'         => ['nullable', 'string', 'max:255'],
                         'zip_code'     => ['nullable', 'string', 'max:20'],
                         'age'          => ['nullable', 'integer', 'min:18', 'max:120'],
+                        'nic_number'   => ['nullable', 'regex:/^(\d{9}[VvXx]|\d{12})$/'],
+                        'date_of_birth' => ['nullable', 'date', 'before_or_equal:-18 years'],
+                        'license_number' => ['nullable', 'string', 'max:50'],
+                        'license_expiry_date' => ['nullable', 'date', 'after:today'],
                         'address'      => ['nullable', 'string', 'max:255'],
                         'notes'        => ['nullable', 'string'],
                     ])->validate();
 
+                    $personal = $this->withDerivedAge($personal);
+                    $this->rememberOnProfile($personal);
                     if (collect($personal)->filter(fn($v) => filled($v))->isNotEmpty()) {
                         BookingCustomer::create(array_merge($personal, ['booking_id' => $booking->id]));
                     }
@@ -830,6 +844,10 @@ class ClientBookingController extends Controller
                 'phone',
                 'country_code',
                 'age',
+                'nic_number',
+                'date_of_birth',
+                'license_number',
+                'license_expiry_date',
                 'city',
                 'zip_code',
                 'notes',
@@ -876,6 +894,10 @@ class ClientBookingController extends Controller
             'phone',
             'country_code',
             'age',
+            'nic_number',
+            'date_of_birth',
+            'license_number',
+            'license_expiry_date',
             'city',
             'zip_code',
             'notes',
@@ -1097,10 +1119,16 @@ class ClientBookingController extends Controller
                         'city'         => ['nullable', 'string', 'max:255'],
                         'zip_code'     => ['nullable', 'string', 'max:20'],
                         'age'          => ['nullable', 'integer', 'min:18', 'max:120'],
+                        'nic_number'   => ['nullable', 'regex:/^(\d{9}[VvXx]|\d{12})$/'],
+                        'date_of_birth' => ['nullable', 'date', 'before_or_equal:-18 years'],
+                        'license_number' => ['nullable', 'string', 'max:50'],
+                        'license_expiry_date' => ['nullable', 'date', 'after:today'],
                         'address'      => ['nullable', 'string', 'max:255'],
                         'notes'        => ['nullable', 'string'],
                     ])->validate();
 
+                    $personal = $this->withDerivedAge($personal);
+                    $this->rememberOnProfile($personal);
                     if (collect($personal)->filter(fn($v) => filled($v))->isNotEmpty()) {
                         // For air vehicle bookings create a dedicated air booking customer row.
                         AirVehicleBookingCustomer::create(array_merge($personal, ['air_vehicle_booking_id' => $airVehicleBooking->id]));
@@ -1215,6 +1243,10 @@ class ClientBookingController extends Controller
                 'phone',
                 'country_code',
                 'age',
+                'nic_number',
+                'date_of_birth',
+                'license_number',
+                'license_expiry_date',
                 'city',
                 'zip_code',
                 'notes',
@@ -1295,6 +1327,10 @@ class ClientBookingController extends Controller
             'phone',
             'country_code',
             'age',
+            'nic_number',
+            'date_of_birth',
+            'license_number',
+            'license_expiry_date',
             'city',
             'zip_code',
             'notes',
@@ -1516,10 +1552,16 @@ class ClientBookingController extends Controller
                         'city'         => ['nullable', 'string', 'max:255'],
                         'zip_code'     => ['nullable', 'string', 'max:20'],
                         'age'          => ['nullable', 'integer', 'min:18', 'max:120'],
+                        'nic_number'   => ['nullable', 'regex:/^(\d{9}[VvXx]|\d{12})$/'],
+                        'date_of_birth' => ['nullable', 'date', 'before_or_equal:-18 years'],
+                        'license_number' => ['nullable', 'string', 'max:50'],
+                        'license_expiry_date' => ['nullable', 'date', 'after:today'],
                         'address'      => ['nullable', 'string', 'max:255'],
                         'notes'        => ['nullable', 'string'],
                     ])->validate();
 
+                    $personal = $this->withDerivedAge($personal);
+                    $this->rememberOnProfile($personal);
                     if (collect($personal)->filter(fn($v) => filled($v))->isNotEmpty()) {
                         // For sea vehicle bookings create a dedicated sea booking customer row.
                         SeaVehicleBookingCustomer::create(array_merge($personal, ['sea_vehicle_booking_id' => $seaVehicleBooking->id]));
@@ -2337,4 +2379,33 @@ class ClientBookingController extends Controller
         };
     }
 
+    /** Birthday replaces the free-typed age; keep the stored age in sync with it. */
+    private function withDerivedAge(array $personal): array
+    {
+        if (!empty($personal['date_of_birth'])) {
+            $personal['age'] = Carbon::parse($personal['date_of_birth'])->age;
+        }
+
+        return $personal;
+    }
+
+    /** Save NIC / birthday on the profile the first time they are given, so later forms pre-fill. */
+    private function rememberOnProfile(array $personal): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return;
+        }
+
+        $updates = [];
+        foreach (['nic_number', 'date_of_birth'] as $field) {
+            if (!empty($personal[$field]) && empty($user->{$field})) {
+                $updates[$field] = $personal[$field];
+            }
+        }
+
+        if ($updates) {
+            $user->forceFill($updates)->save();
+        }
+    }
 }

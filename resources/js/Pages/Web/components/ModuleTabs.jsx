@@ -26,6 +26,7 @@ const TICKET_SUB_TABS = [
     { key: "bus", label: "Bus", href: "/busTicketBookingDetails", icon: BusIcon },
     { key: "train", label: "Train", href: "/trainTicketBookingDetails", icon: TrainIcon },
     { key: "flight", label: "Flight", icon: PlaneIcon, href: "/ticketBooking?type=flight" },
+    { key: "sea", label: "Sea", icon: ShipIcon, href: "/seaTicketBooking" },
 ];
 
 const Pill = ({ active, label, href, icon: Icon, large, onSelect, tabKey }) => {

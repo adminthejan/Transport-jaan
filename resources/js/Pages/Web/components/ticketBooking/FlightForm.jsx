@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useForm } from "@inertiajs/react";
+import { useForm, usePage } from "@inertiajs/react";
 import {
     User,
     Mail,
@@ -13,12 +13,19 @@ import {
 } from "lucide-react";
 import CardHeader from "./shared/CardHeader";
 import { SegmentedControl, SubmitButton } from "./shared/FormElements";
+import TicketCategoryPicker from "../../../../Components/forms/TicketCategoryPicker";
+import { validateNic } from "../../../../Components/forms/IdentityFields";
+import { AIR_TICKET_CATEGORIES } from "../../../../constants/ticketCategories";
 
 const FlightForm = () => {
+    const authUser = usePage().props.auth?.user;
     const { data, setData, post, processing, errors, reset } = useForm({
-        name: '',
-        email: '',
-        phone: '',
+        name: authUser?.name || '',
+        email: authUser?.email || '',
+        phone: authUser?.phone || '',
+        passenger_nic: authUser?.nic_number || '',
+        service_category: '',
+        service_sub_category: '',
         subject: '',
         special_requests: '',
         trip_type: 'oneway',
@@ -57,8 +64,20 @@ const FlightForm = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const nicError = data.passenger_nic ? validateNic(data.passenger_nic) : null;
+
+    const handleCategoryChange = ({ category, subCategory }) => {
+        setData((prev) => ({
+            ...prev,
+            service_category: category,
+            service_sub_category: subCategory,
+            subject: category && subCategory ? `${category} - ${subCategory}` : prev.subject,
+        }));
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (validateNic(data.passenger_nic)) return;
         post(route('flight-bookings.store'), {
             onSuccess: () => {
                 reset();
@@ -99,6 +118,16 @@ const FlightForm = () => {
                     ]}
                 />
                 {errors.trip_type && <p className="text-red-500 text-xs -mt-4 mb-4">{errors.trip_type}</p>}
+
+                {/* Category / sub-category */}
+                <h3 className="text-[13px] font-[700] text-[#0F172A] mb-3">Service</h3>
+                <TicketCategoryPicker
+                    categories={AIR_TICKET_CATEGORIES}
+                    category={data.service_category}
+                    subCategory={data.service_sub_category}
+                    onChange={handleCategoryChange}
+                    errors={{ category: errors.service_category, subCategory: errors.service_sub_category }}
+                />
 
                 {/* Trip details */}
                 <h3 className="text-[13px] font-[700] text-[#0F172A] mb-3">Trip Details</h3>
@@ -221,6 +250,22 @@ const FlightForm = () => {
                             />
                         </div>
                         {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                    </div>
+                    <div>
+                        <label className={labelClass}>NIC NUMBER *</label>
+                        <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC] pointer-events-none" />
+                            <input
+                                type="text"
+                                name="passenger_nic"
+                                value={data.passenger_nic}
+                                onChange={(e) => setData('passenger_nic', e.target.value.toUpperCase().replace(/\s/g, ''))}
+                                maxLength={12}
+                                placeholder="199012345678"
+                                className={fieldClass(errors.passenger_nic || nicError)}
+                            />
+                        </div>
+                        {(errors.passenger_nic || nicError) && <p className="text-red-500 text-xs mt-1">{errors.passenger_nic || nicError}</p>}
                     </div>
                     <div>
                         <label className={labelClass}>SUBJECT</label>

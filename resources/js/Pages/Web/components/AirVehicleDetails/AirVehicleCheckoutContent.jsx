@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
+import { BirthdayField, NicField, CityZipFields, LicenseFields, validateBirthday, validateNic } from "../../../../Components/forms/IdentityFields";
 import { route } from "ziggy-js";
 import { Clock } from "lucide-react";
 import VehicleLocationMap from "../LandVehicleDetails/VehicleLocationMap";
@@ -39,6 +40,10 @@ const AirVehicleCheckoutContent = () => {
   const [phone, setPhone] = useState(user?.phone || "");
   const [address, setAddress] = useState(user?.address || "");
   const [age, setAge] = useState(user?.age || "");
+  const [dob, setDob] = useState(user?.date_of_birth || "");
+  const [nic, setNic] = useState(user?.nic_number || "");
+  const [licenseNo, setLicenseNo] = useState("");
+  const [licenseExp, setLicenseExp] = useState("");
   const [city, setCity] = useState(q.city || "");
   const [zip, setZip] = useState(q.zip_code || "");
   const [notes, setNotes] = useState(q.notes || "");
@@ -141,6 +146,8 @@ const AirVehicleCheckoutContent = () => {
   setPhone(user?.phone || '');
   setAddress(user?.address || '');
   setAge(user?.age || '');
+  setDob(user?.date_of_birth || "");
+  setNic(user?.nic_number || "");
   setCity(user?.city || '');
   setZip(user?.zip_code || '');
 }, [user]);
@@ -151,9 +158,8 @@ const AirVehicleCheckoutContent = () => {
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
     const cleanedPhone = String(phone).replace(/[^\d+]/g, "");
     const phoneOk = /^\+?\d{7,15}$/.test(cleanedPhone);
-    const ageNum =  Number(age);
     const zipOk = /^\d{5}$/.test(zip);
-    const cityOk = /^[A-Za-z\s]+$/.test(city.trim());
+    const cityOk = /^[A-Za-z0-9\s.'-]+$/.test(city.trim());
     const addressTrimmed = address.trim();
     const addressOk = /^[A-Za-z0-9\s,.\-#/]+$/.test(addressTrimmed) && /[A-Za-z]/.test(addressTrimmed);
     const nameRegex = /^[A-Za-z\s]+$/;
@@ -176,10 +182,11 @@ const AirVehicleCheckoutContent = () => {
     if (!phoneOk) e.phone = "Enter a valid phone number (7–15 digits, optional +).";
     if (!address.trim()) e.address = "Address is required.";
      if (!zip.trim() || !zipOk) e.zip = "Zip code must be exactly 5 digits.";
-    if (city.trim() && !cityOk) e.city = "City can only contain letters and spaces.";
-   if (!age.trim()) {e.age = "Age is required.";} else if (Number.isNaN(ageNum) || ageNum < 21 || !Number.isInteger(ageNum)) {
-    e.age = "Age must be a whole number ≥ 21.";
-  }
+    if (city.trim() && !cityOk) e.city = "City contains invalid characters.";
+    const dobErr = validateBirthday(dob, { minAge: 21 });
+    if (dobErr) e.dob = dobErr;
+    const nicErr = validateNic(nic);
+    if (nicErr) e.nic = nicErr;
    if (!addressTrimmed) {
     e.address = "Address is required.";
   } else if (!addressOk) {
@@ -220,7 +227,8 @@ const AirVehicleCheckoutContent = () => {
         phone: cleanedPhone,
         country_code: (countryCode || "lk").toLowerCase(),
         address,
-        age,
+        date_of_birth: dob,
+        nic_number: nic,
         city,
         zip_code: zip,
         notes,
@@ -382,56 +390,10 @@ const AirVehicleCheckoutContent = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col lg:flex-row justify-between">
-                <div>
-                    <label className="text-[10px]/[24px] font-[600]">Age :</label>
-                    <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                      <input
-                        type="number"
-                        value={user.age}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          // remove decimals if entered
-                          const whole = val.includes('.') ? val.split('.')[0] : val;
-                          setAge(whole);
-                        }}
-                        min={21}
-                        step={1} // allows only whole numbers
-                        className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                        placeholder="21"
-                      />
-                    </div>
-                    {errors.age && <p className="text-[10px] text-red-600 mt-1">{errors.age}</p>}
-                </div>
-
-                <div>
-                  <label className="text-[10px]/[24px] font-[600]">City :</label>
-                  <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                    <input
-                      value={user.city}
-                      onChange={(e) => setCity(e.target.value)}
-                      className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                      placeholder="Colombo 03"
-                    />
-                  </div>
-                  {errors.city && <p className="text-[10px] text-red-600 mt-1">{errors.city}</p>}
-                </div>
-               <div>
-                  <label className="text-[10px]/[24px] font-[600]">Zip Code :</label>
-                  <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                    <input
-                      value={user.zip_code}
-                      onChange={(e) => setZip(e.target.value)}
-                      className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                      placeholder="03330"
-                      maxLength={5} // optional, prevent typing >5 digits
-                      inputMode="numeric"
-                    />
-                  </div>
-                  {errors.zip && <p className="text-[10px] text-red-600 mt-1">{errors.zip}</p>}
-                </div>
-
-
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <BirthdayField value={dob} onChange={setDob} error={errors.dob} minAge={21} />
+                <NicField value={nic} onChange={setNic} error={errors.nic} />
+                <CityZipFields city={city} zip={zip} onCity={setCity} onZip={setZip} cityError={errors.city} zipError={errors.zip} />
               </div>
             </div>
           </div>

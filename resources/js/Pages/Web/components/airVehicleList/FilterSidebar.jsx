@@ -1,21 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
 import { Check, Fuel, Gauge, Plane, SlidersHorizontal, Tag, Users, X } from "lucide-react";
+import { AIR_VEHICLE_TYPES } from "../../../../constants/vehicleTypes";
 
-const BODY_TYPES = [
-  { id: "private_jet", label: "Private Jet" },
-  { id: "commercial_airliner", label: "Commercial Airliner" },
-  { id: "helicopter", label: "Helicopter" },
-  { id: "charter_aircraft", label: "Charter Aircraft" },
-  { id: "light_aircraft", label: "Light Aircraft" },
-  { id: "business_jet", label: "Business Jet" },
-  { id: "turboprop_aircraft", label: "Turboprop Aircraft" },
-  { id: "glider", label: "Glider" },
-  { id: "seaplane", label: "Seaplane" },
-  { id: "cargo_aircraft", label: "Cargo Aircraft" },
-  { id: "hot_air_balloon", label: "Hot Air Balloon" },
-  { id: "other", label: "Other" },
-];
+const BODY_TYPES = AIR_VEHICLE_TYPES;
 
 const BRANDS = [
   { id: "airbus", label: "Airbus" },

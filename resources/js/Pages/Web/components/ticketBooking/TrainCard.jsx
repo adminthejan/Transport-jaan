@@ -58,6 +58,9 @@ const renderStationOption = (station) => (
     </div>
 );
 
+// Classes the seeded trains run in (Train.class_type). "" = any class.
+const PASSENGER_CLASSES = ["Luxury (A/C)", "Semi Luxury (NL)", "1st Class", "2nd Class"];
+
 const TrainCard = () => {
     const { t } = useLocale();
     const [tripType, setTripType] = useState("oneway");
@@ -75,6 +78,8 @@ const TrainCard = () => {
         student: false,
         wheelchair: false,
     });
+
+    const [passengerClass, setPassengerClass] = useState("");
 
     const [errors, setErrors] = useState({});
 
@@ -152,7 +157,7 @@ const TrainCard = () => {
         // discounted-fare tier. Student/wheelchair are captured for future
         // use but don't affect pricing yet.
         const billedAdults = passengers.adults + passengers.seniors;
-        const url = `/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${billedAdults}&children=${passengers.youth}&infants=0&seniors=${passengers.seniors}&student=${passengers.student ? 1 : 0}&wheelchair=${passengers.wheelchair ? 1 : 0}`;
+        const url = `/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${billedAdults}&children=${passengers.youth}&infants=0&seniors=${passengers.seniors}&student=${passengers.student ? 1 : 0}&wheelchair=${passengers.wheelchair ? 1 : 0}${passengerClass ? `&class=${encodeURIComponent(passengerClass)}` : ''}`;
         window.location.href = url;
     };
 
@@ -268,6 +273,23 @@ const TrainCard = () => {
                     {/* Passengers */}
                     <div className={`w-full ${tripType === 'roundtrip' ? 'lg:w-[145px] xl:w-[160px]' : 'lg:w-[160px] xl:w-[180px]'} shrink-0`}>
                         <PassengerSelector value={passengers} onChange={setPassengers} />
+                    </div>
+
+                    {/* Passenger class */}
+                    <div className="w-full lg:w-[150px] xl:w-[170px] shrink-0">
+                        <label className="block mb-1 text-[10.5px] font-[700] text-[#64748B] tracking-wider uppercase">
+                            {t("passenger_class", "Passenger class")}
+                        </label>
+                        <select
+                            value={passengerClass}
+                            onChange={(e) => setPassengerClass(e.target.value)}
+                            className="w-full h-[46px] sm:h-[48px] rounded-[11px] border border-[#0000001A] bg-white px-3 text-[13.5px] sm:text-[14px] font-[600] text-[#0F172A] focus:outline-none focus:border-[#0955AC] cursor-pointer"
+                        >
+                            <option value="">{t("any_class", "Any class")}</option>
+                            {PASSENGER_CLASSES.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Search Trains Button */}

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
+import { BirthdayField, NicField, CityZipFields, LicenseFields, validateBirthday, validateNic } from "../../../../Components/forms/IdentityFields";
 import { route } from "ziggy-js";
 import { Clock } from "lucide-react";
 import car from "../../assets/vehicleCheckout/car.svg";
@@ -38,6 +39,10 @@ const VehicleCheckoutContent = () => {
   const [phone, setPhone] = useState(user?.phone || "");
   const [address, setAddress] = useState(user?.address || "");
   const [age, setAge] = useState(user?.age || "");
+  const [dob, setDob] = useState(user?.date_of_birth || "");
+  const [nic, setNic] = useState(user?.nic_number || "");
+  const [licenseNo, setLicenseNo] = useState("");
+  const [licenseExp, setLicenseExp] = useState("");
   const [city, setCity] = useState(q.city || "");
   const [zip, setZip] = useState(q.zip_code || "");
   const [notes, setNotes] = useState(q.notes || "");
@@ -138,6 +143,8 @@ const VehicleCheckoutContent = () => {
     setPhone(user?.phone || "");
     setAddress(user?.address || "");
     setAge(user?.age || "");
+    setDob(user?.date_of_birth || "");
+    setNic(user?.nic_number || "");
     setCity(user?.city || "");
     setZip(user?.zip_code || "");
   }, [user]);
@@ -148,9 +155,8 @@ const VehicleCheckoutContent = () => {
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
     const cleanedPhone = String(phone).replace(/[^\d+]/g, "");
     const phoneOk = /^\+?\d{7,15}$/.test(cleanedPhone);
-    const ageNum = Number(age);
     const zipOk = /^\d{5}$/.test(zip);
-    const cityOk = /^[A-Za-z\s]+$/.test(city.trim());
+    const cityOk = /^[A-Za-z0-9\s.'-]+$/.test(city.trim());
     const addressTrimmed = address.trim();
     const addressOk = /^[A-Za-z0-9\s,.\-#/]+$/.test(addressTrimmed) && /[A-Za-z]/.test(addressTrimmed);
     const nameRegex = /^[A-Za-z\s]+$/;
@@ -165,11 +171,15 @@ const VehicleCheckoutContent = () => {
     if (!phoneOk) e.phone = "Enter a valid phone number (7–15 digits, optional +).";
     if (!address.trim()) e.address = "Address is required.";
     if (!zip.trim() || !zipOk) e.zip = "Zip code must be exactly 5 digits.";
-    if (city.trim() && !cityOk) e.city = "City can only contain letters and spaces.";
-    if (!age.trim()) {
-      e.age = "Age is required.";
-    } else if (Number.isNaN(ageNum) || ageNum < 21 || !Number.isInteger(ageNum)) {
-      e.age = "Age must be a whole number ≥ 21.";
+    if (city.trim() && !cityOk) e.city = "City contains invalid characters.";
+    const dobErr = validateBirthday(dob, { minAge: 21 });
+    if (dobErr) e.dob = dobErr;
+    const nicErr = validateNic(nic);
+    if (nicErr) e.nic = nicErr;
+    if (!needsDriver) {
+      if (!licenseNo.trim()) e.licenseNo = "Driving licence number is required for self-drive.";
+      if (!licenseExp) e.licenseExp = "Licence expiry date is required.";
+      else if (licenseExp <= new Date().toISOString().slice(0, 10)) e.licenseExp = "Licence must not be expired.";
     }
     if (!addressTrimmed) {
       e.address = "Address is required.";
@@ -212,7 +222,10 @@ const VehicleCheckoutContent = () => {
         phone: cleanedPhone,
         country_code: (countryCode || "lk").toLowerCase(),
         address,
-        age,
+        date_of_birth: dob,
+        nic_number: nic,
+        license_number: licenseNo,
+        license_expiry_date: licenseExp,
         city,
         zip_code: zip,
         notes,
@@ -356,45 +369,22 @@ const VehicleCheckoutContent = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <div>
-                  <label className="text-[10px]/[24px] font-[600]">Age :</label>
-                  <input
-                    type="number"
-                    value={age}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const whole = val.includes(".") ? val.split(".")[0] : val;
-                      setAge(whole);
-                    }}
-                    min={21}
-                    className="mt-1 w-full h-[49px] border border-[#0000004D] rounded-[5px] px-3 focus:outline-none placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                    placeholder="21"
-                  />
-                  {errors.age && <p className="text-[10px] text-red-600 mt-1">{errors.age}</p>}
-                </div>
-                <div>
-                  <label className="text-[10px]/[24px] font-[600]">City :</label>
-                  <input
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="mt-1 w-full h-[49px] border border-[#0000004D] rounded-[5px] px-3 focus:outline-none placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                    placeholder="Colombo"
-                  />
-                  {errors.city && <p className="text-[10px] text-red-600 mt-1">{errors.city}</p>}
-                </div>
-                <div>
-                  <label className="text-[10px]/[24px] font-[600]">Zip Code :</label>
-                  <input
-                    value={zip}
-                    onChange={(e) => setZip(e.target.value)}
-                    maxLength={5}
-                    inputMode="numeric"
-                    className="mt-1 w-full h-[49px] border border-[#0000004D] rounded-[5px] px-3 focus:outline-none placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                    placeholder="03330"
-                  />
-                  {errors.zip && <p className="text-[10px] text-red-600 mt-1">{errors.zip}</p>}
-                </div>
+                <BirthdayField value={dob} onChange={setDob} error={errors.dob} minAge={21} />
+                <NicField value={nic} onChange={setNic} error={errors.nic} />
+                <CityZipFields city={city} zip={zip} onCity={setCity} onZip={setZip} cityError={errors.city} zipError={errors.zip} />
               </div>
+              {!needsDriver && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-5">
+                  <LicenseFields
+                    number={licenseNo}
+                    expiry={licenseExp}
+                    onNumber={setLicenseNo}
+                    onExpiry={setLicenseExp}
+                    numberError={errors.licenseNo}
+                    expiryError={errors.licenseExp}
+                  />
+                </div>
+              )}
             </div>
           </div>
 

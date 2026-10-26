@@ -41,6 +41,8 @@ class User extends Authenticatable
         'city',
         'state',
         'postal_code',
+        'nic_number',
+        'date_of_birth',
         // Notification preferences
         'notify_email',
         'notify_sms',
@@ -75,6 +77,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'must_change_password' => 'boolean',
             'password_changed_at' => 'datetime',
+            'date_of_birth' => 'date:Y-m-d',
         ];
     }
 

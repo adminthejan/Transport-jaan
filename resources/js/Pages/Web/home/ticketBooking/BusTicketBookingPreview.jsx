@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Head, router } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
+import { NicField, validateNic } from "../../../../Components/forms/IdentityFields";
 import Header from "../client/ClientHeader";
 import TripRouteMap from "../../components/ticketBooking/TripRouteMap";
 import LocaleSelector from "../../components/ticketBooking/LocaleSelector";
@@ -230,9 +231,11 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
     const [returnSelected, setReturnSelected] = useState([]);
     const [seatGenders, setSeatGenders] = useState({});
     const [returnSeatGenders, setReturnSeatGenders] = useState({});
-    const [passengerName, setPassengerName] = useState("");
-    const [mobile, setMobile] = useState("");
-    const [email, setEmail] = useState("");
+    const authUser = usePage().props.auth?.user;
+    const [passengerName, setPassengerName] = useState(authUser?.name || "");
+    const [nic, setNic] = useState(authUser?.nic_number || "");
+    const [mobile, setMobile] = useState(authUser?.phone || "");
+    const [email, setEmail] = useState(authUser?.email || "");
     const [boarding, setBoarding] = useState("");
     const [destination, setDestination] = useState("");
     // Additional services — shown by default (not an opt-in add-on you have
@@ -317,6 +320,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
         allSeatsHaveGender(selected, seatGenders) &&
         (!isRoundTrip || (returnSelected.length === requiredSeats && allSeatsHaveGender(returnSelected, returnSeatGenders))) &&
         passengerName.trim().length > 2 &&
+        !validateNic(nic) &&
         mobile.trim().length >= 9 &&
         boarding &&
         destination;
@@ -333,6 +337,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
             seat_genders: seatGenders,
             passenger_count: selected.length,
             passenger_name: passengerName,
+            passenger_nic: nic,
             passenger_phone: mobile,
             passenger_email: email,
             boarding_point: boarding,
@@ -494,6 +499,14 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                         className="w-full rounded-[12px] border border-[#E2E8F0] px-3.5 py-3 text-[14px] font-[600] text-[#0F172A] outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
                                     />
                                 </div>
+
+                                <NicField
+                                    value={nic}
+                                    onChange={setNic}
+                                    error={nic ? validateNic(nic) : null}
+                                    label="NIC Number"
+                                    inputClass="w-full rounded-[12px] border border-[#E2E8F0] px-3.5 py-3 text-[14px] font-[600] text-[#0F172A] outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                                />
 
                                 <div>
                                     <label className="mb-1.5 block text-[12px] font-[700] text-[#64748B] tracking-wide">{t("mobile_number", "Mobile Number")}</label>

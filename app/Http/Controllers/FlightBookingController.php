@@ -48,6 +48,7 @@ class FlightBookingController extends Controller
                 // Associate the booking with the authenticated user
                 $data = $request->validated();
                 $data['user_id'] = Auth::id();
+                \App\Support\ProfileIdentity::remember(Auth::user(), $data);
 
                 $flightBooking = FlightBooking::create($data);
 

@@ -202,4 +202,43 @@ class LocationLookupController extends Controller
             'data' => $cities,
         ]);
     }
+
+    /**
+     * Type-ahead for checkout forms: matches a city (or sub-area) by name across
+     * all districts and returns its postcode so the zip field can auto-fill.
+     */
+    public function citySearch(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:80'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:25'],
+        ]);
+
+        $q = trim($validated['q']);
+        $limit = (int) ($validated['limit'] ?? 10);
+
+        $rows = LocationCity::query()
+            ->join('location_districts as d', 'd.id', '=', 'location_cities.district_id')
+            ->whereNotNull('location_cities.postcode')
+            ->where(function ($builder) use ($q) {
+                $builder->where('location_cities.name_en', 'like', $q . '%')
+                    ->orWhere('location_cities.sub_name_en', 'like', $q . '%');
+            })
+            ->orderBy('location_cities.name_en')
+            ->limit($limit * 3)
+            ->get(['location_cities.name_en', 'location_cities.sub_name_en', 'location_cities.postcode', 'd.name_en as district']);
+
+        $data = $rows
+            ->map(fn ($r) => [
+                'name' => (string) $r->name_en,
+                'subName' => $r->sub_name_en,
+                'postcode' => (string) $r->postcode,
+                'district' => (string) $r->district,
+            ])
+            ->unique(fn ($r) => strtolower($r['name']) . '|' . $r['postcode'])
+            ->take($limit)
+            ->values();
+
+        return response()->json(['data' => $data]);
+    }
 }
