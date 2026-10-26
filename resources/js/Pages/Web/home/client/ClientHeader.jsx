@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { chatRoute } from "@/Components/chat/chatUtils";
 import { createPortal } from "react-dom";
 import { router, usePage, Link } from "@inertiajs/react";
 import { AnimatePresence } from "framer-motion";
@@ -614,7 +615,7 @@ const ClientHeader = () => {
                             />
                             {isChatClient && (
                                 <SidebarLink
-                                    href={route("chat.page")}
+                                    href={chatRoute("chat.page")}
                                     icon={MessageCircle}
                                     label={chatUnread > 0 ? `Messages (${chatUnread > 99 ? "99+" : chatUnread})` : "Messages"}
                                     active={isActivePath("/chat")}

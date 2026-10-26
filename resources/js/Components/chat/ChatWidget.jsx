@@ -6,7 +6,7 @@ import { ExternalLink, MessageCircle, X } from "lucide-react";
 import ChatThread from "./ChatThread";
 import ConversationList from "./ConversationList";
 import useChatUnread from "./useChatUnread";
-import { POLL_LIST_MS, errorMessage } from "./chatUtils";
+import { POLL_LIST_MS, errorMessage, chatRoute } from "./chatUtils";
 
 /**
  * Floating chat box for clients. Mounted once by ClientHeader, so it follows
@@ -29,7 +29,7 @@ const ChatWidget = () => {
 
     const loadList = useCallback(() => {
         axios
-            .get(route("chat.conversations"))
+            .get(chatRoute("chat.conversations"))
             .then(({ data }) => setConversations(data.conversations))
             .catch(() => {})
             .finally(() => setLoadingList(false));
@@ -54,7 +54,7 @@ const ChatWidget = () => {
             setOpen(true);
             setNotice("");
             try {
-                const { data } = await axios.post(route("chat.conversations.start"), {
+                const { data } = await axios.post(chatRoute("chat.conversations.start"), {
                     context_type: contextType || null,
                     context_id: contextId || null,
                     vendor_id: vendorId || null,
@@ -100,7 +100,7 @@ const ChatWidget = () => {
                                 <p className="text-[15px] font-[700]">Messages</p>
                                 <div className="flex items-center gap-1">
                                     <a
-                                        href={route("chat.page")}
+                                        href={chatRoute("chat.page")}
                                         className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10"
                                         title="Open full inbox"
                                         aria-label="Open full inbox"

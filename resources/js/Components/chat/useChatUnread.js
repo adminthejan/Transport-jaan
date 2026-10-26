@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { POLL_UNREAD_MS } from "./chatUtils";
+import { POLL_UNREAD_MS, chatRoute } from "./chatUtils";
 
 /** Polls the unread-message count while the tab is visible. */
 export default function useChatUnread(enabled = true) {
@@ -12,10 +12,14 @@ export default function useChatUnread(enabled = true) {
 
         const load = () => {
             if (document.visibilityState !== "visible") return;
-            axios
-                .get(route("chat.unread"))
-                .then(({ data }) => !cancelled && setCount(Number(data?.count) || 0))
-                .catch(() => {});
+            try {
+                axios
+                    .get(chatRoute("chat.unread"))
+                    .then(({ data }) => !cancelled && setCount(Number(data?.count) || 0))
+                    .catch(() => {});
+            } catch (e) {
+                /* chat is optional: never let it take the page down */
+            }
         };
 
         load();

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { chatRoute } from "@/Components/chat/chatUtils";
 import { Link, usePage, router } from "@inertiajs/react";
 import { ArrowLeft, FileText, MapPin, Menu, MessageCircle, Search, UserCircle, Users } from "lucide-react";
 import useChatUnread from "../chat/useChatUnread";
@@ -546,7 +547,7 @@ const VendorShellLayout = ({
                                     </div>
                                 )}
 
-                                <div className={menuCls(isActive(() => route("chat.page")))} onClick={() => navigate(() => route("chat.page"))}>
+                                <div className={menuCls(isActive(() => chatRoute("chat.page")))} onClick={() => navigate(() => chatRoute("chat.page"))}>
                                     <MessageCircle className="w-[22px] h-[22px] text-[#666666]" />
                                     <span>Messages</span>
                                     {chatUnread > 0 && (

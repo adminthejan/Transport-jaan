@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { chatRoute } from "@/Components/chat/chatUtils";
 import { Head } from "@inertiajs/react";
 import axios from "axios";
 import { MessageSquare } from "lucide-react";
@@ -39,7 +40,7 @@ const Inbox = ({ side, conversationId }) => {
 
     const load = useCallback(() => {
         axios
-            .get(route("chat.conversations"))
+            .get(chatRoute("chat.conversations"))
             .then(({ data }) => {
                 setConversations(data.conversations);
                 setLoadError(false);

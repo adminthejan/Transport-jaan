@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import axios from "axios";
 import { ArrowLeft, Send } from "lucide-react";
 import { Avatar } from "./ConversationList";
-import { POLL_THREAD_MS, dayLabel, errorMessage, formatTime } from "./chatUtils";
+import { POLL_THREAD_MS, dayLabel, errorMessage, formatTime, chatRoute } from "./chatUtils";
 
 const MAX_LENGTH = 2000;
 
@@ -39,7 +39,7 @@ const ChatThread = ({ conversation, onBack, showBack = true, showSenderName = fa
 
     const markRead = useCallback(() => {
         axios
-            .post(route("chat.read", { conversation: conversationId }))
+            .post(chatRoute("chat.read", { conversation: conversationId }))
             .then(() => window.dispatchEvent(new Event("chat:changed")))
             .catch(() => {});
     }, [conversationId]);
@@ -55,7 +55,7 @@ const ChatThread = ({ conversation, onBack, showBack = true, showSenderName = fa
         stickToBottom.current = true;
 
         axios
-            .get(route("chat.messages", { conversation: conversationId }))
+            .get(chatRoute("chat.messages", { conversation: conversationId }))
             .then(({ data }) => {
                 if (cancelled) return;
                 setMessages(data.messages);
@@ -76,7 +76,7 @@ const ChatThread = ({ conversation, onBack, showBack = true, showSenderName = fa
         const tick = () => {
             if (document.visibilityState !== "visible") return;
             axios
-                .get(route("chat.messages", { conversation: conversationId }), {
+                .get(chatRoute("chat.messages", { conversation: conversationId }), {
                     params: { after_id: lastIdRef.current },
                 })
                 .then(({ data }) => {
@@ -112,7 +112,7 @@ const ChatThread = ({ conversation, onBack, showBack = true, showSenderName = fa
         if (loadingOlder || !messages.length) return;
         setLoadingOlder(true);
         axios
-            .get(route("chat.messages", { conversation: conversationId }), {
+            .get(chatRoute("chat.messages", { conversation: conversationId }), {
                 params: { before_id: messages[0].id },
             })
             .then(({ data }) => {
@@ -134,7 +134,7 @@ const ChatThread = ({ conversation, onBack, showBack = true, showSenderName = fa
         setSending(true);
         setError("");
         try {
-            const { data } = await axios.post(route("chat.send", { conversation: conversationId }), { body });
+            const { data } = await axios.post(chatRoute("chat.send", { conversation: conversationId }), { body });
             stickToBottom.current = true;
             merge([data.message]);
             setText("");

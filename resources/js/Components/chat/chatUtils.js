@@ -50,3 +50,28 @@ export const openVendorChat = ({ contextType, contextId, vendorId } = {}) => {
         new CustomEvent("chat:open", { detail: { contextType, contextId, vendorId } })
     );
 };
+
+// Fixed addresses of the chat routes (routes/web.php). If the page's Ziggy route list
+// does not know a chat route (stale route cache, or frontend deployed before the
+// backend), route() throws - and a throw during render or inside an effect blanks the
+// whole app for every logged-in user. Falling back to the real URL keeps the page up.
+const CHAT_PATHS = {
+    "chat.page": "/chat",
+    "chat.conversations": "/chat/conversations",
+    "chat.conversations.start": "/chat/conversations",
+    "chat.unread": "/chat/unread-count",
+    "chat.messages": "/chat/conversations/{conversation}/messages",
+    "chat.send": "/chat/conversations/{conversation}/messages",
+    "chat.read": "/chat/conversations/{conversation}/read",
+};
+
+export const chatRoute = (name, params = {}) => {
+    try {
+        return route(name, params);
+    } catch (e) {
+        const template = CHAT_PATHS[name];
+        if (!template) throw e;
+        const path = template.replace("{conversation}", encodeURIComponent(params?.conversation ?? ""));
+        return `${window.location.origin}${path}`;
+    }
+};
