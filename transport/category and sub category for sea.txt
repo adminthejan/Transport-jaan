@@ -1,0 +1,29 @@
+Add category and sub category
+1.Ferry
+Passenger 
+High-Speed 
+Vehicle 
+International
+
+2.Cruise
+Ocean 
+Coastal 
+River 
+Luxury 
+Dinner/Sunset 
+Expedition
+
+3.Boat & Water Transfer
+Passenger Boat 
+Water Taxi 
+Island Transfer 
+Coastal Transfer
+
+4.Yacht & Experiences
+Yacht 
+Catamaran 
+Sailing 
+Sightseeing 
+Whale Watching 
+Diving 
+Fishing

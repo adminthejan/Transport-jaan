@@ -1,0 +1,14 @@
+Adding this for vehicle type
+•	Private Jets
+•	Business Aircraft
+•	Helicopters
+•	Charter Aircraft
+•	Light Aircraft
+•	Turboprop Aircraft
+•	Seaplanes
+•	VIP Aircraft
+•	Air Ambulance
+•	Tourism & Adventure
+•	Special-Purpose Aircraft
+•	Recreational Aircraft
+•	Other Aircraft

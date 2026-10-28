@@ -328,8 +328,14 @@ const HeroDetailsTwoInner = ({
                 </div>
             )}
 
-            <div className={`grid grid-cols-1 gap-6 items-start ${route ? 'lg:grid-cols-3' : ''}`}>
-            <div className={route ? 'lg:col-span-2 min-w-0' : 'min-w-0'}>
+            {route && (
+                <div className="mb-6">
+                    <TripRouteMap route={route} className="h-[260px]" />
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 items-start">
+            <div className="min-w-0">
 
             {/* Compare with Train — same route/date, matched by city since bus
                 and train stations are separate named datasets. */}
@@ -499,15 +505,6 @@ const HeroDetailsTwoInner = ({
             )}
 
             </div>
-
-            {/* Side map: shows the searched route so you can see the distance
-                at a glance. Nudged down a bit so it doesn't sit flush with
-                the date/sort toolbar on the left. */}
-            {route && (
-                <div className="hidden lg:block lg:col-span-1 sticky top-24 mt-14">
-                    <TripRouteMap route={route} className="h-[420px]" />
-                </div>
-            )}
 
             </div>
 

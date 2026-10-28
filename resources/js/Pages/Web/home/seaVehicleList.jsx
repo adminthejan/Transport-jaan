@@ -38,6 +38,7 @@ const seaVehicleList = () => {
       setFormData((prevData) => ({
         ...prevData,
         ...props.filters,
+        withSkipper: [true, "true", "1", 1].includes(props.filters.withSkipper),
       }));
     }
   }, [props.filters]);

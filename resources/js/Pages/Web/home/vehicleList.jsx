@@ -38,6 +38,7 @@ const VehicleList = () => {
       setFormData((prevData) => ({
         ...prevData,
         ...props.filters,
+        withDriver: [true, "true", "1", 1].includes(props.filters.withDriver),
       }));
     }
   }, [props.filters]);

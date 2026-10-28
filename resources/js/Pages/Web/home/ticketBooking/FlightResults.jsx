@@ -80,7 +80,7 @@ const FlightResults = () => {
       date: sp.get("departure_date") || today,
       returnDate: sp.get("return_date") || "",
       tripType: sp.get("trip_type") || "oneway",
-      travellers: sp.get("travellers_summary") || "1 Adult, Economy",
+      travellers: sp.get("travellers_summary") || "1 Adult",
       directOnly: sp.get("direct_only") === "1",
     };
   }, [url]);

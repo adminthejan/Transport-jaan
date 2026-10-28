@@ -4,7 +4,7 @@ import { PlaneTakeoff, PlaneLanding, ArrowLeftRight, Search, Plane } from "lucid
 import CardHeader from "./shared/CardHeader";
 import { AutoCompleteField, SubmitButton, SegmentedControl, SwapButton } from "./shared/FormElements";
 import DateRangeField from "./shared/DateRangeField";
-import TravellersCabinField from "./shared/TravellersCabinField";
+import PassengerSelector from "./PassengerSelector";
 
 // Sample airport/location data - you can replace this with API data
 const locations = [
@@ -53,7 +53,7 @@ const FlightCard = () => {
         dropoffLocation: '',
         dropoffDate: ''
     });
-    const [travellers, setTravellers] = useState({ adults: 1, children: 0, cabinClass: "Economy" });
+    const [travellers, setTravellers] = useState({ adults: 1, youth: 0, seniors: 0, student: false, wheelchair: false });
 
     const [errors, setErrors] = useState({});
 
@@ -110,8 +110,10 @@ const FlightCard = () => {
         }
 
         const travellersSummary = `${travellers.adults} adult${travellers.adults === 1 ? '' : 's'}` +
-            (travellers.children ? ` + ${travellers.children} child${travellers.children === 1 ? '' : 'ren'}` : '') +
-            ` · ${travellers.cabinClass} class`;
+            (travellers.youth ? ` + ${travellers.youth} youth` : '') +
+            (travellers.seniors ? ` + ${travellers.seniors} senior${travellers.seniors === 1 ? '' : 's'}` : '') +
+            (travellers.student ? ' · Student' : '') +
+            (travellers.wheelchair ? ' · Wheelchair' : '');
 
         // Hand off into the Skyscanner-style results page, pre-filled with
         // what was entered here (FlightResults.jsx reads these from the
@@ -187,7 +189,7 @@ const FlightCard = () => {
                         }}
                         error={errors.pickupDate || errors.dropoffDate}
                     />
-                    <TravellersCabinField value={travellers} onChange={setTravellers} />
+                    <PassengerSelector value={travellers} onChange={setTravellers} />
                 </div>
 
                 <SubmitButton icon={Search} iconPosition="left">Search Flights</SubmitButton>

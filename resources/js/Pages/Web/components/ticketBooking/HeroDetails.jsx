@@ -424,8 +424,14 @@ function HeroDetailsInner({
                 </div>
             </div>
 
-            <div className={`grid grid-cols-1 gap-6 items-start flex-1 min-w-0 ${route ? 'lg:grid-cols-3' : ''}`}>
-            <div className={`min-w-0 ${route ? 'lg:col-span-2' : ''}`}>
+            {route && (
+                <div className="mb-6">
+                    <TripRouteMap route={route} className="h-[260px]" />
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 items-start flex-1 min-w-0">
+            <div className="min-w-0">
 
             {/* Compare with Bus — same route/date, matched by city since bus
                 and train stations are separate named datasets. */}
@@ -607,13 +613,6 @@ function HeroDetailsInner({
             )}
 
             </div>
-
-            {/* Side map: shows the searched route so you can see the distance at a glance */}
-            {route && (
-                <div className="hidden lg:block lg:col-span-1 sticky top-24">
-                    <TripRouteMap route={route} className="h-[420px]" />
-                </div>
-            )}
 
             </div>
             </div>

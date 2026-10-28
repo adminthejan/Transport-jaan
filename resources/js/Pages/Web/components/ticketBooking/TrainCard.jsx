@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { MapPin, ArrowLeftRight, CalendarDays, Search } from "lucide-react";
 import { useLocale } from "../../context/LocaleContext";
 import PassengerSelector from "./PassengerSelector";
-import TripRouteMap from "./TripRouteMap";
 import { AutoCompleteField, DateField, SubmitButton, SegmentedControl, SwapButton } from "./shared/FormElements";
 
 // Train stations data for Sri Lanka — lat/lng are placeholder coordinates
@@ -102,17 +101,6 @@ const TrainCard = () => {
         setFormData(prev => ({ ...prev, fromStation: prev.toStation, toStation: prev.fromStation }));
     };
 
-    // Preview route on a map once both stations are picked and recognized —
-    // uses the placeholder coordinates above since there's no geocoding yet.
-    const previewRoute = useMemo(() => {
-        const origin = STATION_BY_LABEL[formData.fromStation];
-        const destination = STATION_BY_LABEL[formData.toStation];
-        if (!origin || !destination) return null;
-        return {
-            origin: { lat: origin.lat, lng: origin.lng, label: origin.name },
-            destination: { lat: destination.lat, lng: destination.lng, label: destination.name },
-        };
-    }, [formData.fromStation, formData.toStation]);
 
     const validateForm = () => {
         const newErrors = {};
@@ -306,11 +294,6 @@ const TrainCard = () => {
                     </div>
                 </div>
 
-                {previewRoute && (
-                    <div className="mt-3.5">
-                        <TripRouteMap route={previewRoute} className="h-[200px]" />
-                    </div>
-                )}
             </form>
         </div>
     );

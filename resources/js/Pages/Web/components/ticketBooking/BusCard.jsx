@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { router } from "@inertiajs/react";
 import { MapPin, ArrowLeftRight, CalendarDays, Search } from "lucide-react";
 import { useLocale } from "../../context/LocaleContext";
 import PassengerSelector from "./PassengerSelector";
-import TripRouteMap from "./TripRouteMap";
 import { AutoCompleteField, DateField, SubmitButton, SegmentedControl, SwapButton } from "./shared/FormElements";
 
 // Approximate coordinates for each bus station — placeholder data so the
@@ -79,17 +78,6 @@ const BusCard = ({ initialSearch = null }) => {
         setBusTo(busFrom);
     };
 
-    // Preview route on a map once both stations are picked and recognized —
-    // uses the placeholder coordinates above since there's no geocoding yet.
-    const previewRoute = useMemo(() => {
-        const origin = BUS_STATION_COORDS[busFrom];
-        const destination = BUS_STATION_COORDS[busTo];
-        if (!origin || !destination) return null;
-        return {
-            origin: { ...origin, label: busFrom },
-            destination: { ...destination, label: busTo },
-        };
-    }, [busFrom, busTo]);
 
     const onSubmitBus = (e) => {
         e.preventDefault();
@@ -233,11 +221,6 @@ const BusCard = ({ initialSearch = null }) => {
                     </div>
                 </div>
 
-                {previewRoute && (
-                    <div className="mt-3.5">
-                        <TripRouteMap route={previewRoute} className="h-[200px]" />
-                    </div>
-                )}
             </form>
         </div>
     );

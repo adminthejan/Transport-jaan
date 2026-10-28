@@ -1,0 +1,23 @@
+Add category & sub category like this
+1. Scheduled Flights
+Domestic Flights
+International Flights
+Regional Flights
+Connecting Flights
+2. Charter Flights
+Shared Charter
+Private Charter
+Group Charter
+3. Seaplane
+Scheduled Seaplane
+Seaplane Transfer
+Seaplane Tours
+4. Helicopter
+Scheduled Helicopter
+Helicopter Transfer
+Helicopter Tours
+Helicopter Sightseeing
+5. Other Air Passenger Services
+Scenic Flights
+Sightseeing Flights
+Air Tour
