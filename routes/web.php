@@ -122,14 +122,10 @@ Route::get('/track/lookup', [\App\Http\Controllers\QuickTrackController::class, 
     ->middleware('throttle:30,1')
     ->name('track.lookup');
 Route::prefix('couriers')->name('couriers.')->group(function () {
-    Route::middleware('auth')->group(function () {
+    // Browsing the booking form and its lookups is public; login is required from review onwards.
     Route::get('/create', function () {
         return redirect()->route('couriers.flow.create', ['flow' => 'domestic']);
     })->name('create');
-    Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
-    Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
-    Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
-    Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
     Route::get('/countries/suggestions', [ClientCourierController::class, 'lookupCountries'])
         ->middleware('throttle:60,1')
         ->name('countries.suggestions');
@@ -151,10 +147,6 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
         ->name('flow.')
         ->group(function () {
             Route::get('/create', [ClientCourierController::class, 'create'])->name('create');
-            Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
-            Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
-            Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
-            Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
             Route::get('/countries/suggestions', [ClientCourierController::class, 'lookupCountries'])
                 ->middleware('throttle:60,1')
                 ->name('countries.suggestions');
@@ -170,6 +162,22 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
             Route::get('/hs-codes/search', [ClientCourierController::class, 'searchHsCodes'])
                 ->middleware('throttle:120,1')
                 ->name('hs-codes.search');
+        });
+
+    Route::middleware('auth')->group(function () {
+    Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
+    Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
+    Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
+    Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
+
+    Route::prefix('{flow}')
+        ->whereIn('flow', ['domestic', 'international'])
+        ->name('flow.')
+        ->group(function () {
+            Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
+            Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
+            Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
+            Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
             Route::post('/', [ClientCourierController::class, 'store'])->name('store');
             Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
                 ->whereNumber('shipment')
