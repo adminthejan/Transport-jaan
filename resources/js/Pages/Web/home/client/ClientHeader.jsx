@@ -574,9 +574,9 @@ const ClientHeader = () => {
                                 onToggle={() => toggleDropdown("ticket")}
                                 panelId="ticket-dropdown"
                             >
-                                <SidebarSubLink href="/ticketBooking?type=flight" label="Flight" onClick={toggleMenu} />
-                                <SidebarSubLink href="/trainTicketBookingDetails" label="Train" onClick={toggleMenu} />
-                                <SidebarSubLink href="/busTicketBookingDetails" label="Bus" onClick={toggleMenu} />
+                                <SidebarSubLink href="/landTicketBooking" label="Land (Bus & Train)" onClick={toggleMenu} />
+                                <SidebarSubLink href="/ticketBooking?type=flight" label="Air" onClick={toggleMenu} />
+                                <SidebarSubLink href="/seaTicketBooking" label="Sea" onClick={toggleMenu} />
                                 <SidebarSubLink href="/track-ticket-booking" label="Track Booking" onClick={toggleMenu} />
                             </SidebarAccordion>
 

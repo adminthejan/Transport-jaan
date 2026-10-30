@@ -12,7 +12,7 @@ import {
 
 const TOP_TABS = [
     { key: "rental", label: "Vehicle Rental", href: "/vehicleList", icon: CarIcon },
-    { key: "ticket", label: "Ticket Booking", href: "/busTicketBookingDetails", icon: TicketIcon },
+    { key: "ticket", label: "Ticket Booking", href: "/landTicketBooking", icon: TicketIcon },
     { key: "multimodal", label: "Multimodal", href: "/multiModel/plan-journey", icon: RouteIcon },
 ];
 
@@ -23,9 +23,9 @@ const RENTAL_SUB_TABS = [
 ];
 
 const TICKET_SUB_TABS = [
-    { key: "bus", label: "Bus", href: "/busTicketBookingDetails", icon: BusIcon },
-    { key: "train", label: "Train", href: "/trainTicketBookingDetails", icon: TrainIcon },
-    { key: "flight", label: "Flight", icon: PlaneIcon, href: "/ticketBooking?type=flight" },
+    // Land covers both bus and train (compared side by side on one page).
+    { key: "land", label: "Land", href: "/landTicketBooking", icon: BusIcon },
+    { key: "air", label: "Air", icon: PlaneIcon, href: "/ticketBooking?type=flight" },
     { key: "sea", label: "Sea", icon: ShipIcon, href: "/seaTicketBooking" },
 ];
 

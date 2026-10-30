@@ -48,6 +48,7 @@ const BusCard = ({ initialSearch = null }) => {
         seniors: initialSearch?.seniors ?? 0,
         student: Boolean(initialSearch?.student),
         wheelchair: Boolean(initialSearch?.wheelchair),
+        wheelchairPassengers: String(initialSearch?.wheelchairPassengers || '').split(',').filter(Boolean),
     });
 
     const stationOptions = [
@@ -102,6 +103,7 @@ const BusCard = ({ initialSearch = null }) => {
             seniors: passengers.seniors,
             student: passengers.student ? 1 : 0,
             wheelchair: passengers.wheelchair ? 1 : 0,
+            wheelchairPassengers: passengers.wheelchair ? (passengers.wheelchairPassengers || []).join(',') : undefined,
         });
     };
 

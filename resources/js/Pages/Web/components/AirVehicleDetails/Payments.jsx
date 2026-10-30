@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
+import VendorLegalAgreement from "@/Components/legal/VendorLegalAgreement";
 import { Wallet as WalletIcon, AlertTriangle } from "lucide-react";
 import car from "../../assets/vehicleCheckout/car.svg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
@@ -340,24 +341,10 @@ const Payments = () => {
 
           {/* Terms + actions */}
           <div
-            className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-[72px] bg-[#D8E4F2] px-5 py-5"
+            className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:min-h-[72px] bg-[#D8E4F2] px-5 py-5"
             style={{ borderLeftWidth: "0.2px", borderTopWidth: "0.2px", boxShadow: "4px 4px 4px #0000001A" }}
           >
-            <div className="flex flex-row gap-5 text-[10px] font-[400]">
-              <input
-                className="size-[20px] border-[0.5px] border-[#0955AC] bg-[#FFFFFF] rounded-[4px] cursor-pointer focus:ring-transparent"
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-              />
-              <div>
-                <h1>
-                  I agree to the <span className="text-[#0955AC]">Term and Condition</span> and{" "}
-                  <span className="text-[#0955AC]">Privacy Policy.</span>
-                </h1>
-                <h1>I confirm that am at least. 21 vears old and hold a valid driver's license</h1>
-              </div>
-            </div>
+            <VendorLegalAgreement scope={{ vehicle_id: booking?.vehicle_id }} checked={agreed} onChange={setAgreed} />
           </div>
 
           <div>
@@ -462,7 +449,7 @@ const Payments = () => {
           </div>
 
           {/* Payment Details (driven by LIVE booking) */}
-          <div className="poppins md:w-[459px] h-auto bg-[#F4F3F3] rounded-[10px] px-10 py-10" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+          <div className="order-first poppins md:w-[459px] h-auto bg-[#F4F3F3] rounded-[10px] px-10 py-10" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
             <h1 className="font-[600] text-[20px]">Payment Details</h1>
 
             <div className="md:px-10 py-5">

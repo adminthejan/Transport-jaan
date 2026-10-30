@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { BirthdayField, NicField, CityZipFields, LicenseFields, validateBirthday, validateNic } from "../../../../Components/forms/IdentityFields";
 import { route } from "ziggy-js";
+import usePersistentState, { hasDraft } from "../../../../Components/forms/usePersistentState";
 import { Clock } from "lucide-react";
 import car from "../../assets/vehicleCheckout/car.svg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
@@ -32,20 +33,24 @@ const VehicleCheckoutContent = () => {
   const needsDriver = q.needs_driver === true || q.needs_driver === "true" || q.needs_driver === "1";
 
   /* ---------------- Personal info ---------------- */
-  const [firstName, setFirstName] = useState(user?.name || "");
-  const [lastName, setLastName] = useState(user?.last_name || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [countryCode, setCountryCode] = useState((user?.country_code || "lk").toLowerCase());
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [address, setAddress] = useState(user?.address || "");
+  // Keep what the client typed when they move between the step dots / Back buttons.
+  const draftPrefix = `booking-draft:land:${vehicle?.id ?? "x"}`;
+  const [restoredDraft] = useState(() => hasDraft(draftPrefix));
+
+  const [firstName, setFirstName] = usePersistentState(draftPrefix, "firstName", user?.name || "");
+  const [lastName, setLastName] = usePersistentState(draftPrefix, "lastName", user?.last_name || "");
+  const [email, setEmail] = usePersistentState(draftPrefix, "email", user?.email || "");
+  const [countryCode, setCountryCode] = usePersistentState(draftPrefix, "countryCode", (user?.country_code || "lk").toLowerCase());
+  const [phone, setPhone] = usePersistentState(draftPrefix, "phone", user?.phone || "");
+  const [address, setAddress] = usePersistentState(draftPrefix, "address", user?.address || "");
   const [age, setAge] = useState(user?.age || "");
-  const [dob, setDob] = useState(user?.date_of_birth || "");
-  const [nic, setNic] = useState(user?.nic_number || "");
-  const [licenseNo, setLicenseNo] = useState("");
-  const [licenseExp, setLicenseExp] = useState("");
-  const [city, setCity] = useState(q.city || "");
-  const [zip, setZip] = useState(q.zip_code || "");
-  const [notes, setNotes] = useState(q.notes || "");
+  const [dob, setDob] = usePersistentState(draftPrefix, "dob", user?.date_of_birth || "");
+  const [nic, setNic] = usePersistentState(draftPrefix, "nic", user?.nic_number || "");
+  const [licenseNo, setLicenseNo] = usePersistentState(draftPrefix, "licenseNo", "");
+  const [licenseExp, setLicenseExp] = usePersistentState(draftPrefix, "licenseExp", "");
+  const [city, setCity] = usePersistentState(draftPrefix, "city", q.city || "");
+  const [zip, setZip] = usePersistentState(draftPrefix, "zip", q.zip_code || "");
+  const [notes, setNotes] = usePersistentState(draftPrefix, "notes", q.notes || "");
   const [errors, setErrors] = useState({});
 
   /* ---------------- Extras: available + selected ---------------- */
@@ -92,8 +97,8 @@ const VehicleCheckoutContent = () => {
   const [quote, setQuote] = useState(null);
   const [quoting, setQuoting] = useState(false);
 
-  const [pickupTime, setPickupTime] = useState(q.pickup_time || "");
-  const [dropoffTime, setDropoffTime] = useState(q.dropoff_time || "");
+  const [pickupTime, setPickupTime] = usePersistentState(draftPrefix, "pickupTime", q.pickup_time || "");
+  const [dropoffTime, setDropoffTime] = usePersistentState(draftPrefix, "dropoffTime", q.dropoff_time || "");
   const [showPickupTimePicker, setShowPickupTimePicker] = useState(false);
   const [showDropoffTimePicker, setShowDropoffTimePicker] = useState(false);
 
@@ -137,6 +142,7 @@ const VehicleCheckoutContent = () => {
   }, [vehicle?.id, q.pickup_date, pickupTime, q.dropoff_date, dropoffTime, q.exclude_booking_id, addons, needsDriver]);
 
   useEffect(() => {
+    if (restoredDraft) return;
     setFirstName(user?.name || "");
     setLastName(user?.last_name || "");
     setEmail(user?.email || "");
@@ -148,6 +154,22 @@ const VehicleCheckoutContent = () => {
     setCity(user?.city || "");
     setZip(user?.zip_code || "");
   }, [user]);
+
+  const clearAllFields = () => {
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setPhone("");
+    setAddress("");
+    setDob("");
+    setNic("");
+    setLicenseNo("");
+    setLicenseExp("");
+    setCity("");
+    setZip("");
+    setNotes("");
+    setErrors({});
+  };
 
   /* ---------------- Submit / validation ---------------- */
   const validate = () => {
@@ -408,6 +430,13 @@ const VehicleCheckoutContent = () => {
           >
             Next
           </button>
+          <button
+            type="button"
+            onClick={clearAllFields}
+            className="w-full h-[44px] border border-[#0955AC] text-[#0955AC] font-[700] text-[13px] rounded-[5px] hover:bg-[#0955AC]/5 transition-colors"
+          >
+            Clear all
+          </button>
         </div>
 
         {/* Right Column */}
@@ -538,7 +567,7 @@ const VehicleCheckoutContent = () => {
 
           {/* Payment Details - FIXED OVERFLOW */}
           <div
-            className="w-full md:w-[459px] bg-[#F4F3F3] rounded-[10px] p-5 md:p-10"
+            className="order-first w-full md:w-[459px] bg-[#F4F3F3] rounded-[10px] p-5 md:p-10"
             style={{ boxShadow: "4px 4px 4px #0000001A" }}
           >
             <h1 className="font-[600] text-[20px] mb-5">Payment Details</h1>

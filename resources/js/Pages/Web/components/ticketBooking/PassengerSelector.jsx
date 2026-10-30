@@ -26,8 +26,19 @@ const Toggle = ({ checked, onChange }) => (
  * how most booking sites split fares: adult / youth / senior) plus student
  * and wheelchair-accessibility flags. Used by both Bus and Train search.
  *
- * `value` shape: { adults, youth, seniors, student, wheelchair }
+ * `value` shape: { adults, youth, seniors, student, wheelchair, wheelchairPassengers }
+ * `wheelchairPassengers` lists which individual passengers use a wheelchair
+ * (ids like "adult-2"), so with several passengers the buyer says *who* needs it.
  */
+export const passengerList = (value) => {
+    const make = (key, label, count) =>
+        Array.from({ length: count || 0 }, (_, i) => ({ id: `${key}-${i + 1}`, label: `${label} ${i + 1}` }));
+    return [
+        ...make("adult", "Adult", value.adults),
+        ...make("youth", "Youth", value.youth),
+        ...make("senior", "Senior", value.seniors),
+    ];
+};
 const PassengerSelector = ({ value, onChange, label = "Passengers" }) => {
     const [open, setOpen] = useState(false);
     const containerRef = useRef(null);
@@ -43,7 +54,29 @@ const PassengerSelector = ({ value, onChange, label = "Passengers" }) => {
     }, []);
 
     const update = (patch) => onChange({ ...value, ...patch });
-    const bump = (key, delta, min = 0) => update({ [key]: Math.max(min, (value[key] || 0) + delta) });
+    // When a passenger count changes, drop wheelchair picks that no longer exist.
+    const bump = (key, delta, min = 0) => {
+        const next = { ...value, [key]: Math.max(min, (value[key] || 0) + delta) };
+        if (value.wheelchair) {
+            const valid = new Set(passengerList(next).map((p) => p.id));
+            let picked = (value.wheelchairPassengers || []).filter((id) => valid.has(id));
+            if (picked.length === 0) picked = [passengerList(next)[0].id];
+            next.wheelchairPassengers = picked;
+        }
+        onChange(next);
+    };
+
+    const passengers = passengerList(value);
+    const toggleWheelchair = (on) => {
+        if (!on) return update({ wheelchair: false, wheelchairPassengers: [] });
+        update({ wheelchair: true, wheelchairPassengers: passengers.length ? [passengers[0].id] : [] });
+    };
+    const toggleWheelchairPassenger = (id) => {
+        const current = value.wheelchairPassengers || [];
+        const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+        if (next.length === 0) return; // at least one; use the switch to turn it off
+        update({ wheelchairPassengers: next });
+    };
 
     const total = (value.adults || 0) + (value.youth || 0) + (value.seniors || 0);
 
@@ -74,7 +107,7 @@ const PassengerSelector = ({ value, onChange, label = "Passengers" }) => {
                     {total} passenger{total === 1 ? "" : "s"}
                     {(value.student || value.wheelchair) && (
                         <span className="text-[11px] text-[#0955AC] ml-1">
-                            ({[value.student && "Student", value.wheelchair && "Wheelchair"].filter(Boolean).join(", ")})
+                            ({[value.student && "Student", value.wheelchair && `Wheelchair ×${(value.wheelchairPassengers || []).length || 1}`].filter(Boolean).join(", ")})
                         </span>
                     )}
                 </span>
@@ -130,8 +163,33 @@ const PassengerSelector = ({ value, onChange, label = "Passengers" }) => {
                                     <span className="block text-[11px] text-[#94A3B8]">Passengers travelling with a wheelchair.</span>
                                 </span>
                             </span>
-                            <Toggle checked={!!value.wheelchair} onChange={(checked) => update({ wheelchair: checked })} />
+                            <Toggle checked={!!value.wheelchair} onChange={toggleWheelchair} />
                         </label>
+                        {value.wheelchair && passengers.length > 1 && (
+                            <div className="rounded-[12px] bg-[#F4F8FD] border border-[#0955AC]/15 p-3">
+                                <p className="text-[12px] font-[700] text-[#0F172A] mb-2">Who will use the wheelchair?</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {passengers.map((p) => {
+                                        const on = (value.wheelchairPassengers || []).includes(p.id);
+                                        return (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                onClick={() => toggleWheelchairPassenger(p.id)}
+                                                aria-pressed={on}
+                                                className={`px-3 py-1.5 rounded-full border text-[12px] font-[600] transition-colors cursor-pointer ${
+                                                    on
+                                                        ? "bg-[#0955AC] border-[#0955AC] text-white"
+                                                        : "bg-white border-[#CBD5E1] text-[#475569] hover:border-[#0955AC]"
+                                                }`}
+                                            >
+                                                {p.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <button

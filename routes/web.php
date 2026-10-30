@@ -262,7 +262,9 @@ Route::get('/busTicketBookingDetails/json', [BusBookingController::class, 'searc
 Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
 Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
 Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview');
-Route::get('/transport/compare', [\App\Http\Controllers\TransportCompareController::class, 'compare'])->name('transport.compare');
+// Land tickets: bus + train compared in one busbud-style list
+Route::get('/landTicketBooking', [\App\Http\Controllers\LandTicketController::class, 'index'])->name('landTicketBooking');
+Route::get('/transport/compare',[\App\Http\Controllers\TransportCompareController::class, 'compare'])->name('transport.compare');
 
 // Bus ticket routes
 Route::get('/bus-ticket/download/{reference}', [BusBookingController::class, 'downloadTicket'])->name('bus.ticket.download')->middleware('auth');
@@ -1158,6 +1160,11 @@ Route::middleware(['auth']) // remove 'auth' here temporarily if testing unauthe
         Route::get('/vehicles/{vehicle}/bookings/overlaps', [VehicleMaintenanceController::class, 'overlaps'])->name('vehicles.bookings.overlaps');
         Route::post('/vehicles/maintenance/notify', [VehicleMaintenanceController::class, 'notify'])->name('vehicles.maintenance.notify');
 
+        // Vendor-managed Terms & Conditions / Privacy Policy (text or PDF)
+        Route::get('/legal-documents', [\App\Http\Controllers\VendorLegalDocumentController::class, 'index'])->name('legal-documents.index');
+        Route::post('/legal-documents/{type}', [\App\Http\Controllers\VendorLegalDocumentController::class, 'store'])->name('legal-documents.store');
+        Route::delete('/legal-documents/{type}', [\App\Http\Controllers\VendorLegalDocumentController::class, 'destroy'])->name('legal-documents.destroy');
+
         // PDF policy
         Route::post('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'store'])->name('vehicles.policy.store');
         Route::delete('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'destroy'])->name('vehicles.policy.destroy');
@@ -1187,9 +1194,7 @@ Route::middleware(['auth', 'role:client'])
     ->prefix('client')
     ->name('client.')
     ->group(function () {
-        Route::get('/dashboard', function () {
-            return Inertia::render('Web/home/client/ClientMainDashboard');
-        })->name('mainDashboard');
+        Route::get('/dashboard', [ClientDashboardController::class, 'dashboard'])->name('mainDashboard');
     });
 
 /*
@@ -1286,6 +1291,7 @@ Route::redirect('/SuperAdmin/settings/website', '/superadmin/settings/website')-
 Route::redirect('/SuperAdmin/settings/cod-settlement', '/superadmin/settings/cod-settlement')->name('SuperAdmin.settings.cod-settlement.legacy');
 Route::redirect('/SuperAdmin/CourierOperations', '/superadmin/courier-operations')->name('SuperAdmin.CourierOperations.legacy');
 Route::redirect('/SuperAdmin/PricingGovernance', '/superadmin/pricing-governance')->name('SuperAdmin.PricingGovernance.legacy');
+Route::get('/legal-documents/{type}', [\App\Http\Controllers\VendorLegalDocumentController::class, 'show'])->name('legal-documents.show');
 Route::middleware(['auth'])->group(function () {
     Route::get('/settingsPage', [VendorSettingsController::class, 'show'])->name('settingsPage');
     Route::post('/settingsPage', [VendorSettingsController::class, 'update'])->name('vendor.settings.update');

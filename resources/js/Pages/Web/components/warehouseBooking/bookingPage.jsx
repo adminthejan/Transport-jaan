@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { LegalLinks } from '@/Components/legal/VendorLegalAgreement';
 import { Link, router } from '@inertiajs/react';
 import Header from '../../home/client/ClientHeader';
 import Footer from '../../layouts/Footer';
@@ -53,6 +54,33 @@ export default function WarehouseBookingPage({ warehouse = {}, warehouseDetails 
   // Validation errors state
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+
+  const clearAllFields = () => {
+    setFormData((prev) => ({
+      warehouse_id: prev.warehouse_id,
+      company_name: '',
+      contact_person: '',
+      email: '',
+      phone: '',
+      storage_type: 'general',
+      required_space: '',
+      storage_duration: '',
+      move_in_date: '',
+      move_in_time: '',
+      move_out_date: '',
+      move_out_time: '',
+      goods_description: '',
+      special_handling: '',
+      access_frequency: 'weekly',
+      climate_controlled: false,
+      insurance_required: true,
+      special_requirements: '',
+      terms_accepted: false,
+    }));
+    setErrors({});
+    setSubmitted(false);
+    try { sessionStorage.removeItem('warehouseBookingData'); } catch (e) { /* ignore */ }
+  };
 
   // Get today's date in YYYY-MM-DD format for date validation
   const today = new Date().toISOString().split('T')[0];
@@ -847,7 +875,7 @@ export default function WarehouseBookingPage({ warehouse = {}, warehouseDetails 
                   className={`mt-1 h-5 w-5 rounded border-gray-300 ${errors.terms_accepted && submitted ? 'ring-2 ring-red-500' : ''}`}
                 />
                 <div className="text-[11px]">
-                  <p>I agree to the <span className="text-blue-600">Terms and Conditions</span> and <span className="text-blue-600">Privacy Policy</span>.</p>
+                  <p>I agree to the <LegalLinks scope={{ warehouse_id: warehouse.id }} termsLabel="Terms and Conditions" />.</p>
                   <p>I confirm that the information provided is accurate and I am authorized to make this booking.</p>
                   {errors.terms_accepted && submitted && (
                     <p className="text-red-500 text-[10px] mt-1">{errors.terms_accepted}</p>
@@ -862,6 +890,13 @@ export default function WarehouseBookingPage({ warehouse = {}, warehouseDetails 
             >
               Next
             </div>
+            <button
+              type="button"
+              onClick={clearAllFields}
+              className="rounded-[5px] flex justify-center items-center text-[#0955AC] font-[700] text-[12px] lg:w-[874px] h-[44px] border border-[#0955AC] px-5 mt-4 hover:bg-[#0955AC]/5 transition-colors"
+            >
+              Clear all
+            </button>
           </form>
         </div>
 

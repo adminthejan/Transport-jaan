@@ -98,7 +98,7 @@ const airVehicleList = () => {
       </section>
 
       {/* Floats smoothly over the hero bottom edge */}
-      <div className="relative z-20 -mt-6 sm:-mt-8 md:-mt-10">
+      <div className="relative z-50 -mt-6 sm:-mt-8 md:-mt-10">
         <SearchForm formData={formData} onFormChange={handleFormChange} />
 
         <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-2 pb-12 sm:pb-14">

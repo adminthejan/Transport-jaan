@@ -145,7 +145,7 @@ const TrainCard = () => {
         // discounted-fare tier. Student/wheelchair are captured for future
         // use but don't affect pricing yet.
         const billedAdults = passengers.adults + passengers.seniors;
-        const url = `/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${billedAdults}&children=${passengers.youth}&infants=0&seniors=${passengers.seniors}&student=${passengers.student ? 1 : 0}&wheelchair=${passengers.wheelchair ? 1 : 0}${passengerClass ? `&class=${encodeURIComponent(passengerClass)}` : ''}`;
+        const url = `/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${billedAdults}&children=${passengers.youth}&infants=0&seniors=${passengers.seniors}&student=${passengers.student ? 1 : 0}&wheelchair=${passengers.wheelchair ? 1 : 0}${passengers.wheelchair && passengers.wheelchairPassengers?.length ? `&wheelchairPassengers=${encodeURIComponent(passengers.wheelchairPassengers.join(','))}` : ''}${passengerClass ? `&class=${encodeURIComponent(passengerClass)}` : ''}`;
         window.location.href = url;
     };
 

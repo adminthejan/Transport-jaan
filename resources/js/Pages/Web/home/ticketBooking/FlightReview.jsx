@@ -71,7 +71,7 @@ const FlightReview = () => {
       <div className="pt-6 sm:pt-8 px-5 md:px-10 max-w-[1800px] mx-auto">
         <ModuleTabs active="ticket" />
         <div className="mt-4 sm:mt-6">
-          <TicketSubTabs active="flight" />
+          <TicketSubTabs active="air" />
         </div>
       </div>
 

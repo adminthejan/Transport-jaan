@@ -12,10 +12,10 @@ import SkyscannerFooter from "../../components/ticketBooking/shared/SkyscannerFo
 // component ever renders.
 const TicketBooking = () => {
   const handleTicketTypeSelect = (type) => {
-    if (type === "bus") {
-      router.get("/busTicketBookingDetails");
-    } else if (type === "train") {
-      router.get("/trainTicketBookingDetails");
+    if (type === "land") {
+      router.get("/landTicketBooking");
+    } else if (type === "sea") {
+      router.get("/seaTicketBooking");
     }
   };
 

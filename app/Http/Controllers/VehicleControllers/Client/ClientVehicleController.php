@@ -643,6 +643,7 @@ class ClientVehicleController extends Controller
             $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
             if (!empty($bodyTypes)) {
                 $query->whereHas('seaSpec', fn($q) => $q->whereIn(DB::raw('LOWER(vessel_type)'), $bodyTypes));
+                $this->orderBySelectedVesselTypes($query, $bodyTypes);
             }
         }
 
@@ -902,6 +903,7 @@ class ClientVehicleController extends Controller
             $bodyTypes = array_values(array_intersect($bodyTypes, $allowed));
             if (!empty($bodyTypes)) {
                 $query->whereHas('seaSpec', fn($q) => $q->whereIn(DB::raw('LOWER(vessel_type)'), $bodyTypes));
+                $this->orderBySelectedVesselTypes($query, $bodyTypes);
             }
         }
 
@@ -1658,5 +1660,27 @@ class ClientVehicleController extends Controller
             'is_booked' => in_array($row['id'], $bookedIds, true),
             'vendor_verified' => ($ownerStatus[$row['id']] ?? null) === 'verified',
         ]));
+    }
+
+    /**
+     * List results in the order the client picked the vessel types (e.g. Yachts then
+     * Boats shows every yacht first, then the boats) instead of mixing them together.
+     */
+    private function orderBySelectedVesselTypes($query, array $orderedTypes): void
+    {
+        if (count($orderedTypes) < 2) {
+            return;
+        }
+
+        $cases = '';
+        foreach (array_values($orderedTypes) as $i => $_) {
+            $cases .= ' WHEN ? THEN ' . $i;
+        }
+
+        $query->orderByRaw(
+            '(CASE (SELECT LOWER(sea_vehicle_specs.vessel_type) FROM sea_vehicle_specs WHERE sea_vehicle_specs.vehicle_id = vehicles.id LIMIT 1)'
+            . $cases . ' ELSE ' . count($orderedTypes) . ' END)',
+            array_values($orderedTypes)
+        );
     }
 }

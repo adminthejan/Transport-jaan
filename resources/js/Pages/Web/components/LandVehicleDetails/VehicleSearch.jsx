@@ -415,6 +415,43 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
           <div className=" w-auto md:w-[346px] h-[1px] bg-[#0000001F]" />
         </div>
 
+        <div className="w-full rounded-2xl border border-[#E3EAF5] bg-white p-6 shadow-sm text-[13px] text-[#0B1739] flex flex-col gap-5">
+          <h1 className="text-base font-semibold text-[#0B1739]">Pricing Breakdown</h1>
+          {availability && availability.available === false && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">
+              Not available for these dates. Rates are shown for reference only.
+            </div>
+          )}
+          {quote && (
+            <div className="rounded-xl border border-[#E3EAF5] divide-y divide-[#E3EAF5] text-[13px]">
+              {[
+                [`Rental (${quote.rental_days} ${quote.rental_days === 1 ? "day" : "days"} × ${Number(quote.price_per_day).toFixed(2)})`, Number(quote.price_per_day) * Number(quote.rental_days)],
+                ...(Number(quote.addons_total) > 0 ? [["Extras", Number(quote.addons_total)]] : []),
+                ...(Number(quote.driver_fee_total) > 0 ? [["Driver fee", Number(quote.driver_fee_total)]] : []),
+                ["Subtotal", Number(quote.subtotal)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between px-4 py-2.5">
+                  <span className="text-[#5B6887]">{label}</span>
+                  <span className="font-medium">{value.toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
+                <span className="text-[#5B6887]">Refundable deposit</span>
+                <span className="font-medium">{Number(quote.deposit_amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
+                <span className="text-[#5B6887]">Advance payment</span>
+                <span className="font-medium">{Number(quote.advance_amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-4 py-3 bg-[#EEF5FF]">
+                <span className="font-semibold text-[#0955AC]">Total ({quote.currency || vehicle?.currency || "LKR"})</span>
+                <span className="font-semibold text-[#0955AC]">{Number(quote.total).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+
+                  </div>
+
         <form className="text-[13px] text-[#0B1739] space-y-1" onSubmit={(e) => e.preventDefault()}>
           <div>
             <div>
@@ -508,41 +545,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
         )}
 
         <div className="w-full rounded-2xl border border-[#E3EAF5] bg-white p-6 shadow-sm text-[13px] text-[#0B1739] flex flex-col gap-5">
-          <h1 className="text-base font-semibold text-[#0B1739]">Pricing Breakdown</h1>
-          {availability && availability.available === false && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">
-              Not available for these dates. Rates are shown for reference only.
-            </div>
-          )}
-          {quote && (
-            <div className="rounded-xl border border-[#E3EAF5] divide-y divide-[#E3EAF5] text-[13px]">
-              {[
-                [`Rental (${quote.rental_days} ${quote.rental_days === 1 ? "day" : "days"} × ${Number(quote.price_per_day).toFixed(2)})`, Number(quote.price_per_day) * Number(quote.rental_days)],
-                ...(Number(quote.addons_total) > 0 ? [["Extras", Number(quote.addons_total)]] : []),
-                ...(Number(quote.driver_fee_total) > 0 ? [["Driver fee", Number(quote.driver_fee_total)]] : []),
-                ["Subtotal", Number(quote.subtotal)],
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between px-4 py-2.5">
-                  <span className="text-[#5B6887]">{label}</span>
-                  <span className="font-medium">{value.toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
-                <span className="text-[#5B6887]">Refundable deposit</span>
-                <span className="font-medium">{Number(quote.deposit_amount).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
-                <span className="text-[#5B6887]">Advance payment</span>
-                <span className="font-medium">{Number(quote.advance_amount).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between px-4 py-3 bg-[#EEF5FF]">
-                <span className="font-semibold text-[#0955AC]">Total ({quote.currency || vehicle?.currency || "LKR"})</span>
-                <span className="font-semibold text-[#0955AC]">{Number(quote.total).toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-
-          <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Driver</h2>
+<h2 className="text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Driver</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
               { value: false, label: "Self-Drive" },

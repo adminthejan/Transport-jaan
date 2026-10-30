@@ -268,7 +268,7 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
             <ModuleTabs active="ticket" />
             <div className="mt-2.5 sm:mt-3">
               <TicketSubTabs
-                active="flight"
+                active="air"
                 onSelect={onSelectTab}
               />
             </div>

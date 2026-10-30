@@ -101,7 +101,7 @@ const VehicleList = () => {
       </section>
 
       {/* Search form, floating smoothly over hero's bottom edge */}
-      <div className="relative z-20 -mt-6 sm:-mt-8 md:-mt-10">
+      <div className="relative z-50 -mt-6 sm:-mt-8 md:-mt-10">
         <SearchForm formData={formData} onFormChange={handleFormChange} />
       </div>
 

@@ -451,6 +451,47 @@ const PlaneSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) =>
           <div className=" w-auto md:w-[346px] h-[1px] bg-[#0000001F]" />
         </div>
 
+        <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
+          <h1 className="font-[600] mb-5 text-[#000000D9]">Pricing Breakdown</h1>
+          {availability && availability.available === false && (
+            <div className="rounded-[6px] border border-red-200 bg-red-50 px-4 py-3 mb-4 text-[12px] font-[700] text-red-700">
+              Not available for these dates. Rates are shown for reference only.
+            </div>
+          )}
+          {quote && (
+            <div className="rounded-[6px] border border-[#0955AC1A] divide-y divide-[#0955AC1A] text-[12px] mb-4">
+              <div className="flex justify-between px-4 py-2.5">
+                <span className="text-[#5B6887]">Rental ({quote.rental_days} {quote.rental_days === 1 ? "day" : "days"} \u00d7 {Number(quote.price_per_day).toFixed(2)})</span>
+                <span className="font-[600]">{(Number(quote.price_per_day) * Number(quote.rental_days)).toFixed(2)}</span>
+              </div>
+              {Number(quote.addons_total) > 0 && (
+                <div className="flex justify-between px-4 py-2.5">
+                  <span className="text-[#5B6887]">Extras</span>
+                  <span className="font-[600]">{Number(quote.addons_total).toFixed(2)}</span>
+                </div>
+              )}
+              {Number(quote.driver_fee_total) > 0 && (
+                <div className="flex justify-between px-4 py-2.5">
+                  <span className="text-[#5B6887]">Driver fee</span>
+                  <span className="font-[600]">{Number(quote.driver_fee_total).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
+                <span className="text-[#5B6887]">Refundable deposit</span>
+                <span className="font-[600]">{Number(quote.deposit_amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
+                <span className="text-[#5B6887]">Advance payment</span>
+                <span className="font-[600]">{Number(quote.advance_amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-4 py-3 bg-[#EEF5FF]">
+                <span className="font-[700] text-[#0955AC]">Total ({quote.currency || vehicle?.currency || "LKR"})</span>
+                <span className="font-[700] text-[#0955AC]">{Number(quote.total).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+                  </div>
+
         <form className="text-[10px] text-[black] font-[800]" onSubmit={(e) => e.preventDefault()}>
           <div>
             <div>
@@ -547,46 +588,6 @@ const PlaneSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) =>
         )}
 
         <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
-          <h1 className="font-[600] mb-5 text-[#000000D9]">Pricing Breakdown</h1>
-          {availability && availability.available === false && (
-            <div className="rounded-[6px] border border-red-200 bg-red-50 px-4 py-3 mb-4 text-[12px] font-[700] text-red-700">
-              Not available for these dates. Rates are shown for reference only.
-            </div>
-          )}
-          {quote && (
-            <div className="rounded-[6px] border border-[#0955AC1A] divide-y divide-[#0955AC1A] text-[12px] mb-4">
-              <div className="flex justify-between px-4 py-2.5">
-                <span className="text-[#5B6887]">Rental ({quote.rental_days} {quote.rental_days === 1 ? "day" : "days"} \u00d7 {Number(quote.price_per_day).toFixed(2)})</span>
-                <span className="font-[600]">{(Number(quote.price_per_day) * Number(quote.rental_days)).toFixed(2)}</span>
-              </div>
-              {Number(quote.addons_total) > 0 && (
-                <div className="flex justify-between px-4 py-2.5">
-                  <span className="text-[#5B6887]">Extras</span>
-                  <span className="font-[600]">{Number(quote.addons_total).toFixed(2)}</span>
-                </div>
-              )}
-              {Number(quote.driver_fee_total) > 0 && (
-                <div className="flex justify-between px-4 py-2.5">
-                  <span className="text-[#5B6887]">Driver fee</span>
-                  <span className="font-[600]">{Number(quote.driver_fee_total).toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
-                <span className="text-[#5B6887]">Refundable deposit</span>
-                <span className="font-[600]">{Number(quote.deposit_amount).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
-                <span className="text-[#5B6887]">Advance payment</span>
-                <span className="font-[600]">{Number(quote.advance_amount).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between px-4 py-3 bg-[#EEF5FF]">
-                <span className="font-[700] text-[#0955AC]">Total ({quote.currency || vehicle?.currency || "LKR"})</span>
-                <span className="font-[700] text-[#0955AC]">{Number(quote.total).toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-          <div className="w-full h-[1px] bg-[#CDD0D4]" />
-
           <h1 className="font-[600] mt-5 text-[#000000D9]">Add Extras</h1>
 
           <div className="flex flex-col justify-center text-[12px] font-[500] mt-5">

@@ -1,3 +1,4 @@
+import VendorLegalDocumentsSection from "@/Components/legal/VendorLegalDocumentsSection";
 import React, { useMemo, useRef, useState } from "react";
 import { usePage } from "@inertiajs/react";
 import { useForm } from "@inertiajs/react";
@@ -558,6 +559,8 @@ const Settings = ({ user = {} }) => {
               />
             </div>
           </Section>
+
+          <VendorLegalDocumentsSection />
 
           {/* ====================== GLOBAL ACTIONS ====================== */}
           <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full">

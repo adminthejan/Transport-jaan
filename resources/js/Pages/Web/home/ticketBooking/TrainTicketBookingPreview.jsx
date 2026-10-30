@@ -80,6 +80,16 @@ const TrainTicketBookingPreviewInner = () => {
 
     const nicError = data.passenger_nic ? validateNic(data.passenger_nic) : null;
 
+    const clearAllFields = () =>
+        setData((prev) => ({
+            ...prev,
+            passenger_name: '',
+            passenger_email: '',
+            passenger_phone: '',
+            passenger_nic: '',
+            luggage: 'none',
+        }));
+
     const handleSubmit = (e) => {
         e.preventDefault();
         if (validateNic(data.passenger_nic)) return;
@@ -264,6 +274,13 @@ const TrainTicketBookingPreviewInner = () => {
                                     }`}
                                 >
                                     {processing ? 'Processing…' : t("confirm_booking", "Confirm Booking")}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={clearAllFields}
+                                    className="w-full h-[46px] mt-3 rounded-[12px] border border-[#0955AC] text-[#0955AC] font-[700] text-[14px] hover:bg-[#0955AC]/5 transition-colors"
+                                >
+                                    Clear all
                                 </button>
                             </form>
                         </div>

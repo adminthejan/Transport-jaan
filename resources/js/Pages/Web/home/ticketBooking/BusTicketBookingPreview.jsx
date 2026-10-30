@@ -246,6 +246,16 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
     // Which seat is currently waiting on a gender pick: { leg: 'outbound'|'return', seatId }
     const [genderPrompt, setGenderPrompt] = useState(null);
 
+    const clearAllFields = () => {
+        setPassengerName("");
+        setNic("");
+        setMobile("");
+        setEmail("");
+        setBoarding("");
+        setDestination("");
+        setLuggage("none");
+    };
+
     // Boarding/drop-off choices follow whatever route was actually searched —
     // sub-stops near the departure/arrival station — instead of a fixed list.
     const boardingOptions = trip?.boardingPoints?.length
@@ -617,6 +627,13 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                     }`}
                                 >
                                     {submitting ? "Processing…" : isRoundTrip ? "Confirm Round Trip Booking" : t("continue_to_pay", "Continue to pay")}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={clearAllFields}
+                                    className="w-full h-[46px] rounded-[12px] border border-[#0955AC] text-[#0955AC] font-[700] text-[14px] hover:bg-[#0955AC]/5 transition-colors"
+                                >
+                                    Clear all
                                 </button>
                             </form>
                         </div>

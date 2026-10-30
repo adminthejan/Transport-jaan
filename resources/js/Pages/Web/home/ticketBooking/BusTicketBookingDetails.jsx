@@ -125,7 +125,7 @@ const BusTicketBookingDetails = ({
           <div className="flex flex-col items-center mt-3 sm:mt-4">
             <ModuleTabs active="ticket" />
             <div className="mt-2.5 sm:mt-3">
-              <TicketSubTabs active="bus" />
+              <TicketSubTabs active="land" />
             </div>
           </div>
         </div>
