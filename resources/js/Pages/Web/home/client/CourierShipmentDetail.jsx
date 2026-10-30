@@ -100,7 +100,8 @@ const formatAmountWithCurrency = (amount, currencyCode = 'USD') => {
 };
 
 const CourierShipmentDetail = () => {
-    const { shipment, flash } = usePage().props;
+    const { shipment, flash, auth } = usePage().props;
+    console.log('[CourierChat] hasAssignedVendor:', shipment?.hasAssignedVendor, '| shipment id:', shipment?.id, '| user role:', auth?.user?.role, '| team_membership_role:', auth?.user?.team_membership_role);
     const [successNotice, setSuccessNotice] = useState(flash?.success || null);
     // Right after an order is placed, show the order code in a popup that stays until dismissed.
     const [showOrderPopup, setShowOrderPopup] = useState(Boolean(flash?.success));

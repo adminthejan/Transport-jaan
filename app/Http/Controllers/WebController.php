@@ -717,8 +717,14 @@ class WebController extends Controller
 
     
 
-    public function signin()
+    public function signin(Request $request)
     {
+        // Lets a page send the visitor back to where they were after signing in (same-site paths only).
+        $redirect = (string) $request->query('redirect', '');
+        if ($redirect !== '' && str_starts_with($redirect, '/') && ! str_starts_with($redirect, '//') && ! str_contains($redirect, '\\')) {
+            $request->session()->put('url.intended', url($redirect));
+        }
+
         return Inertia::render('Web/home/auth/Signup');
     }
 

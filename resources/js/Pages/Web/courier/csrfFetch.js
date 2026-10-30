@@ -68,10 +68,53 @@ export const fetchWithCsrf = async (url, options = {}) => {
     return response;
 };
 
+/** True when the server says the customer is not (or no longer) signed in. */
+export const isAuthFailure = (status) => status === 401 || status === 419;
+
+const DRAFT_PREFIX = "courierBookingDraft:";
+
+/**
+ * Keeps the customer's in-progress booking in this browser tab, then sends them to the sign-in
+ * page. After signing in they land back on the current page and the draft is restored.
+ */
+export const redirectToSignIn = (draftKey, draft) => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    try {
+        window.sessionStorage.setItem(DRAFT_PREFIX + draftKey, JSON.stringify(draft));
+    } catch (error) {
+        // storage unavailable: the customer just starts the form again after signing in
+    }
+
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    window.location.assign(`/signin?redirect=${encodeURIComponent(returnTo)}`);
+};
+
+/** Returns (and removes) the draft saved before sign-in, or null when there is none. */
+export const takeSavedDraft = (draftKey) => {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    try {
+        const raw = window.sessionStorage.getItem(DRAFT_PREFIX + draftKey);
+        if (!raw) {
+            return null;
+        }
+
+        window.sessionStorage.removeItem(DRAFT_PREFIX + draftKey);
+        return JSON.parse(raw);
+    } catch (error) {
+        return null;
+    }
+};
+
 /** Plain-language messages for failed booking requests (no technical terms or status codes). */
 export const friendlyFailureMessage = (status) => {
-    if (status === 401 || status === 419) {
-        return "You have been signed out. Please sign in again in a new tab, then come back here and press Continue. Your details on this page are kept.";
+    if (isAuthFailure(status)) {
+        return "Please sign in to continue. Redirecting you to the sign-in page...";
     }
 
     if (status === 403) {

@@ -12,7 +12,7 @@ import presetPalletTwoImage from "../assets/courierService/size-pallet-2.svg";
 import presetMovingBoxImage from "../assets/courierService/size-moving-box.svg";
 import DetailsForm from "./Details";
 import SummaryView from "./Summary";
-import { fetchWithCsrf, friendlyFailureMessage } from "./csrfFetch";
+import { fetchWithCsrf, friendlyFailureMessage, isAuthFailure, redirectToSignIn, takeSavedDraft } from "./csrfFetch";
 import {
     buildQuoteMatrix,
     buildReviewContext,
@@ -3355,6 +3355,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             if (!response.ok) {
                 return {
                     ok: false,
+                    authRequired: isAuthFailure(response.status),
                     message: describeFailedResponse(response),
                 };
             }
@@ -3396,6 +3397,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             if (!response.ok) {
                 return {
                     ok: false,
+                    authRequired: isAuthFailure(response.status),
                     message: describeFailedResponse(response),
                 };
             }
@@ -3548,6 +3550,21 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         setSubmitError("");
     };
 
+    // Coming back from sign-in: restore the booking the customer was filling in and the step they were on.
+    useEffect(() => {
+        const draft = takeSavedDraft(flowBasePath);
+        if (!draft?.data) {
+            return;
+        }
+
+        setData(draft.data);
+        setShowQuotes(true);
+        setShowDetails(draft.step === "details");
+        setShowSummary(false);
+        setStepFlowNotice("You are signed in. Press Continue to proceed.");
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleContinueToDetails = async () => {
         if (!isReadyToPlace || isPlacing) {
             return;
@@ -3567,6 +3584,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
         const result = await prepareDetailsSession(payload);
         if (!result.ok) {
+            if (result.authRequired) {
+                setSubmitError(result.message);
+                redirectToSignIn(flowBasePath, { data: payload, step: "quotes" });
+                return;
+            }
             setSubmitError(result.message || "Unable to continue. Please try again.");
             setIsPlacing(false);
             return;
@@ -3630,6 +3652,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }));
         const result = await prepareSummarySession(payload);
         if (!result.ok) {
+            if (result.authRequired) {
+                setErrorMessage(result.message);
+                redirectToSignIn(flowBasePath, { data: payload, step: "details" });
+                return;
+            }
             if (result.errors) {
                 setError(result.errors);
             }
