@@ -18,7 +18,7 @@ use App\Models\Notification;
 use App\Models\Warehouse\WarehouseReview;
 use App\Models\Warehouse\WarehouseLike;
 use App\Models\Warehouse\WarehouseAmenity;
-use App\Services\PayHereGatewayService;
+use App\Services\PaymentsLkGatewayService;
 use App\Services\WalletService;
 use App\Services\InsufficientWalletBalanceException;
 
@@ -264,6 +264,52 @@ class WarehouseBookingController extends Controller
             })
             ->values();
 
+        // Space the client has booked, measured against the capacity of the units it sits in.
+        $spaceBookings = (clone $baseQuery)
+            ->with('warehouseUnit:id,name,type,total_area')
+            ->whereIn('status', ['pending', 'confirmed', 'active'])
+            ->get();
+        $sqft = fn ($b) => (float) preg_replace('/[^0-9.]/', '', (string) $b->required_space);
+        $occupiedSqft = $spaceBookings->whereIn('status', ['confirmed', 'active'])->sum($sqft);
+        $reservedSqft = $spaceBookings->where('status', 'pending')->sum($sqft);
+        $capacitySqft = (float) $spaceBookings->pluck('warehouseUnit')->filter()->unique('id')->sum(fn ($u) => (float) $u->total_area);
+        $capacitySqft = max($capacitySqft, $occupiedSqft + $reservedSqft);
+
+        $occupancy = [
+            'occupied' => round($occupiedSqft, 2),
+            'reserved' => round($reservedSqft, 2),
+            'available' => round(max(0, $capacitySqft - $occupiedSqft - $reservedSqft), 2),
+            'capacity' => round($capacitySqft, 2),
+            'percent' => $capacitySqft > 0 ? round(($occupiedSqft / $capacitySqft) * 100, 1) : 0,
+        ];
+
+        $horizon = $now->copy()->addDays(30)->toDateString();
+        $operations = collect();
+        foreach ((clone $baseQuery)->with('warehouseUnit:id,name')->whereIn('status', ['pending', 'confirmed', 'active'])->get() as $b) {
+            $name = optional($b->warehouseUnit)->name;
+            if ($b->start_date && $b->start_date->toDateString() >= $now->toDateString() && $b->start_date->toDateString() <= $horizon) {
+                $operations->push(['kind' => 'Move in', 'date' => $b->start_date->toDateString(), 'warehouse' => $name, 'reference' => $b->booking_reference, 'status' => $b->status]);
+            }
+            if ($b->end_date && $b->end_date->toDateString() >= $now->toDateString() && $b->end_date->toDateString() <= $horizon) {
+                $operations->push(['kind' => 'Move out', 'date' => $b->end_date->toDateString(), 'warehouse' => $name, 'reference' => $b->booking_reference, 'status' => $b->status]);
+            }
+        }
+        $operations = $operations->sortBy('date')->values();
+
+        $storageTypes = $spaceBookings->groupBy(fn ($b) => optional($b->warehouseUnit)->type ?: 'Other')
+            ->map(fn ($g, $type) => ['type' => $type, 'count' => $g->count()])->values();
+
+        $alerts = collect();
+        if (($billing['outstanding'] ?? 0) > 0) {
+            $alerts->push(['level' => 'warning', 'title' => 'Payment due', 'detail' => 'Outstanding balance of ' . number_format((float) $billing['outstanding'], 2) . ' on your bookings.']);
+        }
+        foreach ($spaceBookings->filter(fn ($b) => $b->end_date && $b->end_date->between($now->copy()->startOfDay(), $now->copy()->addDays(30))) as $b) {
+            $alerts->push(['level' => 'danger', 'title' => 'Booking expiring', 'detail' => ($b->booking_reference ?? 'Booking') . ' ends on ' . $b->end_date->toDateString() . '.']);
+        }
+        if ($documents->isEmpty() && $spaceBookings->isNotEmpty()) {
+            $alerts->push(['level' => 'info', 'title' => 'Document missing', 'detail' => 'No documents are attached to your bookings yet.']);
+        }
+
         return response()->json([
             'success' => true,
             'stats' => $stats,
@@ -275,6 +321,10 @@ class WarehouseBookingController extends Controller
             'filters' => $filters,
             'billing' => $billing,
             'documents' => $documents,
+            'occupancy' => $occupancy,
+            'operations' => $operations,
+            'storageTypes' => $storageTypes,
+            'alerts' => $alerts->take(6)->values(),
             'lastUpdated' => $now->toDateTimeString(),
         ]);
     }
@@ -588,7 +638,7 @@ class WarehouseBookingController extends Controller
                 'total_amount' => 'nullable|numeric|min:0', // ignored: priced server-side
                 'tax_amount' => 'nullable|numeric|min:0',
                 'final_amount' => 'nullable|numeric|min:0', // ignored: priced server-side
-                'payment_method' => 'required|in:PayHere,Wallet',
+                'payment_method' => 'required|in:Card,Wallet',
                 'payment_option' => 'nullable|string|max:100',
                 'payment_reference' => 'nullable|string|max:100',
                 'terms_accepted' => 'required|accepted',
@@ -765,9 +815,9 @@ class WarehouseBookingController extends Controller
                 'payment_reference' => $validated['payment_reference'] ?? null,
                 'payment_status' => 'pending',
                 'transaction_reference' => null,
-                'provider' => $validated['payment_method'] === 'PayHere' ? 'payhere' : ($validated['payment_method'] === 'Wallet' ? 'wallet' : null),
-                'gateway_order_id' => $validated['payment_method'] === 'PayHere' ? $this->generateWarehousePaymentOrderId() : null,
-                'initiated_at' => $validated['payment_method'] === 'PayHere' ? now() : null,
+                'provider' => $validated['payment_method'] === 'Card' ? 'paymentslk' : ($validated['payment_method'] === 'Wallet' ? 'wallet' : null),
+                'gateway_order_id' => $validated['payment_method'] === 'Card' ? $this->generateWarehousePaymentOrderId() : null,
+                'initiated_at' => $validated['payment_method'] === 'Card' ? now() : null,
 
                 // Additional Fields
                 'terms_accepted' => true,
@@ -834,7 +884,7 @@ class WarehouseBookingController extends Controller
                 'user_id' => Auth::id()
             ]);
 
-            $redirectUrl = $validated['payment_method'] === 'PayHere'
+            $redirectUrl = $validated['payment_method'] === 'Card'
                 ? route('warehouse-bookings.payhere.checkout', ['booking' => $booking->id])
                 : route('warehouse-bookings.summary', $booking->id);
 
@@ -879,13 +929,13 @@ class WarehouseBookingController extends Controller
 
     /**
      * Render the PayHere checkout step for a warehouse booking created with
-     * payment_method = 'PayHere'. Mirrors WalletController::checkout().
+     * payment_method = 'Card'. Mirrors WalletController::checkout().
      */
-    public function paymentCheckout(Request $request, WarehouseBooking $booking, PayHereGatewayService $gateway)
+    public function paymentCheckout(Request $request, WarehouseBooking $booking, PaymentsLkGatewayService $gateway)
     {
         abort_unless(Auth::check() && (int) $booking->user_id === (int) Auth::id(), 403);
 
-        if ($booking->payment_method !== 'PayHere') {
+        if ($booking->payment_method !== 'Card') {
             abort(404);
         }
 
@@ -932,7 +982,7 @@ class WarehouseBookingController extends Controller
     {
         abort_unless(Auth::check() && (int) $booking->user_id === (int) Auth::id(), 403);
 
-        if ($booking->payment_method !== 'PayHere') {
+        if ($booking->payment_method !== 'Card') {
             return response()->json([
                 'success' => false,
                 'message' => 'Only PayHere payments can be retried.',
@@ -967,11 +1017,10 @@ class WarehouseBookingController extends Controller
     }
 
     /**
-     * PayHere's browser return URL. If the notify webhook already landed
-     * first this just reflects the now-completed state; otherwise it
-     * verifies the signature itself (with a sandbox fallback, same as
-     * WalletController::handleReturn()) so the customer isn't stuck looking
-     * "pending" until the async webhook shows up.
+     * Browser return from Payments.lk. The redirect itself proves nothing, so
+     * if the webhook hasn't landed yet the checkout is re-read from the API
+     * and resolved here; either way the customer ends up on the checkout page
+     * that reflects the current state.
      */
     public function handlePayHereReturn(Request $request)
     {
@@ -983,24 +1032,9 @@ class WarehouseBookingController extends Controller
         }
 
         if ($booking->isPaymentPending()) {
-            $gateway = app(PayHereGatewayService::class);
-            $payload = $request->query();
-
-            if ($gateway->verifyNotifySignature($payload)) {
-                $this->applyResolvedWarehousePaymentStatus($gateway, $booking, $payload);
-            } elseif ($this->isPayHereSandbox() && $request->query('status_code') === null) {
-                // Sandbox convenience: PayHere's sandbox return sometimes omits
-                // status_code/signature entirely on a successful test payment.
-                DB::transaction(function () use ($booking) {
-                    $locked = WarehouseBooking::where('id', $booking->id)->lockForUpdate()->first();
-                    if ($locked && $locked->isPaymentPending()) {
-                        $locked->markPaymentPaid(null, null, 'sandbox-return');
-                        $locked->forceFill([
-                            'status' => 'confirmed',
-                            'confirmed_at' => now(),
-                        ])->save();
-                    }
-                });
+            $result = app(PaymentsLkGatewayService::class)->fetchResult($booking);
+            if ($result !== null) {
+                $this->applyResolvedWarehousePaymentStatus($booking, $result);
             }
         }
 
@@ -1013,92 +1047,79 @@ class WarehouseBookingController extends Controller
         $booking = WarehouseBooking::where('gateway_order_id', $orderId)->first();
 
         if ($booking && $booking->isPaymentPending()) {
-            $booking->markPaymentFailed('Cancelled by customer at PayHere.');
+            $booking->markPaymentFailed('Cancelled by customer at Payments.lk.');
         }
 
         return redirect()->route('warehouse-bookings.list')->with('error', 'Payment cancelled.');
     }
 
-    /**
-     * The actual webhook. PayHere expects a plain-text 200 response, not JSON.
-     */
-    public function handlePayHereNotify(Request $request)
+    /** Called by PaymentsLkWebhookController for WHP-* references. */
+    public function applyPaymentsLkResult(array $result): void
     {
-        $payload = $request->all();
-        $orderId = trim((string) ($payload['order_id'] ?? ''));
-
-        $booking = WarehouseBooking::where('gateway_order_id', $orderId)->first();
+        $booking = WarehouseBooking::where('gateway_order_id', $result['orderId'])->first();
         if (!$booking) {
-            Log::warning('PayHere warehouse notify: unknown order_id', ['order_id' => $orderId]);
-            return response('order not found', 404);
+            Log::warning('Payments.lk warehouse webhook: unknown order', ['order_id' => $result['orderId']]);
+
+            return;
         }
 
-        $gateway = app(PayHereGatewayService::class);
-        if (!$gateway->verifyNotifySignature($payload)) {
-            Log::warning('PayHere warehouse notify: signature mismatch', ['order_id' => $orderId]);
-            return response('invalid signature', 400);
-        }
-
-        $this->applyResolvedWarehousePaymentStatus($gateway, $booking, $payload);
-
-        return response('OK', 200);
+        $this->applyResolvedWarehousePaymentStatus($booking, $result);
     }
 
-    private function applyResolvedWarehousePaymentStatus(PayHereGatewayService $gateway, WarehouseBooking $booking, array $payload): void
+    private function applyResolvedWarehousePaymentStatus(WarehouseBooking $booking, array $result): void
     {
-        DB::transaction(function () use ($gateway, $booking, $payload) {
+        $gateway = app(PaymentsLkGatewayService::class);
+
+        DB::transaction(function () use ($gateway, $booking, $result) {
             $locked = WarehouseBooking::where('id', $booking->id)->lockForUpdate()->first();
             if (!$locked || $locked->isPaymentPaid()) {
                 return; // idempotent — already applied
             }
 
             $callbackLog = is_array($locked->callback_payload) ? $locked->callback_payload : [];
-            $callbackLog[] = ['at' => now()->toIso8601String(), 'payload' => $payload];
+            $callbackLog[] = ['at' => now()->toIso8601String(), 'result' => $result];
             $locked->update(['callback_payload' => $callbackLog, 'last_notified_at' => now()]);
 
-            $validation = $gateway->validateNotifyAgainstExpected($payload, [
+            $validation = $gateway->validateAgainstExpected($result, [
                 'orderId' => (string) $locked->gateway_order_id,
                 'amount' => (float) $locked->final_amount,
                 'currency' => (string) ($locked->currency ?? 'LKR'),
             ]);
 
             if (!$validation['isValid']) {
-                $locked->markPaymentFailed('Notify payload mismatch: ' . $validation['reason']);
+                Log::error('Payments.lk: warehouse result rejected', ['order_id' => $locked->gateway_order_id, 'reason' => $validation['reason']]);
+                $locked->markPaymentFailed('Payment result mismatch: ' . $validation['reason']);
                 return;
             }
 
-            $status = $gateway->normalizeStatusFromNotify($payload);
-            $gatewayPaymentId = (string) ($payload['payment_id'] ?? '');
-
-            if ($status === 'paid') {
-                $locked->markPaymentPaid($gatewayPaymentId ?: null, null, $status);
+            if ($result['status'] === PaymentsLkGatewayService::STATUS_PAID) {
+                $locked->markPaymentPaid($result['paymentId'] ?: null, null, $result['status']);
                 $locked->forceFill([
                     'status' => 'confirmed',
                     'confirmed_at' => now(),
                 ])->save();
-            } elseif (in_array($status, ['failed', 'cancelled'], true)) {
-                $locked->markPaymentFailed("PayHere status: {$status}", $status);
+            } elseif (in_array($result['status'], [PaymentsLkGatewayService::STATUS_FAILED, PaymentsLkGatewayService::STATUS_EXPIRED], true)) {
+                $locked->markPaymentFailed(
+                    $result['message'] !== '' ? $result['message'] : "Payments.lk status: {$result['status']}",
+                    $result['status']
+                );
             }
-            // 'pending' from PayHere just leaves it pending — nothing to do.
+            // pending: nothing to do yet.
         });
     }
 
-    private function buildWarehouseCheckout(PayHereGatewayService $gateway, WarehouseBooking $booking, $user): array
+    private function buildWarehouseCheckout(PaymentsLkGatewayService $gateway, WarehouseBooking $booking, $user): array
     {
-        [$firstName, $lastName] = $gateway->splitName((string) ($booking->contact_person ?: ($user->name ?? 'Customer')));
-
-        return $gateway->buildCheckoutPayload([
+        return $gateway->checkoutFor($booking, [
             'orderId' => (string) $booking->gateway_order_id,
             'amount' => (float) $booking->final_amount,
             'currency' => (string) ($booking->currency ?? 'LKR'),
-            'items' => 'Warehouse booking #' . $booking->booking_reference,
-            'returnUrl' => route('warehouse-bookings.payhere.return', ['order_id' => $booking->gateway_order_id]),
+            'description' => 'Warehouse booking #' . $booking->booking_reference,
+            'successUrl' => route('warehouse-bookings.payhere.return', ['order_id' => $booking->gateway_order_id]),
             'cancelUrl' => route('warehouse-bookings.payhere.cancel', ['order_id' => $booking->gateway_order_id]),
-            'notifyUrl' => route('warehouse-bookings.payhere.notify'),
-            'firstName' => $firstName,
-            'lastName' => $lastName,
-            'email' => (string) ($booking->email ?: ($user->email ?? '')),
-            'phone' => (string) ($booking->phone ?: ''),
+            'customerName' => (string) ($booking->contact_person ?: ($user->name ?? 'Customer')),
+            'customerEmail' => (string) ($booking->email ?: ($user->email ?? '')),
+            'customerPhone' => (string) ($booking->phone ?: ''),
         ]);
     }
 
@@ -1128,11 +1149,6 @@ class WarehouseBookingController extends Controller
         // *payment* order id, a separate identifier space, and using a
         // visually distinct prefix avoids any ambiguity between the two.
         return 'WHP-' . now()->format('ymd') . '-' . strtoupper(Str::random(8));
-    }
-
-    private function isPayHereSandbox(): bool
-    {
-        return (bool) config('services.payhere.sandbox', true);
     }
 
     /**

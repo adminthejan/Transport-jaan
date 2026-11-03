@@ -59,7 +59,7 @@ const Payments = () => {
   const total = n(booking.total_amount);
   const advance = n(booking.advance_amount);
 
-  const [selectedPayment, setSelectedPayment] = useState("PayHere");
+  const [selectedPayment, setSelectedPayment] = useState("Card");
   const [paymentOption, setPaymentOption] = useState("full");
   const [agreed, setAgreed] = useState(false);
   const [walletError, setWalletError] = useState("");
@@ -226,7 +226,7 @@ const Payments = () => {
 
             <div className="flex flex-row flex-wrap items-center gap-10 text-[10px] font-[600] text-[#00000080] py-2">
               {/* Wallet only ever holds LKR — hide it for bookings priced in any other currency */}
-              {["PayHere", ...(String(booking?.currency || "LKR").toUpperCase() === "LKR" ? ["Wallet"] : [])].map((m) => (
+              {["Card", ...(String(booking?.currency || "LKR").toUpperCase() === "LKR" ? ["Wallet"] : [])].map((m) => (
                 <label key={m} className="flex flex-row justify-center items-center gap-3 cursor-pointer">
                   <input
                     type="radio"

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PaymentsLkWebhookController;
 use App\Http\Controllers\VendorSettingsController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\FlightBookingController;
@@ -206,8 +207,6 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
             ->name('payhere.return');
         Route::get('/payhere/cancel', [CourierPaymentController::class, 'handleCancel'])
             ->name('payhere.cancel');
-        Route::post('/payhere/notify', [CourierPaymentController::class, 'handleNotify'])
-            ->name('payhere.notify');
     });
 
     Route::middleware('auth')->group(function () {
@@ -293,7 +292,6 @@ Route::prefix('bus-bookings')->name('bus-bookings.')->group(function () {
     Route::prefix('payhere')->name('payhere.')->group(function () {
         Route::get('/return', [BusBookingController::class, 'handlePayHereReturn'])->name('return');
         Route::get('/cancel', [BusBookingController::class, 'handlePayHereCancel'])->name('cancel');
-        Route::post('/notify', [BusBookingController::class, 'handlePayHereNotify'])->name('notify');
     });
 
     Route::middleware('auth')->group(function () {
@@ -310,7 +308,6 @@ Route::prefix('train-bookings')->name('train-bookings.')->group(function () {
     Route::prefix('payhere')->name('payhere.')->group(function () {
         Route::get('/return', [TrainController::class, 'handlePayHereReturn'])->name('return');
         Route::get('/cancel', [TrainController::class, 'handlePayHereCancel'])->name('cancel');
-        Route::post('/notify', [TrainController::class, 'handlePayHereNotify'])->name('notify');
     });
 
     Route::middleware('auth')->group(function () {
@@ -446,7 +443,6 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
     Route::prefix('payhere')->name('payhere.')->group(function () {
         Route::get('/return', [WarehouseBookingController::class, 'handlePayHereReturn'])->name('return');
         Route::get('/cancel', [WarehouseBookingController::class, 'handlePayHereCancel'])->name('cancel');
-        Route::post('/notify', [WarehouseBookingController::class, 'handlePayHereNotify'])->name('notify');
     });
 
     // Protected routes (require authentication)
@@ -611,7 +607,6 @@ Route::prefix('client')->as('client.')->group(function () {
 Route::prefix('client/wallet')->name('client.wallet.')->group(function () {
     Route::get('/payhere/return', [WalletController::class, 'handleReturn'])->name('payhere.return');
     Route::get('/payhere/cancel', [WalletController::class, 'handleCancel'])->name('payhere.cancel');
-    Route::post('/payhere/notify', [WalletController::class, 'handleNotify'])->name('payhere.notify');
 });
 
 // Vehicle rental (land/air/sea) PayHere callbacks — same reasoning as the
@@ -623,17 +618,14 @@ Route::prefix('client/wallet')->name('client.wallet.')->group(function () {
 Route::prefix('client/bookings')->name('client.bookings.')->group(function () {
     Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
     Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
-    Route::post('/payhere/notify', [ClientBookingController::class, 'handlePayHereNotify'])->name('payhere.notify');
 });
 Route::prefix('client/airBookings')->name('client.airBookings.')->group(function () {
     Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
     Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
-    Route::post('/payhere/notify', [ClientBookingController::class, 'handlePayHereNotify'])->name('payhere.notify');
 });
 Route::prefix('client/seaBookings')->name('client.seaBookings.')->group(function () {
     Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
     Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
-    Route::post('/payhere/notify', [ClientBookingController::class, 'handlePayHereNotify'])->name('payhere.notify');
 });
 
 /*
@@ -2598,3 +2590,8 @@ Route::get('/storage/download/{path}', function ($path) {
 |--------------------------------------------------------------------------
 */
 require __DIR__ . '/auth.php';
+
+// Payments.lk webhook — one endpoint for every module (courier, wallet, vehicle,
+// bus, train, warehouse); dispatched by order-id prefix. No session/CSRF: the
+// request is authenticated by its Payments-Signature header.
+Route::post('/webhooks/payments-lk', [PaymentsLkWebhookController::class, 'handle'])->name('webhooks.payments-lk');

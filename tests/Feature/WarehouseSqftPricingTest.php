@@ -37,7 +37,7 @@ class WarehouseSqftPricingTest extends TestCase
             'required_space' => 2500, 'storage_unit' => 'sqft', 'goods_type' => 'General',
             'goods_description' => 'boxes', 'quantity' => '100', 'estimated_weight' => 500,
             'start_date' => now()->addDays(3)->toDateString(), 'duration_months' => 3,
-            'payment_method' => 'PayHere', 'terms_accepted' => true,
+            'payment_method' => 'Card', 'terms_accepted' => true,
             // deliberately tampered amounts - must be ignored
             'monthly_rate' => 1, 'total_amount' => 1, 'final_amount' => 1,
         ], $over);

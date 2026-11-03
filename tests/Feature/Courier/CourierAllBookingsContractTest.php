@@ -125,7 +125,7 @@ class CourierAllBookingsContractTest extends TestCase
         CourierShipmentPayment::query()->create([
             'courier_shipment_id' => $shipment->id,
             'requested_by_user_id' => $user->id,
-            'provider' => CourierShipmentPayment::PROVIDER_PAYHERE,
+            'provider' => CourierShipmentPayment::PROVIDER_PAYMENTSLK,
             'payment_method' => CourierShipmentPayment::PAYMENT_METHOD_CARD,
             'is_required' => true,
             'amount' => 45.75,

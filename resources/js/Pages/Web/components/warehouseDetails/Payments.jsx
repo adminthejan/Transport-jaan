@@ -20,7 +20,7 @@ const WarehousePayments = () => {
     const wallet = props?.wallet || null;
     const walletBalance = Number(wallet?.balance ?? 0);
 
-    const [selectedPayment, setSelectedPayment] = useState("PayHere");
+    const [selectedPayment, setSelectedPayment] = useState("Card");
     const [bookingData, setBookingData] = useState(null);
     const [warehouseInfo, setWarehouseInfo] = useState(null);
     const [termsAccepted, setTermsAccepted] = useState(false);
@@ -577,7 +577,7 @@ const WarehousePayments = () => {
 
                         {/* method selector */}
                         <div className="flex flex-row flex-wrap items-center gap-10 text-[10px] font-[600] text-[#00000080] py-2">
-                            {["PayHere", "Wallet"].map((m) => (
+                            {["Card", "Wallet"].map((m) => (
                                 <label key={m} className="flex flex-row justify-center items-center gap-3 cursor-pointer">
                                     <input
                                         type="radio"

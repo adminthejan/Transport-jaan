@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "12a3c510966908d9bb97445c748e1fd1",
+    "content-hash": "4100355aeb9dcdff6fc3b82d4f3e88c9",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3627,6 +3627,61 @@
                 }
             ],
             "time": "2026-02-16T23:10:27+00:00"
+        },
+        {
+            "name": "payments-lk/payments-lk-php",
+            "version": "v0.4.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/PAYable-IPG/payments-lk-php.git",
+                "reference": "4b85c695fed166ed6c67511ac3641caedc765833"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/PAYable-IPG/payments-lk-php/zipball/4b85c695fed166ed6c67511ac3641caedc765833",
+                "reference": "4b85c695fed166ed6c67511ac3641caedc765833",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=8.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PaymentsLk\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Payments.lk",
+                    "email": "hello@payments.lk",
+                    "homepage": "https://payments.lk"
+                }
+            ],
+            "description": "PHP server SDK for the Payments.lk API: checkouts, payments, refunds, payment links, saved cards, events, the account and webhook verification.",
+            "homepage": "https://payments.lk/developers/sdks#php",
+            "keywords": [
+                "checkout",
+                "lkr",
+                "payable",
+                "payments",
+                "payments.lk",
+                "sri lanka",
+                "webhooks"
+            ],
+            "support": {
+                "docs": "https://payments.lk/developers/sdks#php",
+                "email": "hello@payments.lk",
+                "issues": "https://github.com/PAYable-IPG/payments-lk-php/issues",
+                "source": "https://github.com/PAYable-IPG/payments-lk-php"
+            },
+            "time": "2026-09-30T03:24:38+00:00"
         },
         {
             "name": "php-http/discovery",
@@ -10382,12 +10437,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": [],
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2"
     },
-    "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "platform-dev": [],
+    "plugin-api-version": "2.6.0"
 }

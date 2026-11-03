@@ -241,7 +241,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
     // Additional services — shown by default (not an opt-in add-on you have
     // to discover), defaulting to the free tier like Busbud's luggage picker.
     const [luggage, setLuggage] = useState("none");
-    const [paymentMethod, setPaymentMethod] = useState("PayHere");
+    const [paymentMethod, setPaymentMethod] = useState("Card");
     const [submitting, setSubmitting] = useState(false);
     // Which seat is currently waiting on a gender pick: { leg: 'outbound'|'return', seatId }
     const [genderPrompt, setGenderPrompt] = useState(null);
@@ -586,9 +586,9 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => setPaymentMethod("PayHere")}
+                                            onClick={() => setPaymentMethod("Card")}
                                             className={`rounded-[10px] border px-3 py-3 text-[13px] font-[700] transition-colors ${
-                                                paymentMethod === "PayHere"
+                                                paymentMethod === "Card"
                                                     ? "border-[#0955AC] bg-[#0955AC]/10 text-[#0955AC]"
                                                     : "border-[#E2E8F0] text-[#64748B] hover:border-[#0955AC]/40"
                                             }`}

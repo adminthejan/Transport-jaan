@@ -3,17 +3,17 @@
 return [
     'payments' => [
         'enabled' => (bool) env('COURIER_PAYMENTS_ENABLED', true),
-        'gateway' => (string) env('COURIER_PAYMENTS_GATEWAY', 'payhere'),
+        'gateway' => (string) env('COURIER_PAYMENTS_GATEWAY', 'paymentslk'),
         'provider' => [
-            'payhere' => [
-                'enabled' => (bool) env('COURIER_PAYHERE_ENABLED', true),
-                'domestic_currency' => strtoupper((string) env('COURIER_PAYHERE_DOMESTIC_CURRENCY', 'LKR')),
-                'international_fallback_currency' => strtoupper((string) env('COURIER_PAYHERE_INTERNATIONAL_FALLBACK_CURRENCY', 'USD')),
+            'paymentslk' => [
+                'enabled' => (bool) env('COURIER_PAYMENTSLK_ENABLED', true),
+                'domestic_currency' => strtoupper((string) env('COURIER_PAYMENTSLK_DOMESTIC_CURRENCY', 'LKR')),
+                'international_fallback_currency' => strtoupper((string) env('COURIER_PAYMENTSLK_INTERNATIONAL_FALLBACK_CURRENCY', 'USD')),
                 'supported_international_currencies' => array_values(array_filter(array_map(
                     static fn ($currency) => strtoupper(trim((string) $currency)),
-                    explode(',', (string) env('COURIER_PAYHERE_SUPPORTED_INTERNATIONAL_CURRENCIES', 'USD'))
+                    explode(',', (string) env('COURIER_PAYMENTSLK_SUPPORTED_INTERNATIONAL_CURRENCIES', 'USD'))
                 ))),
-                'pending_expiry_minutes' => (int) env('COURIER_PAYHERE_PENDING_EXPIRY_MINUTES', 60),
+                'pending_expiry_minutes' => (int) env('COURIER_PAYMENTSLK_PENDING_EXPIRY_MINUTES', 60),
             ],
         ],
     ],

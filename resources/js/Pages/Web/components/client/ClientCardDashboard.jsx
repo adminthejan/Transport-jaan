@@ -20,6 +20,11 @@ import {
   CheckCircle2,
   Receipt,
   Inbox,
+  CalendarClock,
+  LifeBuoy,
+  Headphones,
+  MessageCircle,
+  Siren,
 } from "lucide-react";
 
 const EMPTY = { total: 0, pending: 0, active: 0, completed: 0, cancelled: 0, spent: 0, recent: [] };
@@ -180,11 +185,93 @@ const ServiceCard = ({ icon: Icon, accent, title, description, totals, actions, 
   </Card>
 );
 
+
+const SERIES = [
+  { key: "vehicle", label: "Vehicle", color: "#2563eb" },
+  { key: "tickets", label: "Tickets", color: "#7c3aed" },
+  { key: "courier", label: "Courier", color: "#f97316" },
+  { key: "warehouse", label: "Warehouse", color: "#0d9488" },
+  { key: "multimodal", label: "Multimodal", color: "#e11d48" },
+];
+
+const TrendChart = ({ trends }) => {
+  const months = trends?.months || [];
+  const series = SERIES.map((x) => ({ ...x, data: trends?.series?.[x.key] || [] }));
+  const max = Math.max(4, ...series.flatMap((x) => x.data));
+  const W = 560, H = 190, L = 28, B = 24, T = 8;
+  const px = (i) => L + (months.length > 1 ? (i * (W - L - 8)) / (months.length - 1) : 0);
+  const py = (v) => T + (H - T - B) * (1 - v / max);
+  const empty = series.every((x) => x.data.every((v) => !v));
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-[200px] w-full" role="img" aria-label="Monthly booking trends">
+        {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+          <g key={f}>
+            <line x1={L} x2={W - 8} y1={py(max * f)} y2={py(max * f)} stroke="#e2e8f0" strokeDasharray="3 4" />
+            <text x={L - 6} y={py(max * f) + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{Math.round(max * f)}</text>
+          </g>
+        ))}
+        {months.map((m, i) => (
+          <text key={m + i} x={px(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="#94a3b8">{m}</text>
+        ))}
+        {series.map((x) => (
+          <g key={x.key}>
+            <polyline fill="none" stroke={x.color} strokeWidth="2" strokeLinejoin="round" points={x.data.map((v, i) => `${px(i)},${py(v)}`).join(" ")} />
+            {x.data.map((v, i) => <circle key={i} cx={px(i)} cy={py(v)} r="2.5" fill={x.color} />)}
+          </g>
+        ))}
+      </svg>
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+        {SERIES.map((x) => (
+          <span key={x.key} className="flex items-center gap-1.5 text-[11.5px] text-slate-500">
+            <span className="h-2 w-2 rounded-full" style={{ background: x.color }} /> {x.label}
+          </span>
+        ))}
+      </div>
+      {empty && <p className="mt-2 text-[12px] text-slate-400">No bookings in the last six months yet.</p>}
+    </div>
+  );
+};
+
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—");
+
+const PanelHead = ({ title, href, label = "View all" }) => (
+  <div className="mb-3 flex items-center justify-between">
+    <h2 className="poppins text-[15px] font-[700] text-slate-900">{title}</h2>
+    {href && (
+      <Link href={href} className="text-[12px] font-[700] text-blue-600 hover:text-blue-700">{label}</Link>
+    )}
+  </div>
+);
+
+const QUICK_BOOK = [
+  { icon: Car, label: "Rent Vehicle", sub: "Cars, Vans, Buses", href: "/vehicleList", tone: "bg-blue-50 text-blue-600" },
+  { icon: Ticket, label: "Book Ticket", sub: "Train, Bus, Flight", href: "/landTicketBooking", tone: "bg-violet-50 text-violet-600" },
+  { icon: Package, label: "Send Courier", sub: "Documents, Packages", href: "/courier-service", tone: "bg-orange-50 text-orange-600" },
+  { icon: Warehouse, label: "Book Warehouse", sub: "Storage Solutions", href: "/warehouseList", tone: "bg-teal-50 text-teal-600" },
+  { icon: Truck, label: "Freight Quote", sub: "Get Quote", href: "/freight-home", tone: "bg-rose-50 text-rose-600" },
+];
+
+const SHORTCUTS = [
+  { icon: ClipboardList, label: "My Bookings", href: "/clientAllBookings" },
+  { icon: CalendarClock, label: "Upcoming Services", href: "/clientAllBookings" },
+  { icon: Receipt, label: "Payment History", href: "/client/wallet" },
+  { icon: Search, label: "Track Courier", href: "/track-shipment" },
+];
+
+const HELP = [
+  { icon: MessageCircle, label: "Live Chat", sub: "Chat with support", href: "/chat", tone: "bg-emerald-50 text-emerald-600" },
+  { icon: Headphones, label: "Contact Us", sub: "24/7 Support", href: "/chat", tone: "bg-violet-50 text-violet-600" },
+];
+
 const ClientCardDashboard = () => {
   const { auth, overview } = usePage().props;
   const sections = overview?.sections || {};
   const wallet = overview?.wallet;
   const recent = overview?.recent || [];
+  const upcoming = overview?.upcoming || [];
+  const attentionItems = overview?.attention || [];
+  const payments = overview?.payments || { paid: 0, pending: 0, refunds: 0 };
 
   const vehicle = useMemo(() => sumSections([sections.vehicle?.land, sections.vehicle?.air, sections.vehicle?.sea]), [sections]);
   const tickets = useMemo(
@@ -328,12 +415,84 @@ const ClientCardDashboard = () => {
         </Card>
       </div>
 
+      {/* Quick booking */}
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {QUICK_BOOK.map((q) => (
+          <Link key={q.label} href={q.href} className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md">
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${q.tone}`}><q.icon className="h-5 w-5" /></span>
+            <span className="min-w-0">
+              <span className="poppins block truncate text-[13px] font-[700] text-slate-900">{q.label}</span>
+              <span className="block truncate text-[11.5px] text-slate-500">{q.sub}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+
       {/* KPI strip */}
-      <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi icon={Activity} label="Active bookings" value={all.active} accent="bg-emerald-50 text-emerald-600" />
-        <Kpi icon={Clock} label="Pending / awaiting" value={all.pending} accent="bg-amber-50 text-amber-600" />
-        <Kpi icon={CheckCircle2} label="Completed" value={all.completed} accent="bg-slate-100 text-slate-600" />
+      <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <Kpi icon={Receipt} label="Total spent" value={`${currency} ${money(all.spent)}`} accent="bg-blue-50 text-blue-600" />
+        <Kpi icon={ClipboardList} label="Total bookings" value={all.total} accent="bg-slate-100 text-slate-600" />
+        <Kpi icon={Activity} label="Active bookings" value={all.active} accent="bg-emerald-50 text-emerald-600" />
+        <Kpi icon={CalendarClock} label="Upcoming" value={upcoming.length} accent="bg-violet-50 text-violet-600" />
+        <Kpi icon={CheckCircle2} label="Completed" value={all.completed} accent="bg-slate-100 text-slate-600" />
+        <Kpi icon={Clock} label="Pending payments" value={`${currency} ${money(payments.pending)}`} accent="bg-amber-50 text-amber-600" />
+      </div>
+
+      {/* Upcoming / Action required / Payment overview */}
+      <div className="mt-5 grid gap-5 lg:grid-cols-3">
+        <Card className="p-5">
+          <PanelHead title="Upcoming Services" href="/clientAllBookings" />
+          {upcoming.length === 0 ? (
+            <p className="py-6 text-center text-[12.5px] text-slate-400">Nothing scheduled in the coming days.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {upcoming.map((u) => (
+                <li key={`${u.type}-${u.id}`}>
+                  <Link href={u.url} className="flex items-center justify-between gap-2 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-[700] text-slate-900">{u.type}</p>
+                      <p className="truncate text-[11.5px] text-slate-500">{u.reference} · {fmtDate(u.date)}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-[700] capitalize ring-1 ring-inset ${STATUS_TONE[bucketOf(u.status)]}`}>
+                      {String(u.status).replace(/_/g, " ")}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <PanelHead title="Action Required" href="/clientAllBookings" />
+          {attentionItems.length === 0 ? (
+            <p className="py-6 text-center text-[12.5px] text-slate-400">You're all caught up.</p>
+          ) : (
+            <ul className="space-y-2">
+              {attentionItems.map((a) => (
+                <li key={`${a.type}-${a.id}`} className="flex items-center gap-2.5">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12.5px] font-[600] text-slate-800">{a.type} awaiting payment or approval</p>
+                    <p className="truncate text-[11.5px] text-slate-500">{a.reference}</p>
+                  </div>
+                  <Link href={a.url} className="shrink-0 rounded-md border border-blue-200 px-2.5 py-1 text-[11.5px] font-[700] text-blue-600 hover:bg-blue-50">Review</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="flex flex-col p-5">
+          <PanelHead title="Payment Overview" href="/client/wallet" label="View transactions" />
+          <dl className="space-y-2.5 text-[13px]">
+            <div className="flex justify-between"><dt className="text-slate-500">Paid</dt><dd className="font-[700] text-emerald-600">{currency} {money(payments.paid)}</dd></div>
+            <div className="flex justify-between"><dt className="text-slate-500">Pending Payments</dt><dd className="font-[700] text-amber-600">{currency} {money(payments.pending)}</dd></div>
+            <div className="flex justify-between"><dt className="text-slate-500">Refunds</dt><dd className="font-[700] text-slate-800">{currency} {money(payments.refunds)}</dd></div>
+            <div className="flex justify-between border-t border-slate-100 pt-2.5"><dt className="font-[600] text-slate-700">Outstanding</dt><dd className="font-[700] text-rose-600">{currency} {money(payments.pending)}</dd></div>
+          </dl>
+          <Link href="/client/wallet" className="mt-auto inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-[12.5px] font-[700] text-white hover:bg-blue-700">Make a Payment</Link>
+        </Card>
       </div>
 
       {/* Attention banner */}
@@ -356,6 +515,44 @@ const ClientCardDashboard = () => {
         {cards.map((c) => (
           <ServiceCard key={c.title} {...c} currency={currency} />
         ))}
+      </div>
+
+      {/* Analytics + shortcuts + help */}
+      <div className="mt-9 grid gap-5 lg:grid-cols-[1fr_320px]">
+        <Card className="p-5">
+          <PanelHead title="Monthly Booking Trends" />
+          <TrendChart trends={overview?.trends} />
+        </Card>
+        <div className="space-y-5">
+          <Card className="p-5">
+            <PanelHead title="Quick Shortcuts" />
+            <ul className="space-y-1">
+              {SHORTCUTS.map((x) => (
+                <li key={x.label}>
+                  <Link href={x.href} className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-[12.5px] font-[600] text-slate-700 hover:bg-slate-50">
+                    <x.icon className="h-4 w-4 text-slate-400" /> <span className="flex-1">{x.label}</span> <ArrowRight className="h-3.5 w-3.5 text-slate-300" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card className="p-5">
+            <PanelHead title="Need Help?" />
+            <ul className="space-y-2">
+              {HELP.map((x) => (
+                <li key={x.label}>
+                  <Link href={x.href} className="flex items-center gap-3">
+                    <span className={`flex h-9 w-9 items-center justify-center rounded-full ${x.tone}`}><x.icon className="h-4 w-4" /></span>
+                    <span><span className="block text-[12.5px] font-[700] text-slate-800">{x.label}</span><span className="block text-[11px] text-slate-500">{x.sub}</span></span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link href="/chat" className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-[700] text-rose-600 hover:bg-rose-100">
+              <Siren className="h-3.5 w-3.5" /> Emergency Support
+            </Link>
+          </Card>
+        </div>
       </div>
 
       {/* Recent activity */}

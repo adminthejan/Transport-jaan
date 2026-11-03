@@ -16,7 +16,7 @@ use App\Models\AirVehicleBookingCustomer;
 use App\Services\VehicleBookingCancellationService;
 use App\Services\WalletService;
 use App\Services\InsufficientWalletBalanceException;
-use App\Services\PayHereGatewayService;
+use App\Services\PaymentsLkGatewayService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -397,7 +397,7 @@ class ClientBookingController extends Controller
         $this->authorizeBooking($booking);
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'in:PayHere,Wallet'],
+            'payment_method' => ['required', 'in:Card,Wallet'],
             'payment_option' => ['required', 'in:full,advance'],
         ]);
 
@@ -413,7 +413,7 @@ class ClientBookingController extends Controller
         $deposit = round((float) ($booking->deposit_amount ?? 0), 2);
         $chargeNow = round((float) $payNow + $deposit, 2);
 
-        $isPayHere = $validated['payment_method'] === 'PayHere';
+        $isPayHere = $validated['payment_method'] === 'Card';
 
         try {
             DB::transaction(function () use ($booking, $validated, $chargeNow, $deposit, $request, $wallets, $isPayHere) {
@@ -438,12 +438,12 @@ class ClientBookingController extends Controller
                     // the charge went through. The booking itself stays 'pending' until then.
                     BookingPayment::create([
                         'booking_id'        => $booking->id,
-                        'method'            => 'PayHere',
+                        'method'            => 'Card',
                         'option'            => $validated['payment_option'],
                         'amount_paid'       => $chargeNow,
                         'status'            => BookingPayment::STATUS_PENDING,
                         'tx_reference'      => null,
-                        'provider'          => 'payhere',
+                        'provider'          => 'paymentslk',
                         'gateway_order_id'  => $this->generateGatewayOrderId('VEH'),
                         'initiated_at'      => now(),
                     ]);
@@ -1053,7 +1053,7 @@ class ClientBookingController extends Controller
         $this->authorizeAirVehicleBooking($airVehicleBooking);
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'in:PayHere,Wallet'],
+            'payment_method' => ['required', 'in:Card,Wallet'],
             'payment_option' => ['required', 'in:full,advance'],
         ]);
 
@@ -1069,7 +1069,7 @@ class ClientBookingController extends Controller
         $deposit = round((float) ($airVehicleBooking->deposit_amount ?? 0), 2);
         $chargeNow = round((float) $payNow + $deposit, 2);
 
-        $isPayHere = $validated['payment_method'] === 'PayHere';
+        $isPayHere = $validated['payment_method'] === 'Card';
 
         try {
             DB::transaction(function () use ($airVehicleBooking, $validated, $chargeNow, $deposit, $request, $wallets, $isPayHere) {
@@ -1087,12 +1087,12 @@ class ClientBookingController extends Controller
                 if ($isPayHere) {
                     AirVehicleBookingPayment::create([
                         'air_vehicle_booking_id' => $airVehicleBooking->id,
-                        'method'           => 'PayHere',
+                        'method'           => 'Card',
                         'option'           => $validated['payment_option'],
                         'amount_paid'      => $chargeNow,
                         'status'           => AirVehicleBookingPayment::STATUS_PENDING,
                         'tx_reference'     => null,
-                        'provider'         => 'payhere',
+                        'provider'         => 'paymentslk',
                         'gateway_order_id' => $this->generateGatewayOrderId('AIR'),
                         'initiated_at'     => now(),
                     ]);
@@ -1486,7 +1486,7 @@ class ClientBookingController extends Controller
         $this->authorizeSeaVehicleBooking($seaVehicleBooking);
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'in:PayHere,Wallet'],
+            'payment_method' => ['required', 'in:Card,Wallet'],
             'payment_option' => ['required', 'in:full,advance'],
         ]);
 
@@ -1502,7 +1502,7 @@ class ClientBookingController extends Controller
         $deposit = round((float) ($seaVehicleBooking->deposit_amount ?? 0), 2);
         $chargeNow = round((float) $payNow + $deposit, 2);
 
-        $isPayHere = $validated['payment_method'] === 'PayHere';
+        $isPayHere = $validated['payment_method'] === 'Card';
 
         try {
             DB::transaction(function () use ($seaVehicleBooking, $validated, $chargeNow, $deposit, $request, $wallets, $isPayHere) {
@@ -1520,12 +1520,12 @@ class ClientBookingController extends Controller
                 if ($isPayHere) {
                     SeaVehicleBookingPayment::create([
                         'sea_vehicle_booking_id' => $seaVehicleBooking->id,
-                        'method'           => 'PayHere',
+                        'method'           => 'Card',
                         'option'           => $validated['payment_option'],
                         'amount_paid'      => $chargeNow,
                         'status'           => SeaVehicleBookingPayment::STATUS_PENDING,
                         'tx_reference'     => null,
-                        'provider'         => 'payhere',
+                        'provider'         => 'paymentslk',
                         'gateway_order_id' => $this->generateGatewayOrderId('SEA'),
                         'initiated_at'     => now(),
                     ]);
@@ -1795,19 +1795,18 @@ class ClientBookingController extends Controller
         $booking->load('vehicle', 'schedule');
 
         $payment = BookingPayment::where('booking_id', $booking->id)->latest('id')->first();
-        if (!$payment || $payment->provider !== 'payhere') {
+        if (!$payment || $payment->provider !== 'paymentslk') {
             return redirect()->route('client.bookings.payments', $booking->id)
                 ->with('error', 'No PayHere payment is pending for this booking.');
         }
 
-        $gateway = app(PayHereGatewayService::class);
+        $gateway = app(PaymentsLkGatewayService::class);
         $checkout = $this->buildVehiclePayHereCheckout(
             $gateway,
             $payment,
             'Vehicle rental booking #' . $booking->id,
             'client.bookings.payhere.return',
             'client.bookings.payhere.cancel',
-            'client.bookings.payhere.notify',
             (string) ($booking->currency ?? 'LKR')
         );
 
@@ -1856,19 +1855,18 @@ class ClientBookingController extends Controller
         $airVehicleBooking->load('vehicle', 'schedule');
 
         $payment = AirVehicleBookingPayment::where('air_vehicle_booking_id', $airVehicleBooking->id)->latest('id')->first();
-        if (!$payment || $payment->provider !== 'payhere') {
+        if (!$payment || $payment->provider !== 'paymentslk') {
             return redirect()->route('client.airBookings.payments', $airVehicleBooking->id)
                 ->with('error', 'No PayHere payment is pending for this booking.');
         }
 
-        $gateway = app(PayHereGatewayService::class);
+        $gateway = app(PaymentsLkGatewayService::class);
         $checkout = $this->buildVehiclePayHereCheckout(
             $gateway,
             $payment,
             'Air vehicle booking #' . $airVehicleBooking->id,
             'client.airBookings.payhere.return',
             'client.airBookings.payhere.cancel',
-            'client.airBookings.payhere.notify',
             (string) ($airVehicleBooking->currency ?? 'LKR')
         );
 
@@ -1917,19 +1915,18 @@ class ClientBookingController extends Controller
         $seaVehicleBooking->load('vehicle', 'schedule');
 
         $payment = SeaVehicleBookingPayment::where('sea_vehicle_booking_id', $seaVehicleBooking->id)->latest('id')->first();
-        if (!$payment || $payment->provider !== 'payhere') {
+        if (!$payment || $payment->provider !== 'paymentslk') {
             return redirect()->route('client.seaBookings.payments', $seaVehicleBooking->id)
                 ->with('error', 'No PayHere payment is pending for this booking.');
         }
 
-        $gateway = app(PayHereGatewayService::class);
+        $gateway = app(PaymentsLkGatewayService::class);
         $checkout = $this->buildVehiclePayHereCheckout(
             $gateway,
             $payment,
             'Sea vehicle booking #' . $seaVehicleBooking->id,
             'client.seaBookings.payhere.return',
             'client.seaBookings.payhere.cancel',
-            'client.seaBookings.payhere.notify',
             (string) ($seaVehicleBooking->currency ?? 'LKR')
         );
 
@@ -1972,12 +1969,10 @@ class ClientBookingController extends Controller
     }
 
     /**
-     * PayHere's browser return URL — shared across land/air/sea, dispatched by
-     * the gateway_order_id prefix (VEH-/AIR-/SEA-). If the notify webhook
-     * already landed first (common — PayHere often fires it before the
-     * browser redirect completes) this just reflects the now-resolved state.
-     * Otherwise it verifies the signature itself, with the same sandbox
-     * fallback WalletController::handleReturn() uses.
+     * Browser return from Payments.lk — shared across land/air/sea, dispatched
+     * by the gateway_order_id prefix (VEH-/AIR-/SEA-). The redirect itself
+     * proves nothing: if the webhook hasn't landed yet, the checkout is
+     * re-read from the API and resolved here.
      */
     public function handlePayHereReturn(Request $request)
     {
@@ -1991,15 +1986,9 @@ class ClientBookingController extends Controller
         [$payment, $type, $booking] = $resolved;
 
         if ($payment->isPending()) {
-            $gateway = app(PayHereGatewayService::class);
-            $payload = $request->query();
-
-            if ($gateway->verifyNotifySignature($payload)) {
-                $this->applyResolvedVehiclePaymentStatus($gateway, $payment, $type, $booking, $payload);
-            } elseif ($this->isPayHereSandbox() && $request->query('status_code') === null) {
-                // Sandbox convenience: PayHere's sandbox return sometimes omits
-                // status_code/signature entirely on a successful test payment.
-                $this->markVehiclePaymentPaid($payment, $type, $booking, null, 'sandbox-return');
+            $result = app(PaymentsLkGatewayService::class)->fetchResult($payment);
+            if ($result !== null) {
+                $this->applyResolvedVehiclePaymentStatus($payment, $type, $booking, $result);
             }
         }
 
@@ -2008,7 +1997,7 @@ class ClientBookingController extends Controller
         ]);
     }
 
-    /** PayHere's browser cancel URL — shared across land/air/sea. */
+    /** Browser cancel URL — shared across land/air/sea. */
     public function handlePayHereCancel(Request $request)
     {
         $orderId = trim((string) $request->query('order_id', ''));
@@ -2017,7 +2006,7 @@ class ClientBookingController extends Controller
         if ($resolved) {
             [$payment, $type, $booking] = $resolved;
             if ($payment->isPending()) {
-                $payment->markFailed('Cancelled by customer at PayHere.');
+                $payment->markFailed('Cancelled by customer at Payments.lk.');
             }
 
             return redirect()->route($this->paymentsRouteNameFor($type), [
@@ -2028,32 +2017,18 @@ class ClientBookingController extends Controller
         return redirect('/')->with('error', 'Payment cancelled.');
     }
 
-    /**
-     * The actual PayHere webhook — shared across land/air/sea. PayHere expects
-     * a plain-text 200 response, not JSON.
-     */
-    public function handlePayHereNotify(Request $request)
+    /** Called by PaymentsLkWebhookController for VEH-/AIR-/SEA- references. */
+    public function applyPaymentsLkResult(array $result): void
     {
-        $payload = $request->all();
-        $orderId = trim((string) ($payload['order_id'] ?? ''));
-
-        $resolved = $this->resolveVehiclePaymentByOrderId($orderId);
+        $resolved = $this->resolveVehiclePaymentByOrderId($result['orderId']);
         if (!$resolved) {
-            Log::warning('PayHere vehicle notify: unknown order_id', ['order_id' => $orderId]);
-            return response('order not found', 404);
+            Log::warning('Payments.lk vehicle webhook: unknown order', ['order_id' => $result['orderId']]);
+
+            return;
         }
 
         [$payment, $type, $booking] = $resolved;
-
-        $gateway = app(PayHereGatewayService::class);
-        if (!$gateway->verifyNotifySignature($payload)) {
-            Log::warning('PayHere vehicle notify: signature mismatch', ['order_id' => $orderId]);
-            return response('invalid signature', 400);
-        }
-
-        $this->applyResolvedVehiclePaymentStatus($gateway, $payment, $type, $booking, $payload);
-
-        return response('OK', 200);
+        $this->applyResolvedVehiclePaymentStatus($payment, $type, $booking, $result);
     }
 
     public function releaseDeposit(Booking $booking, WalletService $wallets)
@@ -2186,67 +2161,21 @@ class ClientBookingController extends Controller
     }
 
     /**
-     * Verifies + cross-validates a PayHere notify/return payload against the
-     * expected order/amount/currency, then applies the resolved status.
-     * Locked + idempotent — mirrors WalletController::applyResolvedStatus().
+     * Cross-validates a Payments.lk result against the expected order/amount/
+     * currency, then applies it. Locked + idempotent.
      */
-    private function applyResolvedVehiclePaymentStatus(
-        PayHereGatewayService $gateway,
-        $payment,
-        string $type,
-        $booking,
-        array $payload
-    ): void {
-        $paymentClass = get_class($payment);
-
-        DB::transaction(function () use ($gateway, $paymentClass, $payment, $type, $booking, $payload) {
-            $locked = $paymentClass::where('id', $payment->id)->lockForUpdate()->first();
-            if (!$locked || $locked->isPaid()) {
-                return; // idempotent — already applied
-            }
-
-            $callbackLog = is_array($locked->callback_payload) ? $locked->callback_payload : [];
-            $callbackLog[] = ['at' => now()->toIso8601String(), 'payload' => $payload];
-            $locked->forceFill(['callback_payload' => $callbackLog, 'last_notified_at' => now()])->save();
-
-            $validation = $gateway->validateNotifyAgainstExpected($payload, [
-                'orderId' => (string) $locked->gateway_order_id,
-                'amount' => (float) $locked->amount_paid,
-                'currency' => (string) ($booking->currency ?? 'LKR'),
-            ]);
-
-            if (!$validation['isValid']) {
-                $locked->markFailed('Notify payload mismatch: ' . $validation['reason']);
-                return;
-            }
-
-            $status = $gateway->normalizeStatusFromNotify($payload);
-            $gatewayPaymentId = (string) ($payload['payment_id'] ?? '');
-
-            if ($status === 'paid') {
-                $locked->markPaid($gatewayPaymentId ?: null, $gatewayPaymentId ?: null, $status);
-                $this->confirmVehicleBookingAfterPayment($type, $booking);
-            } elseif (in_array($status, ['failed', 'cancelled'], true)) {
-                $locked->markFailed("PayHere status: {$status}", $status);
-            }
-            // 'pending' from PayHere just leaves it pending — nothing to do.
-        });
-    }
-
-    /** Sandbox-only fallback used when the return redirect carries no verifiable payload at all. */
-    private function markVehiclePaymentPaid($payment, string $type, $booking, ?string $gatewayPaymentId, ?string $gatewayStatus): void
+    private function applyResolvedVehiclePaymentStatus($payment, string $type, $booking, array $result): void
     {
-        $paymentClass = get_class($payment);
-
-        DB::transaction(function () use ($paymentClass, $payment, $type, $booking, $gatewayPaymentId, $gatewayStatus) {
-            $locked = $paymentClass::where('id', $payment->id)->lockForUpdate()->first();
-            if (!$locked || $locked->isPaid()) {
-                return;
-            }
-
-            $locked->markPaid($gatewayPaymentId, $gatewayPaymentId, $gatewayStatus);
-            $this->confirmVehicleBookingAfterPayment($type, $booking);
-        });
+        app(PaymentsLkGatewayService::class)->applyToLifecyclePayment(
+            $payment,
+            $result,
+            [
+                'orderId' => (string) $payment->gateway_order_id,
+                'amount' => (float) $payment->amount_paid,
+                'currency' => (string) ($booking->currency ?? 'LKR'),
+            ],
+            fn () => $this->confirmVehicleBookingAfterPayment($type, $booking)
+        );
     }
 
     /** Flips the owning booking to 'confirmed' once its PayHere payment clears. */
@@ -2304,29 +2233,25 @@ class ClientBookingController extends Controller
     }
 
     private function buildVehiclePayHereCheckout(
-        PayHereGatewayService $gateway,
+        PaymentsLkGatewayService $gateway,
         $payment,
         string $itemsLabel,
         string $returnRouteName,
         string $cancelRouteName,
-        string $notifyRouteName,
         string $currency = 'LKR'
     ): array {
         $user = Auth::user();
-        [$firstName, $lastName] = $gateway->splitName((string) ($user->name ?? 'Customer'));
 
-        return $gateway->buildCheckoutPayload([
+        return $gateway->checkoutFor($payment, [
             'orderId' => (string) $payment->gateway_order_id,
             'amount' => (float) $payment->amount_paid,
             'currency' => $currency,
-            'items' => $itemsLabel,
-            'returnUrl' => route($returnRouteName, ['order_id' => $payment->gateway_order_id]),
+            'description' => $itemsLabel,
+            'successUrl' => route($returnRouteName, ['order_id' => $payment->gateway_order_id]),
             'cancelUrl' => route($cancelRouteName, ['order_id' => $payment->gateway_order_id]),
-            'notifyUrl' => route($notifyRouteName),
-            'firstName' => $firstName,
-            'lastName' => $lastName,
-            'email' => (string) ($user->email ?? ''),
-            'phone' => (string) ($user->phone ?? ''),
+            'customerName' => (string) ($user->name ?? 'Customer'),
+            'customerEmail' => (string) ($user->email ?? ''),
+            'customerPhone' => (string) ($user->phone ?? ''),
         ]);
     }
 
@@ -2345,11 +2270,6 @@ class ClientBookingController extends Controller
     private function generateGatewayOrderId(string $prefix): string
     {
         return $prefix . '-' . now()->format('ymd') . '-' . strtoupper(Str::random(8));
-    }
-
-    private function isPayHereSandbox(): bool
-    {
-        return (bool) config('services.payhere.sandbox', true);
     }
 
     private function paymentsRouteNameFor(string $type): string

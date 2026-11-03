@@ -16,7 +16,7 @@ use App\Models\Courier\VendorCourierSetting;
 use App\Models\VendorServiceRegistration;
 use App\Services\Courier\CourierClientObservabilityService;
 use App\Services\Courier\CourierCustomerEmailDispatchService;
-use App\Services\Courier\PayHereGatewayService;
+use App\Services\Courier\CourierPaymentsLkService;
 use App\Support\Courier\ClientCourierShipmentTransformer;
 use App\Services\Courier\CourierVendorAssignmentService;
 use Illuminate\Http\Request;
@@ -143,6 +143,7 @@ class ClientCourierController extends Controller
         // Count by status
         $confirmedCount = $shipments->where('status', 'confirmed')->count();
         $inTransitCount = $shipments->where('status', 'in_transit')->count();
+        $outForDeliveryCount = $shipments->where('status', 'out_for_delivery')->count();
         $deliveredCount = $shipments->where('status', 'delivered')->count();
         $pendingCount = $shipments->where('status', 'pending')->count();
         $cancelledCount = $shipments->where('status', 'cancelled')->count();
@@ -198,6 +199,7 @@ class ClientCourierController extends Controller
                 'freight' => $freightCount,
                 'confirmed' => $confirmedCount,
                 'inTransit' => $inTransitCount,
+                'outForDelivery' => $outForDeliveryCount,
                 'delivered' => $deliveredCount,
                 'pending' => $pendingCount,
                 'cancelled' => $cancelledCount,
@@ -2647,10 +2649,7 @@ class ClientCourierController extends Controller
         $paymentOptions = (array) ($payload['shipment']['paymentOptions'] ?? []);
         $requiresCardPayment = (bool) ($payload['shipment']['requiresCardPayment'] ?? ($paymentOptions['card'] ?? false));
 
-        if ($requiresCardPayment && (
-            !(bool) config('courier.payments.enabled', false)
-            || !(bool) config('courier.payments.provider.payhere.enabled', false)
-        )) {
+        if ($requiresCardPayment && !app(CourierPaymentsLkService::class)->isEnabled()) {
             throw ValidationException::withMessages([
                 'shipment.paymentOptions.card' => 'Card payments are currently unavailable for courier bookings. Please choose a different payment option.',
             ]);
@@ -2846,7 +2845,7 @@ class ClientCourierController extends Controller
             $payment = CourierShipmentPayment::create([
                 'courier_shipment_id' => (int) $shipment->id,
                 'requested_by_user_id' => Auth::id(),
-                'provider' => CourierShipmentPayment::PROVIDER_PAYHERE,
+                'provider' => CourierShipmentPayment::PROVIDER_PAYMENTSLK,
                 'payment_method' => CourierShipmentPayment::PAYMENT_METHOD_CARD,
                 'is_required' => true,
                 'amount' => round($checkoutAmount, 2),
@@ -2867,7 +2866,7 @@ class ClientCourierController extends Controller
             $request->session()->flash('courier_pricing_explanation', $pricingExplanation);
             $this->rememberGuestBillAccess($request, (int) $shipment->id);
 
-            $gateway = app(PayHereGatewayService::class);
+            $gateway = app(CourierPaymentsLkService::class);
             $checkout = $gateway->buildCheckoutPayload($payment, $shipment, Auth::user());
 
             if ($request->expectsJson()) {
@@ -2894,7 +2893,7 @@ class ClientCourierController extends Controller
 
             $response = redirect()
                 ->route('couriers.payments.checkout', ['shipment' => (int) $shipment->id])
-                ->with('success', 'Courier request submitted. Complete PayHere payment to continue processing.')
+                ->with('success', 'Courier request submitted. Complete the card payment to continue processing.')
                 ->with('courier_reference', $shipment->reference)
                 ->with('courier_bill_id', $shipment->id);
 
@@ -3584,12 +3583,12 @@ class ClientCourierController extends Controller
         $category = $this->resolvePayloadCategory($payload);
         $selectedCurrency = strtoupper(trim((string) ($payload['shipment']['currency'] ?? '')));
 
-        $domesticCurrency = strtoupper(trim((string) config('courier.payments.provider.payhere.domestic_currency', 'LKR')));
+        $domesticCurrency = strtoupper(trim((string) config('courier.payments.provider.paymentslk.domestic_currency', 'LKR')));
         if ($category === 'domestic') {
             return [$domesticCurrency !== '' ? $domesticCurrency : 'LKR', null, false];
         }
 
-        $supportedInternationalCurrencies = collect(config('courier.payments.provider.payhere.supported_international_currencies', ['USD']))
+        $supportedInternationalCurrencies = collect(config('courier.payments.provider.paymentslk.supported_international_currencies', ['USD']))
             ->map(fn($currency) => strtoupper(trim((string) $currency)))
             ->filter(fn($currency) => $currency !== '')
             ->values();
@@ -3598,7 +3597,7 @@ class ClientCourierController extends Controller
             return [$selectedCurrency, null, false];
         }
 
-        $fallbackCurrency = strtoupper(trim((string) config('courier.payments.provider.payhere.international_fallback_currency', 'USD')));
+        $fallbackCurrency = strtoupper(trim((string) config('courier.payments.provider.paymentslk.international_fallback_currency', 'USD')));
         $fallbackCurrency = $fallbackCurrency !== '' ? $fallbackCurrency : 'USD';
 
         $warning = $selectedCurrency !== ''

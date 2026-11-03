@@ -266,7 +266,7 @@ class CourierCustomerEmailDispatchServiceTest extends TestCase
         $payment = CourierShipmentPayment::query()->create([
             'courier_shipment_id' => (int) $shipment->id,
             'requested_by_user_id' => (int) $requester->id,
-            'provider' => CourierShipmentPayment::PROVIDER_PAYHERE,
+            'provider' => CourierShipmentPayment::PROVIDER_PAYMENTSLK,
             'payment_method' => CourierShipmentPayment::PAYMENT_METHOD_CARD,
             'is_required' => true,
             'amount' => 2500,

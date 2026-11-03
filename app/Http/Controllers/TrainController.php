@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 use App\Services\CancellationPolicyService;
-use App\Services\PayHereGatewayService;
+use App\Services\PaymentsLkGatewayService;
 use App\Services\WalletService;
 use App\Services\InsufficientWalletBalanceException;
 
@@ -385,7 +385,7 @@ class TrainController extends Controller
             'adults' => 'required|integer|min:1',
             'children' => 'nullable|integer|min:0',
             'infants' => 'nullable|integer|min:0',
-            'payment_method' => 'required|in:PayHere,Wallet',
+            'payment_method' => 'required|in:Card,Wallet',
         ]);
 
         $isRoundTrip = (bool) $request->return_schedule_id;
@@ -472,11 +472,11 @@ class TrainController extends Controller
                     // protected by their existing 15-minute expires_at hold.
                     TrainBookingPayment::create([
                         'train_booking_id' => $outbound->id,
-                        'method' => 'PayHere',
+                        'method' => 'Card',
                         'option' => 'full',
                         'amount_paid' => $combinedTotal,
                         'status' => TrainBookingPayment::STATUS_PENDING,
-                        'provider' => 'payhere',
+                        'provider' => 'paymentslk',
                         'gateway_order_id' => $this->generateTrainPaymentOrderId(),
                         'initiated_at' => now(),
                     ]);
@@ -495,7 +495,7 @@ class TrainController extends Controller
                 'payment_method' => $paymentMethod,
             ]);
 
-            if ($paymentMethod === 'PayHere') {
+            if ($paymentMethod === 'Card') {
                 $redirectUrl = route('train-bookings.payhere.checkout', ['booking' => $booking->id]);
                 $message = 'Booking created. Continue with PayHere to complete your payment.';
 
@@ -594,15 +594,15 @@ class TrainController extends Controller
 
     /**
      * Render the PayHere checkout step for a train booking (or round-trip
-     * pair) created with payment_method = 'PayHere'. Mirrors
+     * pair) created with payment_method = 'Card'. Mirrors
      * WarehouseBookingController::paymentCheckout(). The payment row lives on
      * the outbound leg and covers the combined total of both legs.
      */
-    public function paymentCheckout(Request $request, TrainBooking $booking, PayHereGatewayService $gateway)
+    public function paymentCheckout(Request $request, TrainBooking $booking, PaymentsLkGatewayService $gateway)
     {
         abort_unless(Auth::check() && (int) $booking->user_id === (int) Auth::id(), 403);
 
-        $payment = $booking->payments()->where('method', 'PayHere')->latest('id')->first();
+        $payment = $booking->payments()->where('method', 'Card')->latest('id')->first();
         if (!$payment) {
             abort(404);
         }
@@ -641,7 +641,7 @@ class TrainController extends Controller
     {
         abort_unless(Auth::check() && (int) $booking->user_id === (int) Auth::id(), 403);
 
-        $payment = $booking->payments()->where('method', 'PayHere')->latest('id')->first();
+        $payment = $booking->payments()->where('method', 'Card')->latest('id')->first();
         if (!$payment) {
             abort(404);
         }
@@ -659,7 +659,7 @@ class TrainController extends Controller
     {
         abort_unless(Auth::check() && (int) $booking->user_id === (int) Auth::id(), 403);
 
-        $payment = $booking->payments()->where('method', 'PayHere')->latest('id')->first();
+        $payment = $booking->payments()->where('method', 'Card')->latest('id')->first();
         if (!$payment) {
             return response()->json(['success' => false, 'message' => 'No PayHere payment found for this booking.'], 422);
         }
@@ -702,11 +702,10 @@ class TrainController extends Controller
     }
 
     /**
-     * PayHere's browser return URL. If the notify webhook already landed
-     * first this just reflects the now-completed state; otherwise it verifies
-     * the signature itself (with a sandbox fallback, same as
-     * WalletController::handleReturn()) so the customer isn't stuck looking
-     * "pending" until the async webhook shows up.
+     * Browser return from Payments.lk. The redirect itself proves nothing, so
+     * if the webhook hasn't landed yet the checkout is re-read from the API
+     * and resolved here; either way the customer ends up on the checkout page
+     * that reflects the current state.
      */
     public function handlePayHereReturn(Request $request)
     {
@@ -723,21 +722,9 @@ class TrainController extends Controller
         }
 
         if ($payment->isPending()) {
-            $gateway = app(PayHereGatewayService::class);
-            $payload = $request->query();
-
-            if ($gateway->verifyNotifySignature($payload)) {
-                $this->applyResolvedTrainPaymentStatus($gateway, $payment, $booking, $payload);
-            } elseif ($this->isTrainPayHereSandbox() && $request->query('status_code') === null) {
-                // Sandbox convenience: PayHere's sandbox return sometimes omits
-                // status_code/signature entirely on a successful test payment.
-                DB::transaction(function () use ($payment, $booking) {
-                    $locked = TrainBookingPayment::where('id', $payment->id)->lockForUpdate()->first();
-                    if ($locked && $locked->isPending()) {
-                        $locked->markPaid(null, null, 'sandbox-return');
-                        $this->confirmTrainBookingAfterPayment($booking);
-                    }
-                });
+            $result = app(PaymentsLkGatewayService::class)->fetchResult($payment);
+            if ($result !== null) {
+                $this->applyResolvedTrainPaymentStatus($payment, $booking, $result);
             }
         }
 
@@ -750,77 +737,38 @@ class TrainController extends Controller
         $payment = TrainBookingPayment::where('gateway_order_id', $orderId)->first();
 
         if ($payment && $payment->isPending()) {
-            $payment->markFailed('Cancelled by customer at PayHere.');
+            $payment->markFailed('Cancelled by customer at Payments.lk.');
         }
 
         return redirect()->route('TrainTicketBookingDetails.TrainTicketBookingDetails')->with('error', 'Payment cancelled.');
     }
 
-    /**
-     * The actual webhook. PayHere expects a plain-text 200 response, not JSON.
-     */
-    public function handlePayHereNotify(Request $request)
+    /** Called by PaymentsLkWebhookController for TRP-* references. */
+    public function applyPaymentsLkResult(array $result): void
     {
-        $payload = $request->all();
-        $orderId = trim((string) ($payload['order_id'] ?? ''));
+        $payment = TrainBookingPayment::where('gateway_order_id', $result['orderId'])->first();
+        $booking = $payment ? TrainBooking::find($payment->train_booking_id) : null;
+        if (!$payment || !$booking) {
+            Log::warning('Payments.lk train webhook: unknown order', ['order_id' => $result['orderId']]);
 
-        $payment = TrainBookingPayment::where('gateway_order_id', $orderId)->first();
-        if (!$payment) {
-            Log::warning('PayHere train notify: unknown order_id', ['order_id' => $orderId]);
-            return response('order not found', 404);
+            return;
         }
 
-        $booking = TrainBooking::find($payment->train_booking_id);
-        if (!$booking) {
-            Log::warning('PayHere train notify: booking missing for payment', ['payment_id' => $payment->id]);
-            return response('booking not found', 404);
-        }
-
-        $gateway = app(PayHereGatewayService::class);
-        if (!$gateway->verifyNotifySignature($payload)) {
-            Log::warning('PayHere train notify: signature mismatch', ['order_id' => $orderId]);
-            return response('invalid signature', 400);
-        }
-
-        $this->applyResolvedTrainPaymentStatus($gateway, $payment, $booking, $payload);
-
-        return response('OK', 200);
+        $this->applyResolvedTrainPaymentStatus($payment, $booking, $result);
     }
 
-    private function applyResolvedTrainPaymentStatus(PayHereGatewayService $gateway, TrainBookingPayment $payment, TrainBooking $booking, array $payload): void
+    private function applyResolvedTrainPaymentStatus(TrainBookingPayment $payment, TrainBooking $booking, array $result): void
     {
-        DB::transaction(function () use ($gateway, $payment, $booking, $payload) {
-            $locked = TrainBookingPayment::where('id', $payment->id)->lockForUpdate()->first();
-            if (!$locked || $locked->isPaid()) {
-                return; // idempotent — already applied
-            }
-
-            $callbackLog = is_array($locked->callback_payload) ? $locked->callback_payload : [];
-            $callbackLog[] = ['at' => now()->toIso8601String(), 'payload' => $payload];
-            $locked->forceFill(['callback_payload' => $callbackLog, 'last_notified_at' => now()])->save();
-
-            $validation = $gateway->validateNotifyAgainstExpected($payload, [
-                'orderId' => (string) $locked->gateway_order_id,
-                'amount' => (float) $locked->amount_paid,
+        app(PaymentsLkGatewayService::class)->applyToLifecyclePayment(
+            $payment,
+            $result,
+            [
+                'orderId' => (string) $payment->gateway_order_id,
+                'amount' => (float) $payment->amount_paid,
                 'currency' => 'LKR',
-            ]);
-
-            if (!$validation['isValid']) {
-                $locked->markFailed('Notify payload mismatch: ' . $validation['reason']);
-                return;
-            }
-
-            $status = $gateway->normalizeStatusFromNotify($payload);
-            $gatewayPaymentId = (string) ($payload['payment_id'] ?? '');
-
-            if ($status === 'paid') {
-                $locked->markPaid($gatewayPaymentId ?: null, $gatewayPaymentId ?: null, $status);
-                $this->confirmTrainBookingAfterPayment($booking);
-            } elseif (in_array($status, ['failed', 'cancelled'], true)) {
-                $locked->markFailed("PayHere status: {$status}", $status);
-            }
-            // 'pending' from PayHere just leaves it pending — nothing to do.
-        });
+            ],
+            fn () => $this->confirmTrainBookingAfterPayment($booking)
+        );
     }
 
     /**
@@ -837,23 +785,20 @@ class TrainController extends Controller
         TrainBooking::whereIn('id', $ids)->update(['status' => 'confirmed', 'payment_status' => 'paid']);
     }
 
-    private function buildTrainCheckout(PayHereGatewayService $gateway, TrainBooking $booking, TrainBookingPayment $payment): array
+    private function buildTrainCheckout(PaymentsLkGatewayService $gateway, TrainBooking $booking, TrainBookingPayment $payment): array
     {
         $user = Auth::user();
-        [$firstName, $lastName] = $gateway->splitName((string) ($booking->passenger_name ?: ($user->name ?? 'Customer')));
 
-        return $gateway->buildCheckoutPayload([
+        return $gateway->checkoutFor($payment, [
             'orderId' => (string) $payment->gateway_order_id,
             'amount' => (float) $payment->amount_paid,
             'currency' => 'LKR',
-            'items' => 'Train booking #' . $booking->booking_reference,
-            'returnUrl' => route('train-bookings.payhere.return', ['order_id' => $payment->gateway_order_id]),
+            'description' => 'Train booking #' . $booking->booking_reference,
+            'successUrl' => route('train-bookings.payhere.return', ['order_id' => $payment->gateway_order_id]),
             'cancelUrl' => route('train-bookings.payhere.cancel', ['order_id' => $payment->gateway_order_id]),
-            'notifyUrl' => route('train-bookings.payhere.notify'),
-            'firstName' => $firstName,
-            'lastName' => $lastName,
-            'email' => (string) ($booking->passenger_email ?: ($user->email ?? '')),
-            'phone' => (string) ($booking->passenger_phone ?: ''),
+            'customerName' => (string) ($booking->passenger_name ?: ($user->name ?? 'Customer')),
+            'customerEmail' => (string) ($booking->passenger_email ?: ($user->email ?? '')),
+            'customerPhone' => (string) ($booking->passenger_phone ?: ''),
         ]);
     }
 
@@ -895,11 +840,6 @@ class TrainController extends Controller
         // (BookingReferenceGenerator::forTrain()) — this is the PayHere
         // *payment* order id, a separate identifier space.
         return 'TRP-' . now()->format('ymd') . '-' . strtoupper(Str::random(8));
-    }
-
-    private function isTrainPayHereSandbox(): bool
-    {
-        return (bool) config('services.payhere.sandbox', true);
     }
 
     public function bookingSuccess($reference)

@@ -378,7 +378,7 @@ class VendorCourierDashboardController extends Controller
                     );
                 },
             ])
-            ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
+            ->whereIn('provider', CourierShipmentPayment::CARD_PROVIDERS)
             ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
             ->whereHas('shipment', function (Builder $shipmentQuery) use ($vendorId, $scope, $request, $dataScopeConstraints, $approvedCategories, $filters) {
                 $shipmentQuery->where('assigned_vendor_user_id', $vendorId);

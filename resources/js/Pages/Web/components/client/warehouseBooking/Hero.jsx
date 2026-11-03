@@ -199,6 +199,10 @@ const Hero = () => {
     const upcoming = dashboard?.upcoming ?? [];
     const billing = dashboard?.billing ?? {};
     const documents = dashboard?.documents ?? [];
+    const occupancy = dashboard?.occupancy ?? { occupied: 0, reserved: 0, available: 0, capacity: 0, percent: 0 };
+    const operations = dashboard?.operations ?? [];
+    const storageTypes = dashboard?.storageTypes ?? [];
+    const alerts = dashboard?.alerts ?? [];
     const filtersData = dashboard?.filters ?? {
         types: [],
         locations: [],
@@ -1454,6 +1458,112 @@ const Hero = () => {
                                     ))
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mb-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <h3 className="text-[15px] font-[700] text-slate-800">Warehouse Occupancy Overview</h3>
+                        <p className="text-[12px] text-slate-400 mb-2">Space across your booked warehouses (sq ft)</p>
+                        {occupancy.capacity <= 0 ? (
+                            <p className="text-[12px] text-slate-400 text-center py-16">No booked space yet.</p>
+                        ) : (
+                            <div className="flex items-center gap-4">
+                                <div className="relative h-[150px] w-[150px] shrink-0">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={[
+                                                    { name: "Occupied", value: occupancy.occupied },
+                                                    { name: "Reserved", value: occupancy.reserved },
+                                                    { name: "Available", value: occupancy.available },
+                                                ]}
+                                                innerRadius={48} outerRadius={68} paddingAngle={2} dataKey="value" stroke="none"
+                                            >
+                                                <Cell fill="#6366f1" />
+                                                <Cell fill="#f59e0b" />
+                                                <Cell fill="#10b981" />
+                                            </Pie>
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                                        <span className="text-[20px] font-[700] text-slate-900">{occupancy.percent}%</span>
+                                        <span className="text-[10px] text-slate-400">Occupied</span>
+                                    </div>
+                                </div>
+                                <ul className="flex-1 space-y-1.5 text-[12px]">
+                                    {[["Occupied", occupancy.occupied, "#6366f1"], ["Available", occupancy.available, "#10b981"], ["Reserved", occupancy.reserved, "#f59e0b"]].map(([l, v, c]) => (
+                                        <li key={l} className="flex items-center justify-between">
+                                            <span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />{l}</span>
+                                            <span className="font-[600] text-slate-700">{Number(v).toLocaleString()} sq ft</span>
+                                        </li>
+                                    ))}
+                                    <li className="flex items-center justify-between border-t border-slate-100 pt-1.5 font-[700] text-slate-800">
+                                        <span>Total capacity</span><span>{Number(occupancy.capacity).toLocaleString()} sq ft</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <h3 className="text-[15px] font-[700] text-slate-800">Upcoming Operations</h3>
+                        <p className="text-[12px] text-slate-400 mb-3">Move-ins and move-outs in the next 30 days</p>
+                        {operations.length === 0 ? (
+                            <p className="text-[12px] text-slate-400 text-center py-12">No operations scheduled.</p>
+                        ) : (
+                            <ul className="space-y-2.5">
+                                {operations.slice(0, 5).map((o, i) => (
+                                    <li key={`${o.reference}-${o.kind}-${i}`} className="flex items-center gap-3">
+                                        <span className="w-10 shrink-0 rounded-lg bg-slate-50 py-1 text-center text-[10px] font-[700] uppercase text-slate-500">
+                                            {new Date(o.date).toLocaleDateString(undefined, { day: "2-digit", month: "short" })}
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block text-[12.5px] font-[700] text-slate-800">{o.kind}</span>
+                                            <span className="block truncate text-[11.5px] text-slate-500">{o.warehouse || o.reference}</span>
+                                        </span>
+                                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10.5px] font-[600] capitalize text-slate-600">{o.status}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-center">
+                            <div><p className="text-[18px] font-[700] text-slate-900">{operations.filter((o) => o.kind === "Move in").length}</p><p className="text-[11px] text-slate-500">Scheduled arrivals</p></div>
+                            <div><p className="text-[18px] font-[700] text-slate-900">{operations.filter((o) => o.kind === "Move out").length}</p><p className="text-[11px] text-slate-500">Scheduled dispatches</p></div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-5">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                            <h3 className="text-[15px] font-[700] text-slate-800 mb-3">Storage Types</h3>
+                            {storageTypes.length === 0 ? (
+                                <p className="text-[12px] text-slate-400">No bookings yet.</p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {storageTypes.map((t) => (
+                                        <span key={t.type} className="rounded-xl border border-slate-200 px-3 py-1.5 text-center">
+                                            <span className="block text-[12px] font-[700] capitalize text-slate-800">{String(t.type).replace(/_/g, " ")}</span>
+                                            <span className="block text-[10.5px] text-slate-500">{t.count} booking{t.count === 1 ? "" : "s"}</span>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                            <h3 className="text-[15px] font-[700] text-slate-800 mb-3">Alerts &amp; Notifications</h3>
+                            {alerts.length === 0 ? (
+                                <p className="text-[12px] text-slate-400">Nothing needs your attention.</p>
+                            ) : (
+                                <ul className="space-y-2.5">
+                                    {alerts.map((a, i) => (
+                                        <li key={i} className="flex items-start gap-2.5">
+                                            <AlertTriangle className={`mt-0.5 h-4 w-4 shrink-0 ${a.level === "danger" ? "text-rose-500" : a.level === "info" ? "text-blue-500" : "text-amber-500"}`} />
+                                            <span><span className="block text-[12.5px] font-[700] text-slate-800">{a.title}</span><span className="block text-[11.5px] text-slate-500">{a.detail}</span></span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
                     </div>
                 </div>

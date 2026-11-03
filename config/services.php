@@ -40,12 +40,26 @@ return [
         'break_glass_webhook_url' => env('COURIER_BREAK_GLASS_WEBHOOK_URL', ''),
     ],
 
-    'payhere' => [
-        'merchant_id' => env('PAYHERE_MERCHANT_ID'),
-        'merchant_secret' => env('PAYHERE_MERCHANT_SECRET'),
-        'sandbox' => (bool) env('PAYHERE_SANDBOX', true),
-        'checkout_base_url' => env('PAYHERE_CHECKOUT_BASE_URL', 'https://sandbox.payhere.lk/pay/checkout'),
-        'notify_secret' => env('PAYHERE_NOTIFY_SECRET', env('PAYHERE_MERCHANT_SECRET')),
+    'paymentslk' => [
+        // sk_test_... = sandbox, sk_live_... = live. Server-side only.
+        'secret_key' => env('PAYMENTSLK_SECRET_KEY'),
+        // whsec_... signing secret of the webhook endpoint (Dashboard > Developers).
+        'webhook_secret' => env('PAYMENTSLK_WEBHOOK_SECRET'),
+        'api_base' => env('PAYMENTSLK_API_BASE', 'https://api.payments.lk'),
+        'checkout_expiry_minutes' => (int) env('PAYMENTSLK_CHECKOUT_EXPIRY_MINUTES', 60),
+
+        // order-id prefix => [controller, method] that applies a webhook result.
+        // Every handler is `applyPaymentsLkResult(array $result): void`.
+        'handlers' => [
+            'CPH' => [\App\Http\Controllers\CourierControllers\Client\CourierPaymentController::class, 'applyPaymentsLkResult'],
+            'WTP' => [\App\Http\Controllers\Client\WalletController::class, 'applyPaymentsLkResult'],
+            'VEH' => [\App\Http\Controllers\VehicleControllers\Client\ClientBookingController::class, 'applyPaymentsLkResult'],
+            'AIR' => [\App\Http\Controllers\VehicleControllers\Client\ClientBookingController::class, 'applyPaymentsLkResult'],
+            'SEA' => [\App\Http\Controllers\VehicleControllers\Client\ClientBookingController::class, 'applyPaymentsLkResult'],
+            'BUP' => [\App\Http\Controllers\BusBookingController::class, 'applyPaymentsLkResult'],
+            'TRP' => [\App\Http\Controllers\TrainController::class, 'applyPaymentsLkResult'],
+            'WHP' => [\App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController::class, 'applyPaymentsLkResult'],
+        ],
     ],
 
     'zipcodebase' => [

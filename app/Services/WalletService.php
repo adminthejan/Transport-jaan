@@ -70,7 +70,7 @@ class WalletService
 
     /**
      * Start a real (gateway-backed) top-up: records a 'pending' transaction
-     * with the PayHere order id, but does NOT touch the wallet balance yet
+     * with the Payments.lk order id, but does NOT touch the wallet balance yet
      * — that only happens in completeTopup(), once the webhook confirms the
      * charge actually went through. Unlike credit(), which is used for
      * instant/trusted credits (refunds, admin adjustments).
@@ -89,15 +89,15 @@ class WalletService
             'amount' => $amount,
             'balance_after' => $wallet->balance, // unchanged until completed
             'status' => 'pending',
-            'description' => 'Wallet top-up via PayHere',
-            'provider' => 'payhere',
+            'description' => 'Wallet top-up via Payments.lk',
+            'provider' => 'paymentslk',
             'gateway_order_id' => $orderId,
             'initiated_at' => now(),
         ]);
     }
 
     /**
-     * Confirm a pending top-up once PayHere's webhook/return verifies the
+     * Confirm a pending top-up once the Payments.lk webhook/return verifies the
      * charge — credits the wallet and completes the transaction. Idempotent:
      * safe to call more than once for the same transaction (e.g. both the
      * browser return and the async webhook resolve it).

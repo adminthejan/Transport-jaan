@@ -75,7 +75,7 @@ const TrainTicketBookingPreviewInner = () => {
         children: passengers.children || 0,
         infants: passengers.infants || 0,
         luggage: 'none',
-        payment_method: 'PayHere',
+        payment_method: 'Card',
     });
 
     const nicError = data.passenger_nic ? validateNic(data.passenger_nic) : null;
@@ -232,9 +232,9 @@ const TrainTicketBookingPreviewInner = () => {
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => setData('payment_method', 'PayHere')}
+                                            onClick={() => setData('payment_method', 'Card')}
                                             className={`rounded-[10px] border px-3 py-3 text-[13px] font-[700] transition-colors ${
-                                                data.payment_method === 'PayHere'
+                                                data.payment_method === 'Card'
                                                     ? 'border-[#0955AC] bg-[#0955AC]/10 text-[#0955AC]'
                                                     : 'border-[#E2E8F0] text-[#64748B] hover:border-[#0955AC]/40'
                                             }`}

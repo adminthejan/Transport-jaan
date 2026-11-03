@@ -56,6 +56,7 @@ const statusMap = {
     pending: { label: "Pending", tone: "bg-amber-50 text-amber-700 border-amber-200" },
     confirmed: { label: "Confirmed", tone: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     in_transit: { label: "In Transit", tone: "bg-blue-50 text-blue-700 border-blue-200" },
+    out_for_delivery: { label: "Out for Delivery", tone: "bg-violet-50 text-violet-700 border-violet-200" },
     delivered: { label: "Delivered", tone: "bg-green-50 text-green-700 border-green-200" },
     cancelled: { label: "Cancelled", tone: "bg-rose-50 text-rose-700 border-rose-200" },
 };
@@ -210,6 +211,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
         total: statistics.total || 0,
         confirmed: statistics.confirmed || 0,
         inTransit: statistics.inTransit || 0,
+        outForDelivery: statistics.outForDelivery || 0,
         delivered: statistics.delivered || 0,
         pending: statistics.pending || 0,
         cancelled: statistics.cancelled || 0,
@@ -244,6 +246,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
 
     const totalTrend = useMemo(() => buildMonthlyTrend(shipments, () => true), [shipments]);
     const inTransitTrend = useMemo(() => buildMonthlyTrend(shipments, (s) => s.status === "in_transit"), [shipments]);
+    const outForDeliveryTrend = useMemo(() => buildMonthlyTrend(shipments, (s) => s.status === "out_for_delivery"), [shipments]);
     const pendingTrend = useMemo(() => buildMonthlyTrend(shipments, (s) => s.status === "pending"), [shipments]);
     const deliveredTrend = useMemo(() => buildMonthlyTrend(shipments, (s) => s.status === "delivered"), [shipments]);
     const cancelledTrend = useMemo(() => buildMonthlyTrend(shipments, (s) => s.status === "cancelled"), [shipments]);
@@ -252,6 +255,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
         { id: "total", label: "Total Shipments", sub: "Documents • Parcels • Freight", value: stats.total, icon: Package, tint: "bg-blue-50 text-blue-600", color: "#3b82f6", trend: totalTrend },
         { id: "transit", label: "In Transit", sub: "Shipments on the way", value: stats.inTransit, icon: Truck, tint: "bg-indigo-50 text-indigo-600", color: "#6366f1", trend: inTransitTrend },
         { id: "pending", label: "Pending", sub: "Awaiting pickup/payment", value: stats.pending, icon: Clock, tint: "bg-amber-50 text-amber-600", color: "#f59e0b", trend: pendingTrend },
+        { id: "out", label: "Out for Delivery", sub: "On delivery", value: stats.outForDelivery, icon: Truck, tint: "bg-violet-50 text-violet-600", color: "#8b5cf6", trend: outForDeliveryTrend },
         { id: "delivered", label: "Delivered", sub: "Successfully delivered", value: stats.delivered, icon: FileText, tint: "bg-emerald-50 text-emerald-600", color: "#10b981", trend: deliveredTrend },
         { id: "cancelled", label: "Cancelled", sub: "Cancelled shipments", value: stats.cancelled, icon: X, tint: "bg-rose-50 text-rose-600", color: "#f43f5e", trend: cancelledTrend },
     ];
@@ -500,7 +504,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                 </div>
 
                 {/* KPI cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-5">
+                <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-5">
                     {kpiCards.map((card) => (
                         <div key={card.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between gap-2">
                             <div className="min-w-0">
@@ -564,6 +568,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                                             <option value="pending">Pending</option>
                                             <option value="confirmed">Confirmed</option>
                                             <option value="in_transit">In Transit</option>
+                                            <option value="out_for_delivery">Out for Delivery</option>
                                             <option value="delivered">Delivered</option>
                                             <option value="cancelled">Cancelled</option>
                                         </select>

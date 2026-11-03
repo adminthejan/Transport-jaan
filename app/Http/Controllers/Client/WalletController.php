@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\WalletTransaction;
-use App\Services\PayHereGatewayService;
+use App\Services\PaymentsLkGatewayService;
 use App\Services\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -57,7 +57,7 @@ class WalletController extends Controller
 
     /**
      * Start a real top-up: creates a 'pending' WalletTransaction (no balance
-     * change yet) and sends the customer to the PayHere checkout page. The
+     * change yet) and sends the customer to the Payments.lk checkout page. The
      * wallet is only actually credited once handleNotify()/handleReturn()
      * confirm the charge — see WalletService::completeTopup().
      */
@@ -81,8 +81,10 @@ class WalletController extends Controller
         $tx = WalletTransaction::whereHas('wallet', fn ($q) => $q->where('user_id', $user->id))
             ->findOrFail($transaction);
 
-        $gateway = app(PayHereGatewayService::class);
-        $checkout = $this->buildCheckout($gateway, $tx, $user);
+        $gateway = app(PaymentsLkGatewayService::class);
+        $checkout = $tx->status === 'pending'
+            ? $this->buildCheckout($gateway, $tx, $user)
+            : ['isReady' => false, 'reason' => null, 'checkoutUrl' => null, 'checkoutId' => null, 'method' => 'GET', 'fields' => []];
 
         $payload = [
             'transaction' => $this->serializeTransaction($tx),
@@ -108,11 +110,10 @@ class WalletController extends Controller
     }
 
     /**
-     * PayHere's browser return URL. If the notify webhook already landed
-     * first (common — PayHere often fires it before the browser redirect
-     * completes), this just reflects the now-completed state. Otherwise it
-     * verifies the signature itself so the customer isn't stuck looking
-     * "pending" until the async webhook shows up.
+     * Browser return from Payments.lk. The redirect itself proves nothing, so
+     * if the webhook hasn't landed yet the checkout is re-read from the API
+     * and resolved here; either way the customer ends up on the checkout page
+     * that reflects the current state.
      */
     public function handleReturn(Request $request)
     {
@@ -124,16 +125,9 @@ class WalletController extends Controller
         }
 
         if ($tx->status === 'pending') {
-            $gateway = app(PayHereGatewayService::class);
-            $payload = $request->query();
-
-            if ($gateway->verifyNotifySignature($payload)) {
-                $this->applyResolvedStatus($gateway, $tx, $payload);
-            } elseif ($this->isSandbox() && $request->query('status_code') === null) {
-                // Sandbox convenience: PayHere's sandbox return sometimes omits
-                // status_code/signature entirely on a successful test payment.
-                // Same workaround CourierPaymentController uses.
-                $this->wallets->completeTopup($tx, null, 'sandbox-return');
+            $result = app(PaymentsLkGatewayService::class)->fetchResult($tx);
+            if ($result !== null) {
+                $this->applyResolvedStatus($tx, $result);
             }
         }
 
@@ -146,88 +140,76 @@ class WalletController extends Controller
         $tx = WalletTransaction::where('gateway_order_id', $orderId)->first();
 
         if ($tx && $tx->status === 'pending') {
-            $this->wallets->failTopup($tx, 'Cancelled by customer at PayHere.');
+            $this->wallets->failTopup($tx, 'Cancelled by customer at Payments.lk.');
         }
 
         return redirect()->route('client.wallet.dashboard')->with('error', 'Top-up cancelled.');
     }
 
-    /**
-     * The actual webhook. PayHere expects a plain-text 200 response, not JSON.
-     */
-    public function handleNotify(Request $request)
+    /** Called by PaymentsLkWebhookController for WTP-* references. */
+    public function applyPaymentsLkResult(array $result): void
     {
-        $payload = $request->all();
-        $orderId = trim((string) ($payload['order_id'] ?? ''));
-
-        $tx = WalletTransaction::where('gateway_order_id', $orderId)->first();
+        $tx = WalletTransaction::where('gateway_order_id', $result['orderId'])->first();
         if (!$tx) {
-            Log::warning('PayHere wallet notify: unknown order_id', ['order_id' => $orderId]);
-            return response('order not found', 404);
+            Log::warning('Payments.lk wallet webhook: unknown order', ['order_id' => $result['orderId']]);
+
+            return;
         }
 
-        $gateway = app(PayHereGatewayService::class);
-        if (!$gateway->verifyNotifySignature($payload)) {
-            Log::warning('PayHere wallet notify: signature mismatch', ['order_id' => $orderId]);
-            return response('invalid signature', 400);
-        }
-
-        $this->applyResolvedStatus($gateway, $tx, $payload);
-
-        return response('OK', 200);
+        $this->applyResolvedStatus($tx, $result);
     }
 
-    private function applyResolvedStatus(PayHereGatewayService $gateway, WalletTransaction $tx, array $payload): void
+    private function applyResolvedStatus(WalletTransaction $tx, array $result): void
     {
-        DB::transaction(function () use ($gateway, $tx, $payload) {
+        $gateway = app(PaymentsLkGatewayService::class);
+
+        DB::transaction(function () use ($gateway, $tx, $result) {
             $locked = WalletTransaction::where('id', $tx->id)->lockForUpdate()->first();
             if (!$locked || $locked->status === 'completed') {
                 return; // idempotent — already applied
             }
 
             $callbackLog = is_array($locked->callback_payload) ? $locked->callback_payload : [];
-            $callbackLog[] = ['at' => now()->toIso8601String(), 'payload' => $payload];
+            $callbackLog[] = ['at' => now()->toIso8601String(), 'result' => $result];
             $locked->update(['callback_payload' => $callbackLog, 'last_notified_at' => now()]);
 
-            $validation = $gateway->validateNotifyAgainstExpected($payload, [
+            $validation = $gateway->validateAgainstExpected($result, [
                 'orderId' => (string) $locked->gateway_order_id,
                 'amount' => (float) $locked->amount,
                 'currency' => 'LKR',
             ]);
 
             if (!$validation['isValid']) {
-                $this->wallets->failTopup($locked, 'Notify payload mismatch: ' . $validation['reason']);
+                Log::error('Payments.lk: wallet top-up result rejected', ['order_id' => $locked->gateway_order_id, 'reason' => $validation['reason']]);
+                $this->wallets->failTopup($locked, 'Payment result mismatch: ' . $validation['reason']);
                 return;
             }
 
-            $status = $gateway->normalizeStatusFromNotify($payload);
-            $gatewayPaymentId = (string) ($payload['payment_id'] ?? '');
-
-            if ($status === 'paid') {
-                $this->wallets->completeTopup($locked, $gatewayPaymentId ?: null, $status);
-            } elseif (in_array($status, ['failed', 'cancelled'], true)) {
-                $this->wallets->failTopup($locked, "PayHere status: {$status}", $status);
+            if ($result['status'] === PaymentsLkGatewayService::STATUS_PAID) {
+                $this->wallets->completeTopup($locked, $result['paymentId'] ?: null, $result['status']);
+            } elseif (in_array($result['status'], [PaymentsLkGatewayService::STATUS_FAILED, PaymentsLkGatewayService::STATUS_EXPIRED], true)) {
+                $this->wallets->failTopup(
+                    $locked,
+                    $result['message'] !== '' ? $result['message'] : "Payments.lk status: {$result['status']}",
+                    $result['status']
+                );
             }
-            // 'pending' from PayHere just leaves it pending — nothing to do.
+            // pending: nothing to do yet.
         });
     }
 
-    private function buildCheckout(PayHereGatewayService $gateway, WalletTransaction $tx, User $user): array
+    private function buildCheckout(PaymentsLkGatewayService $gateway, WalletTransaction $tx, User $user): array
     {
-        [$firstName, $lastName] = $gateway->splitName((string) ($user->name ?? 'Wallet Customer'));
-
-        return $gateway->buildCheckoutPayload([
+        return $gateway->checkoutFor($tx, [
             'orderId' => (string) $tx->gateway_order_id,
             'amount' => (float) $tx->amount,
             'currency' => 'LKR',
-            'items' => 'Wallet top-up',
-            'returnUrl' => route('client.wallet.payhere.return', ['order_id' => $tx->gateway_order_id]),
+            'description' => 'Wallet top-up',
+            'successUrl' => route('client.wallet.payhere.return', ['order_id' => $tx->gateway_order_id]),
             'cancelUrl' => route('client.wallet.payhere.cancel', ['order_id' => $tx->gateway_order_id]),
-            'notifyUrl' => route('client.wallet.payhere.notify'),
-            'firstName' => $firstName,
-            'lastName' => $lastName,
-            'email' => (string) ($user->email ?? ''),
-            'phone' => (string) ($user->phone ?? ''),
+            'customerName' => (string) ($user->name ?? 'Wallet Customer'),
+            'customerEmail' => (string) ($user->email ?? ''),
+            'customerPhone' => (string) ($user->phone ?? ''),
         ]);
     }
 
@@ -247,10 +229,5 @@ class WalletController extends Controller
     private function generateOrderId(): string
     {
         return 'WTP-' . now()->format('ymd') . '-' . strtoupper(Str::random(8));
-    }
-
-    private function isSandbox(): bool
-    {
-        return (bool) config('services.payhere.sandbox', true);
     }
 }

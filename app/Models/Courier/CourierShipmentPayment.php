@@ -11,7 +11,10 @@ class CourierShipmentPayment extends Model
 {
     use HasFactory;
 
-    public const PROVIDER_PAYHERE = 'payhere';
+    public const PROVIDER_PAYMENTSLK = 'paymentslk';
+
+    /** Card gateways whose rows the reports should include (PayHere was the gateway before Payments.lk). */
+    public const CARD_PROVIDERS = ['paymentslk', 'payhere'];
 
     public const PAYMENT_METHOD_CARD = 'card';
     public const PAYMENT_METHOD_COD = 'cod';

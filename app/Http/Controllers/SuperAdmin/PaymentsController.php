@@ -44,7 +44,7 @@ class PaymentsController extends Controller
 
         $courierCardPayments = CourierShipmentPayment::query()
             ->with(['shipment:id,reference'])
-            ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
+            ->whereIn('provider', CourierShipmentPayment::CARD_PROVIDERS)
             ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
             ->orderByDesc('created_at')
             ->get()
@@ -53,7 +53,7 @@ class PaymentsController extends Controller
                     'id' => (int) $payment->id,
                     'shipment_reference' => (string) ($payment->shipment?->reference ?? 'N/A'),
                     'method' => (string) ($payment->payment_method ?? CourierShipmentPayment::PAYMENT_METHOD_CARD),
-                    'option' => (string) ($payment->provider ?? CourierShipmentPayment::PROVIDER_PAYHERE),
+                    'option' => (string) ($payment->provider ?? CourierShipmentPayment::PROVIDER_PAYMENTSLK),
                     'amount_paid' => (float) $payment->amount,
                     'currency_code' => strtoupper((string) ($payment->currency_code ?: 'LKR')),
                     'status' => (string) ($payment->status ?? CourierShipmentPayment::STATUS_PENDING),
@@ -147,25 +147,25 @@ class PaymentsController extends Controller
             ],
             'courier_card_payments' => [
                 'total' => CourierShipmentPayment::query()
-                    ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
+                    ->whereIn('provider', CourierShipmentPayment::CARD_PROVIDERS)
                     ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
                     ->sum('amount'),
                 'count' => CourierShipmentPayment::query()
-                    ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
+                    ->whereIn('provider', CourierShipmentPayment::CARD_PROVIDERS)
                     ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
                     ->count(),
                 'paid' => CourierShipmentPayment::query()
-                    ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
+                    ->whereIn('provider', CourierShipmentPayment::CARD_PROVIDERS)
                     ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
                     ->where('status', CourierShipmentPayment::STATUS_PAID)
                     ->count(),
                 'pending' => CourierShipmentPayment::query()
-                    ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
+                    ->whereIn('provider', CourierShipmentPayment::CARD_PROVIDERS)
                     ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
                     ->where('status', CourierShipmentPayment::STATUS_PENDING)
                     ->count(),
                 'failed' => CourierShipmentPayment::query()
-                    ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
+                    ->whereIn('provider', CourierShipmentPayment::CARD_PROVIDERS)
                     ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
                     ->whereIn('status', [
                         CourierShipmentPayment::STATUS_FAILED,

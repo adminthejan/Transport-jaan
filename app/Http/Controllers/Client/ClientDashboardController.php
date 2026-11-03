@@ -50,18 +50,18 @@ class ClientDashboardController extends Controller
     {
         $sections = [
             'vehicle' => [
-                'land' => $this->section(\App\Models\Booking::class, 'client_id', $userId, 'total_amount', '/clientVehicleDashboard'),
-                'air' => $this->section(\App\Models\AirVehicleBookings::class, 'client_id', $userId, 'total_amount', '/clientVehicleDashboard'),
-                'sea' => $this->section(\App\Models\SeaVehicleBookings::class, 'client_id', $userId, 'total_amount', '/clientVehicleDashboard'),
+                'land' => $this->section(\App\Models\Booking::class, 'client_id', $userId, 'total_amount', '/clientVehicleDashboard', 'booking_reference', 'schedule.pickup_at'),
+                'air' => $this->section(\App\Models\AirVehicleBookings::class, 'client_id', $userId, 'total_amount', '/clientVehicleDashboard', 'booking_reference', 'schedule.pickup_at'),
+                'sea' => $this->section(\App\Models\SeaVehicleBookings::class, 'client_id', $userId, 'total_amount', '/clientVehicleDashboard', 'booking_reference', 'schedule.pickup_at'),
             ],
             'tickets' => [
-                'bus' => $this->section(\App\Models\BusBooking::class, 'user_id', $userId, 'total_price', '/clientTicketBookingDashboard'),
+                'bus' => $this->section(\App\Models\BusBooking::class, 'user_id', $userId, 'total_price', '/clientTicketBookingDashboard', 'booking_reference', 'booking_date'),
                 'train' => $this->section(\App\Models\TrainBooking::class, 'user_id', $userId, 'total_amount', '/clientTicketBookingDashboard'),
-                'flight' => $this->section(\App\Models\FlightBooking::class, 'user_id', $userId, null, '/clientTicketBookingDashboard'),
-                'sea' => $this->section(\App\Models\SeaTicketRequest::class, 'user_id', $userId, null, '/clientTicketBookingDashboard'),
+                'flight' => $this->section(\App\Models\FlightBooking::class, 'user_id', $userId, null, '/clientTicketBookingDashboard', 'booking_reference', 'departure_date'),
+                'sea' => $this->section(\App\Models\SeaTicketRequest::class, 'user_id', $userId, null, '/clientTicketBookingDashboard', 'booking_reference', 'travel_date'),
             ],
-            'courier' => $this->section(\App\Models\Courier\CourierShipment::class, 'requested_by_user_id', $userId, null, '/courierBookingDashboard', 'reference'),
-            'warehouse' => $this->section(\App\Models\Warehouse\WarehouseBooking::class, 'user_id', $userId, 'total_amount', '/warehouseBookingDashboard'),
+            'courier' => $this->section(\App\Models\Courier\CourierShipment::class, 'requested_by_user_id', $userId, null, '/courierBookingDashboard', 'reference', 'pickup_date'),
+            'warehouse' => $this->section(\App\Models\Warehouse\WarehouseBooking::class, 'user_id', $userId, 'total_amount', '/warehouseBookingDashboard', 'booking_reference', 'start_date'),
             'multimodal' => $this->section(\App\Models\MultiModel\MultiModelBooking::class, 'user_id', $userId, 'total_amount', '/clientAllBookings'),
         ];
 
@@ -89,10 +89,64 @@ class ClientDashboardController extends Controller
             Log::warning('Client dashboard wallet lookup failed', ['error' => $e->getMessage()]);
         }
 
+        $flat = [];
+        foreach ([
+            ['Land vehicle', $sections['vehicle']['land']], ['Air vehicle', $sections['vehicle']['air']], ['Sea vehicle', $sections['vehicle']['sea']],
+            ['Bus ticket', $sections['tickets']['bus']], ['Train ticket', $sections['tickets']['train']],
+            ['Flight ticket', $sections['tickets']['flight']], ['Sea ticket', $sections['tickets']['sea']],
+            ['Courier', $sections['courier']], ['Warehouse', $sections['warehouse']], ['Multimodal', $sections['multimodal']],
+        ] as [$label, $sec]) {
+            $flat[] = [$label, $sec];
+        }
+
+        $upcoming = collect();
+        $attention = collect();
+        foreach ($flat as [$label, $sec]) {
+            foreach ($sec['upcoming'] as $row) {
+                $upcoming->push($row + ['type' => $label, 'url' => $sec['url']]);
+            }
+            foreach ($sec['attention'] as $row) {
+                $attention->push($row + ['type' => $label, 'url' => $sec['url']]);
+            }
+        }
+
+        $payments = [
+            'paid' => array_sum(array_map(fn ($f) => $f[1]['spent'], $flat)),
+            'pending' => array_sum(array_map(fn ($f) => $f[1]['pending_amount'], $flat)),
+            'refunds' => array_sum(array_map(fn ($f) => $f[1]['refunded'], $flat)),
+        ];
+
+        // Last six months of bookings per service group, oldest first.
+        $months = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $months[] = now()->startOfMonth()->subMonths($i)->format('Y-m');
+        }
+        $groups = [
+            'vehicle' => ['land', 'air', 'sea'],
+            'tickets' => ['bus', 'train', 'flight', 'sea'],
+        ];
+        $trendOf = function (array $secs) use ($months) {
+            return array_map(fn ($m) => array_sum(array_map(fn ($s) => $s['monthly'][$m] ?? 0, $secs)), $months);
+        };
+        $trends = [
+            'months' => array_map(fn ($m) => \Carbon\Carbon::createFromFormat('Y-m', $m)->format('M'), $months),
+            'series' => [
+                'vehicle' => $trendOf(array_map(fn ($k) => $sections['vehicle'][$k], $groups['vehicle'])),
+                'tickets' => $trendOf(array_map(fn ($k) => $sections['tickets'][$k], $groups['tickets'])),
+                'courier' => $trendOf([$sections['courier']]),
+                'warehouse' => $trendOf([$sections['warehouse']]),
+                'multimodal' => $trendOf([$sections['multimodal']]),
+            ],
+        ];
+
         return [
             'sections' => $sections,
             'wallet' => $wallet,
             'recent' => $recent->sortByDesc('created_at')->take(8)->values()->all(),
+            'upcoming' => $upcoming->sortBy('date')->take(5)->values()->all(),
+            'attention' => $attention->take(5)->values()->all(),
+            'payments' => $payments,
+            'trends' => $trends,
         ];
     }
 
@@ -100,9 +154,9 @@ class ClientDashboardController extends Controller
      * Counts by status bucket for one booking table. A missing table/column must not
      * take the whole dashboard down, so any failure returns an empty section.
      */
-    private function section(string $model, string $ownerColumn, int $userId, ?string $amountColumn, string $url, string $referenceColumn = 'booking_reference'): array
+    private function section(string $model, string $ownerColumn, int $userId, ?string $amountColumn, string $url, string $referenceColumn = 'booking_reference', ?string $dateColumn = null): array
     {
-        $empty = ['total' => 0, 'pending' => 0, 'active' => 0, 'completed' => 0, 'cancelled' => 0, 'spent' => 0.0, 'url' => $url, 'recent' => []];
+        $empty = ['total' => 0, 'pending' => 0, 'active' => 0, 'completed' => 0, 'cancelled' => 0, 'spent' => 0.0, 'pending_amount' => 0.0, 'refunded' => 0.0, 'url' => $url, 'recent' => [], 'upcoming' => [], 'attention' => [], 'monthly' => []];
 
         try {
             /** @var Builder $base */
@@ -128,6 +182,51 @@ class ClientDashboardController extends Controller
                     ->whereNotIn(DB::raw('LOWER(status)'), array_merge(self::STATUS_BUCKETS['cancelled'], self::STATUS_BUCKETS['pending']))
                     ->sum($amountColumn);
             }
+
+            if ($amountColumn) {
+                $out['pending_amount'] = (float) (clone $base)
+                    ->whereIn(DB::raw('LOWER(status)'), self::STATUS_BUCKETS['pending'])
+                    ->sum($amountColumn);
+            }
+            try {
+                $out['refunded'] = (float) (clone $base)->sum('refund_amount');
+            } catch (\Throwable $e) {
+                // not every booking table tracks refunds
+            }
+
+            $row = fn ($r, $date = null) => [
+                'id' => $r->getKey(),
+                'reference' => (string) ($r->{$referenceColumn} ?? ('#' . $r->getKey())),
+                'status' => (string) ($r->status ?? ''),
+                'amount' => $amountColumn ? (float) ($r->{$amountColumn} ?? 0) : null,
+                'date' => $date,
+            ];
+
+            $out['attention'] = (clone $base)
+                ->whereIn(DB::raw('LOWER(status)'), self::STATUS_BUCKETS['pending'])
+                ->latest()->limit(3)->get()->map(fn ($r) => $row($r))->all();
+
+            if ($dateColumn) {
+                $up = (clone $base)->whereIn(DB::raw('LOWER(status)'), array_merge(self::STATUS_BUCKETS['active'], self::STATUS_BUCKETS['pending']));
+                if (str_contains($dateColumn, '.')) {
+                    [$rel, $col] = explode('.', $dateColumn, 2);
+                    $up->whereHas($rel, fn ($q) => $q->where($col, '>=', now()->startOfDay()))
+                        ->with($rel)
+                        ->get()
+                        ->each(fn ($r) => $out['upcoming'][] = $row($r, ($v = optional($r->{$rel})->{$col}) ? \Carbon\Carbon::parse($v)->toIso8601String() : null));
+                } else {
+                    $up->where($dateColumn, '>=', now()->startOfDay())->orderBy($dateColumn)->limit(5)->get()
+                        ->each(fn ($r) => $out['upcoming'][] = $row($r, ($r->{$dateColumn} ? \Carbon\Carbon::parse($r->{$dateColumn})->toIso8601String() : null)));
+                }
+                usort($out['upcoming'], fn ($a, $b) => strcmp((string) $a['date'], (string) $b['date']));
+                $out['upcoming'] = array_slice($out['upcoming'], 0, 5);
+            }
+
+            (clone $base)->where('created_at', '>=', now()->startOfMonth()->subMonths(5))->pluck('created_at')
+                ->each(function ($d) use (&$out) {
+                    $k = \Carbon\Carbon::parse($d)->format('Y-m');
+                    $out['monthly'][$k] = ($out['monthly'][$k] ?? 0) + 1;
+                });
 
             $out['recent'] = (clone $base)->latest()->limit(4)->get()->map(fn ($row) => [
                 'id' => $row->getKey(),

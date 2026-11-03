@@ -302,7 +302,7 @@ const PaymentCheckout = ({
                             <span className="font-semibold">Order ID:</span> {livePayment.orderId || "-"}
                         </p>
                         <p>
-                            <span className="font-semibold">Provider:</span> {payment?.provider || "PayHere"}
+                            <span className="font-semibold">Provider:</span> {payment?.provider || "Card"}
                         </p>
                         <p>
                             <span className="font-semibold">Method:</span> {payment?.method || "card"}
