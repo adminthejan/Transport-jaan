@@ -7,6 +7,7 @@ import { API_BASE_URL } from "../../../../../../config/api";
 // Assets
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
+import WarehouseSpecsFields, { EMPTY_SPECS } from "./WarehouseSpecsFields";
 import UserDropdown from "../../UserDropdown.jsx";
 import NotificationDropdown from "../NotificationDropdown";
 
@@ -71,6 +72,9 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
     const [images, setImages] = useState([]);
     const [documents, setDocuments] = useState([]);
     const [termsPdf, setTermsPdf] = useState(null);
+    const [specs, setSpecs] = useState(EMPTY_SPECS);
+    const [specDocs, setSpecDocs] = useState({});
+    const [existingSpecDocs, setExistingSpecDocs] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [amenityInput, setAmenityInput] = useState("");
     const [amenityOptions, setAmenityOptions] = useState(amenityCatalogue);
@@ -191,6 +195,8 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
     const resetForm = () => {
         images.forEach(image => image.preview && URL.revokeObjectURL(image.preview));
         setForm(initialInlineUnitForm);
+        setSpecs(EMPTY_SPECS);
+        setSpecDocs({});
         setImages([]);
         setDocuments([]);
         setTermsPdf(null);
@@ -230,6 +236,8 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
         payload.append("terms_conditions", form.terms_conditions || "");
         payload.append("is_active", form.is_active ? "1" : "0");
         payload.append("amenities", JSON.stringify(form.amenities));
+        payload.append('specs', JSON.stringify(specs));
+        Object.entries(specDocs).forEach(([key, file]) => file && payload.append(`spec_documents[${key}]`, file));
         images.forEach(item => payload.append("images[]", item.file));
         documents.forEach(file => payload.append("documents[]", file));
         if (termsPdf) payload.append("terms_pdf", termsPdf);
@@ -627,6 +635,17 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
                     </div>
                 </section>
 
+                <div className="space-y-6">
+                    <WarehouseSpecsFields
+                      specs={specs}
+                      onChange={setSpecs}
+                      documents={specDocs}
+                      existingDocuments={existingSpecDocs}
+                      onDocumentChange={(key, file) => setSpecDocs((prev) => ({ ...prev, [key]: file }))}
+                    />
+
+                </div>
+
                 <section className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900">Terms & Activation</h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -949,10 +968,7 @@ const UnitContent = () => {
                                     onChange={(e) => setTypeFilter(e.target.value)}
                                 >
                                     <option value="">All Types</option>
-                                    <option value="Cold Storage">Cold Storage</option>
-                                    <option value="Dry Storage">Dry Storage</option>
-                                    <option value="Climate Controlled">Climate Controlled</option>
-                                    <option value="General Storage">General Storage</option>
+                                    {warehouseTypeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                                 <img src={filterIcon} className="absolute left-3 top-1/2 -translate-y-1/2 size-[14px] pointer-events-none" alt="Filter" />
                             </div>

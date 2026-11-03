@@ -2475,11 +2475,11 @@ class VendorCourierDashboardController extends Controller
 
         $query = CourierShipment::query()
             ->with([
-                'sender:id,name',
-                'recipient:id,name',
-                'senderAddress:id,country,city,state',
-                'recipientAddress:id,country,city,state',
-                'packages:id,shipment_id,label,quantity,weight_kg,extras,service_tier_label,service_tier_key,service_eta,courier_provider_name',
+                'sender:id,name,phone',
+                'recipient:id,name,phone',
+                'senderAddress:id,country,city,state,line1',
+                'recipientAddress:id,country,city,state,line1',
+                'packages:id,shipment_id,label,package_type,quantity,weight_kg,length_cm,width_cm,height_cm,extras,service_tier_label,service_tier_key,service_eta,courier_provider_name',
                 'latestPayment',
                 'trackingEvents:id,shipment_id,status,location,description,recorded_at',
                 'labels:id,shipment_id',
@@ -4228,6 +4228,27 @@ class VendorCourierDashboardController extends Controller
                     'timelineState' => $timeline,
                     'hasException' => $this->hasException($shipment),
                     'pendingPickup' => $this->isPendingPickup($shipment),
+                    'pickupDate' => optional($shipment->pickup_date)->format('Y-m-d'),
+                    'pickupTime' => collect([$shipment->pickup_window_start, $shipment->pickup_window_end])->filter()->map(fn ($t) => Carbon::parse($t)->format('H:i'))->implode(' - ') ?: null,
+                    'deliverySlot' => (string) (optional($shipment->packages->first())->service_eta ?? ''),
+                    'packageType' => $this->formatPackageType(optional($shipment->packages->first())->package_type),
+                    'packageCount' => (int) $shipment->packages->sum('quantity'),
+                    'weightKg' => round((float) $shipment->packages->sum(fn ($p) => (float) $p->weight_kg * max(1, (int) $p->quantity)), 2),
+                    'dimensions' => $this->formatPackageDimensions($shipment->packages->first()),
+                    'priority' => (string) (optional($shipment->packages->first())->service_tier_label ?: $this->normalizeServiceLabel($shipment->service_level)),
+                    'customerContact' => trim(implode(' · ', array_filter([$shipment->recipient?->name, $shipment->recipient?->phone]))),
+                    'pickupLocation' => trim(implode(', ', array_filter([$shipment->senderAddress?->line1, $shipment->senderAddress?->city]))),
+                    'deliveryLocation' => trim(implode(', ', array_filter([$shipment->recipientAddress?->line1, $shipment->recipientAddress?->city]))),
+                    'paymentStatus' => ucwords(str_replace('_', ' ', $shipment->resolvedPaymentStatus())),
+                    'paymentMethod' => ucwords(str_replace('_', ' ', (string) ($shipment->latestPayment?->payment_method ?? ($shipment->is_cod_enabled ? 'cod' : '')))),
+                    'codAmount' => $shipment->is_cod_enabled ? (float) $shipment->cod_requested_amount : null,
+                    'shippingCharge' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
+                    'totalAmount' => ($shipment->actual_cost ?? $shipment->estimated_cost) !== null ? (float) ($shipment->actual_cost ?? $shipment->estimated_cost) : null,
+                    'currency' => $shipment->currency_code ?: 'LKR',
+                    'assignedProvider' => (string) (optional($shipment->packages->first())->courier_provider_name ?? 'Unspecified'),
+                    'providerStatus' => $this->stageLabel($this->getShipmentStage($shipment)),
+                    'outForDelivery' => $this->getShipmentStage($shipment) === 'out_for_delivery',
+                    'failedDelivery' => $this->isFailedDelivery($shipment),
                     'labelCreated' => $this->isLabelCreated($shipment),
                     'deliveredAt' => optional($deliveredAt)->format('Y-m-d H:i'),
                 ];
@@ -4270,7 +4291,8 @@ class VendorCourierDashboardController extends Controller
             'pendingPickups' => $rows->where('pendingPickup', true)->count(),
             'delivered' => $rows->where('status', CourierShipment::STATUS_DELIVERED)->count(),
             'onTime' => $rows->where('timelineState', 'on_time')->count(),
-            'early' => $rows->where('timelineState', 'early')->count(),
+            'outForDelivery' => $rows->where('outForDelivery', true)->count(),
+            'failedDelivery' => $rows->where('failedDelivery', true)->count(),
         ];
 
         $bookingOverview = $this->buildMonthlyBookingsSeries($shipments, $filters['bookingRange']);
@@ -7122,6 +7144,33 @@ class VendorCourierDashboardController extends Controller
         }
 
         return null;
+    }
+
+    private function formatPackageType(?string $type): string
+    {
+        return $type ? ucwords(str_replace('_', ' ', $type)) : '-';
+    }
+
+    private function formatPackageDimensions($package): string
+    {
+        if (!$package || !$package->length_cm || !$package->width_cm || !$package->height_cm) {
+            return '-';
+        }
+
+        return rtrim(rtrim((string) $package->length_cm, '0'), '.') . ' × '
+            . rtrim(rtrim((string) $package->width_cm, '0'), '.') . ' × '
+            . rtrim(rtrim((string) $package->height_cm, '0'), '.') . ' cm';
+    }
+
+    private function isFailedDelivery(CourierShipment $shipment): bool
+    {
+        if (strtolower((string) $shipment->status) === 'failed') {
+            return true;
+        }
+
+        $latest = strtolower((string) optional($this->getLatestTrackingEvent($shipment))->status);
+
+        return in_array($latest, ['failed', 'failed_delivery', 'delivery_failed'], true);
     }
 
     private function hasException(CourierShipment $shipment): bool

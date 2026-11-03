@@ -78,7 +78,7 @@ const WalletTopupCheckout = ({ transaction, checkout, pollingUrl, walletDashboar
     };
 
     return (
-        <div>
+        <div className="min-h-screen bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC]">
             <ClientHeader />
             <section className="mx-auto w-full max-w-2xl px-4 md:px-6 py-12 md:py-16">
                 <div className="text-center mb-10">

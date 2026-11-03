@@ -267,7 +267,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
     rows.filter(isUpcomingRow).forEach((r) => {
       const d = new Date(r.departureDate);
       if (d.toDateString() === now.toDateString()) {
-        alerts.push({ id: `checkin-${r.id}`, tone: "bg-amber-50 text-amber-600", icon: AlertCircle, text: `Check-in may be open today for ${r.name} (${r.reference})`, time: r.bookingDate });
+        alerts.push({ id: `checkin-${r.type}-${r.id}`, tone: "bg-amber-50 text-amber-600", icon: AlertCircle, text: `Check-in may be open today for ${r.name} (${r.reference})`, time: r.bookingDate });
       }
     });
 
@@ -277,7 +277,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
         const d = new Date(r.bookingDate);
         const diffDays = (now - d) / 86400000;
         if (diffDays >= 0 && diffDays <= 2) {
-          alerts.push({ id: `paid-${r.id}`, tone: "bg-emerald-50 text-emerald-600", icon: CheckCircle, text: `Payment received for ${r.reference}`, time: r.bookingDate });
+          alerts.push({ id: `paid-${r.type}-${r.id}`, tone: "bg-emerald-50 text-emerald-600", icon: CheckCircle, text: `Payment received for ${r.reference}`, time: r.bookingDate });
         }
       });
 
@@ -287,7 +287,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
         const d = new Date(r.cancelledAt);
         const diffDays = (now - d) / 86400000;
         if (diffDays >= 0 && diffDays <= 3) {
-          alerts.push({ id: `cancel-${r.id}`, tone: "bg-rose-50 text-rose-600", icon: XCircle, text: `Booking ${r.reference} was cancelled${r.refundAmount ? ` • Refund ${formatMoney(r.refundAmount)}` : ""}`, time: r.cancelledAt });
+          alerts.push({ id: `cancel-${r.type}-${r.id}`, tone: "bg-rose-50 text-rose-600", icon: XCircle, text: `Booking ${r.reference} was cancelled${r.refundAmount ? ` • Refund ${formatMoney(r.refundAmount)}` : ""}`, time: r.cancelledAt });
         }
       });
 
@@ -480,7 +480,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
     const baseName = `ticket-bookings-${dateStamp}`;
 
     if (format === "PDF") downloadPdf(exportRows, `${baseName}.pdf`);
-    else if (format === "Excel") downloadCsv(exportRows, `${baseName}.xlsx`);
+    else if (format === "Excel") downloadCsv(exportRows, `${baseName}.csv`);
     else downloadCsv(exportRows, `${baseName}.csv`);
 
     setShowExportModal(false);
@@ -571,7 +571,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-[#F4F6F9] poppins">
+    <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] poppins">
       <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1201,7 +1201,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                       </div>
                       <div className="text-left">
                         <p className="text-[14px] font-medium text-slate-900">Export as Excel</p>
-                        <p className="text-[12px] text-slate-500">Spreadsheet format (.xlsx)</p>
+                        <p className="text-[12px] text-slate-500">Excel-compatible (.csv)</p>
                       </div>
                     </div>
                     <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />

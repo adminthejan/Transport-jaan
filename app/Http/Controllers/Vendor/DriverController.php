@@ -59,6 +59,9 @@ class DriverController extends Controller
             'vehicle_no'     => ['nullable', 'string', 'max:100', 'regex:/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i', 'unique:drivers,vehicle_no'],
             'address'        => 'nullable|string',
             'notes'          => 'nullable|string',
+            'preferred_language' => ['nullable', Rule::in(['Sinhala', 'English', 'Tamil'])],
+            'daily_rate'     => 'nullable|numeric|min:0',
+            'overtime_rate_per_hour' => 'nullable|numeric|min:0',
             'license_photo'  => 'required|image|max:4096',
             'nic_photo'      => 'required|image|max:4096',
         ], [
@@ -104,6 +107,9 @@ class DriverController extends Controller
             'status'         => ['nullable', Rule::in(['Active','Inactive'])],
             'address'        => 'nullable|string',
             'notes'          => 'nullable|string',
+            'preferred_language' => ['nullable', Rule::in(['Sinhala', 'English', 'Tamil'])],
+            'daily_rate'     => 'nullable|numeric|min:0',
+            'overtime_rate_per_hour' => 'nullable|numeric|min:0',
             'license_photo'  => 'nullable|image|max:4096',
             'nic_photo'      => 'nullable|image|max:4096',
         ], [

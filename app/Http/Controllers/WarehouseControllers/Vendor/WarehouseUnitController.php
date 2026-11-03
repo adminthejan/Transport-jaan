@@ -150,6 +150,39 @@ class WarehouseUnitController extends Controller
         return response()->json($units);
     }
 
+    /**
+     * Decode the JSON `specs` payload sent over multipart form data.
+     */
+    private function parseSpecs($raw): ?array
+    {
+        $specs = is_string($raw) ? json_decode($raw, true) : $raw;
+
+        return is_array($specs) && $specs !== [] ? $specs : null;
+    }
+
+    /**
+     * Decode specs and attach the per-unit documents (floor plan, certificates, ...)
+     * uploaded as spec_documents[<key>]. Files not re-uploaded keep their stored path.
+     */
+    private function buildSpecs(Request $request, $raw, ?array $existing = null): ?array
+    {
+        $specs = $this->parseSpecs($raw) ?? [];
+        $documents = $existing['documents'] ?? [];
+
+        foreach (['floor_plan', 'unit_layout', 'fire_safety_certificate', 'insurance_certificate', 'warehouse_license'] as $key) {
+            $file = $request->file("spec_documents.{$key}");
+            if ($file) {
+                $documents[$key] = $file->store('warehouse/spec-documents', 'public');
+            }
+        }
+
+        if ($documents) {
+            $specs['documents'] = $documents;
+        }
+
+        return $specs ?: null;
+    }
+
     private function getUnitStatus($unit)
     {
         if (!$unit->is_active) {
@@ -261,6 +294,8 @@ class WarehouseUnitController extends Controller
                 'contact_phone' => ['nullable', 'string', 'max:20'],
                 'contact_email' => ['nullable', 'email', 'max:255'],
                 'amenities' => ['nullable'],
+                'specs' => ['nullable'],
+                'spec_documents.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
                 'images.*' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:51200'],
                 'documents.*' => ['nullable', 'file', 'mimes:pdf,doc,docx,txt', 'max:51200'],
                 'terms_conditions' => ['nullable', 'string'],
@@ -358,6 +393,7 @@ class WarehouseUnitController extends Controller
             'operating_hours' => $validated['operating_hours'] ?? null,
             'special_requirements' => $validated['special_requirements'] ?? null,
             'restrictions' => $validated['restrictions'] ?? null,
+            'specs' => $this->buildSpecs($request, $validated['specs'] ?? null),
         ]);
 
         // Create amenities
@@ -584,6 +620,7 @@ class WarehouseUnitController extends Controller
                 'operating_hours' => $unit->operating_hours,
                 'special_requirements' => $unit->special_requirements ?? '',
                 'restrictions' => $unit->restrictions ?? '',
+                'specs' => $unit->specs ?? (object) [],
                 'approval_status' => $unit->currentApproval?->status ?? 'pending',
                 'approval_notes' => $unit->currentApproval?->notes ?? '',
                 'rejection_reason' => $unit->currentApproval?->rejection_reason ?? '',
@@ -674,6 +711,8 @@ class WarehouseUnitController extends Controller
                 'tax_amount' => ['nullable', 'numeric', 'min:0'],
                 'final_amount' => ['nullable', 'numeric', 'min:0'],
                 'amenities' => ['nullable', 'string'], // JSON encoded
+                'specs' => ['nullable'],
+                'spec_documents.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
                 'images.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:10240'], // 10MB max per image
                 'documents.*' => ['nullable', 'file', 'mimes:pdf,doc,docx,txt', 'max:10240'], // 10MB max per document
                 'terms_conditions' => ['nullable', 'string'],
@@ -896,6 +935,7 @@ class WarehouseUnitController extends Controller
                 'terms_conditions' => $validated['terms_conditions'] ?? null,
                 'terms_pdf_path' => $termsPdfPath,
                 'is_active' => ($validated['is_active'] ?? '1') === '1',
+                ...(array_key_exists('specs', $validated) ? ['specs' => $this->buildSpecs($request, $validated['specs'], $unit->specs)] : []),
             ]);
 
             // Create new approval record for updated unit

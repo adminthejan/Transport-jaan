@@ -22,6 +22,9 @@ class Driver extends Model
         'status',
         'address',
         'notes',
+        'preferred_language',
+        'daily_rate',
+        'overtime_rate_per_hour',
         // files
         'license_photo_path',
         'nic_photo_path',

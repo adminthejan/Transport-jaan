@@ -33,68 +33,13 @@ import {
     Cell,
 } from "recharts";
 
-// ---------- Illustrative data ----------
-// This dashboard is not yet backed by a per-user freight booking API (the
-// `freight_quotes` table has no user linkage), so the monthly volumes and
-// sample bookings below remain representative placeholders rather than
-// live figures, same as before this redesign.
-const monthly = [
-    { month: "Jan", fcl: 220, lcl: 140, air: 80 },
-    { month: "Feb", fcl: 240, lcl: 130, air: 90 },
-    { month: "Mar", fcl: 260, lcl: 160, air: 110 },
-    { month: "Apr", fcl: 280, lcl: 170, air: 120 },
-    { month: "May", fcl: 300, lcl: 190, air: 130 },
-    { month: "Jun", fcl: 290, lcl: 200, air: 150 },
-    { month: "Jul", fcl: 310, lcl: 210, air: 160 },
-    { month: "Aug", fcl: 320, lcl: 215, air: 170 },
-    { month: "Sep", fcl: 300, lcl: 205, air: 155 },
-    { month: "Oct", fcl: 280, lcl: 190, air: 145 },
-    { month: "Nov", fcl: 270, lcl: 185, air: 135 },
-    { month: "Dec", fcl: 260, lcl: 175, air: 120 },
-];
+// ---------- Freight data ----------
+// Freight quotes are not linked to a user account yet, so there are no
+// per-client bookings to show. Rather than invent figures, the dashboard
+// renders empty until a client-scoped freight bookings API exists.
+const monthly = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((month) => ({ month, fcl: 0, lcl: 0, air: 0 }));
 
-const bookings = [
-    {
-        code: "FB-202508-001",
-        mode: "fcl",
-        item: "20' FCL – Colombo → Singapore",
-        from: "2025-08-30 10:00",
-        to: "2025-09-12 16:00",
-        hub: "Colombo Port",
-        status: "confirmed",
-        amount: 1200,
-    },
-    {
-        code: "FB-202508-002",
-        mode: "lcl",
-        item: "LCL 4.2 cbm – Colombo → Dubai",
-        from: "2025-08-29 09:30",
-        to: "2025-09-05 18:00",
-        hub: "Colombo Port",
-        status: "paid",
-        amount: 218.4,
-    },
-    {
-        code: "FB-202508-003",
-        mode: "air",
-        item: "Air 180 kg – CMB → SIN",
-        from: "2025-09-02 07:00",
-        to: "2025-09-02 20:30",
-        hub: "BIA (CMB)",
-        status: "pending",
-        amount: 702,
-    },
-    {
-        code: "FB-202508-004",
-        mode: "fcl",
-        item: "40' FCL – Colombo → Jebel Ali",
-        from: "2025-08-26 14:00",
-        to: "2025-09-09 11:00",
-        hub: "Colombo Port",
-        status: "cancelled",
-        amount: 2100,
-    },
-];
+const bookings = [];
 
 // ---------- Helpers ----------
 const ModeIcon = ({ mode, className }) => {
@@ -187,9 +132,9 @@ const Hero = () => {
     const activeBookings = bookings.filter((b) => ["confirmed", "paid", "pending"].includes(b.status)).length;
 
     const kpiCards = [
-        { id: "fcl", label: "TEUs This Month", sub: "+4% vs last month", value: totalFCL, icon: Ship, tint: "bg-blue-50 text-blue-600", color: "#3b82f6", dataKey: "fcl" },
-        { id: "lcl", label: "LCL in Transit (cbm)", sub: "6 groupage lanes", value: totalLCL, icon: Boxes, tint: "bg-indigo-50 text-indigo-600", color: "#6366f1", dataKey: "lcl" },
-        { id: "air", label: "Air Booked (kg)", sub: "3 flights this week", value: totalAir, icon: Plane, tint: "bg-purple-50 text-purple-600", color: "#8b5cf6", dataKey: "air" },
+        { id: "fcl", label: "TEUs This Month", sub: "Year to date", value: totalFCL, icon: Ship, tint: "bg-blue-50 text-blue-600", color: "#3b82f6", dataKey: "fcl" },
+        { id: "lcl", label: "LCL in Transit (cbm)", sub: "Year to date", value: totalLCL, icon: Boxes, tint: "bg-indigo-50 text-indigo-600", color: "#6366f1", dataKey: "lcl" },
+        { id: "air", label: "Air Booked (kg)", sub: "Year to date", value: totalAir, icon: Plane, tint: "bg-purple-50 text-purple-600", color: "#8b5cf6", dataKey: "air" },
         { id: "active", label: "Active Bookings", sub: `${bookings.length - activeBookings} cancelled`, value: activeBookings, icon: FileText, tint: "bg-emerald-50 text-emerald-600", color: "#10b981", dataKey: null },
     ];
 
@@ -373,7 +318,7 @@ const Hero = () => {
     ];
 
     return (
-        <div className="min-h-screen w-full bg-[#F4F6F9] poppins">
+        <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] poppins">
             <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6">
                 {/* Header */}
                 <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

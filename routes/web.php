@@ -1863,11 +1863,6 @@ Route::get('/multimodal', function () {
 })->name('multimodal.home');
 
 
-// Client dashboard - redirect to proper route
-Route::get('/clientDashboard', function () {
-    return redirect()->route('client.dashboard');
-});
-
 Route::middleware(['auth'])->group(function () {
     Route::get('/clientDashboardSettings', [ClientSettingsController::class, 'show'])->name('clientDashboardSettings');
     Route::post('/clientDashboardSettings', [ClientSettingsController::class, 'update'])->name('client.settings.update');
@@ -2465,13 +2460,21 @@ Route::get('/clientAllBookings', function () {
         'allBookings' => $allBookings,
         'statistics' => $statistics,
         'monthlyData' => $monthlyData,
+        'support' => (function () {
+            try {
+                $site = \App\Models\WebsiteSetting::query()->first();
+                return ['name' => $site?->site_name, 'phone' => $site?->contact_phone, 'email' => $site?->contact_email, 'address' => trim(implode(', ', array_filter([$site?->address, $site?->city, $site?->country])))];
+            } catch (\Throwable $e) {
+                return ['name' => null, 'phone' => null, 'email' => null, 'address' => ''];
+            }
+        })(),
     ]);
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientAllBookings');
 
-// Warehouse Booking Dashboard (public access)
+// Warehouse Booking Dashboard - clients only (guests go to sign-in, unverified to approval)
 Route::get('/warehouseBookingDashboard', function () {
     return Inertia::render('Web/home/client/WarehouseBookingDashboard');
-})->name('warehouseBookingDashboard');
+})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('warehouseBookingDashboard');
 
 
 
@@ -2556,7 +2559,6 @@ foreach ($sections as $slug => $baseView) {
 | Client dashboards (public shells)
 |--------------------------------------------------------------------------
 */
-Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
 // Warehouse Booking Dashboard - duplicate of the route defined earlier in this
 // file (same name, same props-less render); that one wins registration order,
 // so this one was dead/unreachable. Removed.

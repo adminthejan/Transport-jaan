@@ -424,7 +424,7 @@ const ClientHeader = () => {
                                         )}
                                         {window.location.pathname === "/clientDashboardSettings" ? (
                                             <Link
-                                                href={route("clientAllBookings")}
+                                                href={"/client/dashboard"}
                                                 onClick={() => setIsProfileOpen(false)}
                                                 className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
                                             >
@@ -475,7 +475,7 @@ const ClientHeader = () => {
                         <div className="bg-gradient-to-br from-[#0955AC] to-[#073E82] px-6 pt-6 pb-8 relative shrink-0">
                             <div className="flex items-center justify-between mb-5">
                                 <Link
-                                    href={route("clientAllBookings")}
+                                    href={"/client/dashboard"}
                                     onClick={toggleMenu}
                                     className="p-1.5 -ml-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
                                     title="Back to Dashboard"
@@ -604,6 +604,13 @@ const ClientHeader = () => {
                                 icon={Truck}
                                 label="Freight Booking"
                                 active={isActivePath("/freightBookingDashboard")}
+                                onClick={toggleMenu}
+                            />
+                            <SidebarLink
+                                href="/client/dashboard"
+                                icon={Home}
+                                label="Dashboard"
+                                active={isActivePath("/client/dashboard")}
                                 onClick={toggleMenu}
                             />
                             <SidebarLink

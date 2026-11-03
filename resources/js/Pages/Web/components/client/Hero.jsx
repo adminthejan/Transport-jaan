@@ -257,7 +257,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
 
         const totalSpendingThisMonth = rows
             .filter((r) => {
-                if (!["paid", "completed", "delivered"].includes(r.status)) return false;
+                if (!["confirmed", "paid", "active", "completed", "delivered"].includes(r.status)) return false;
                 const d = new Date(r.createdAt);
                 return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
             })
@@ -296,12 +296,12 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
         [kpi.rows]
     );
     const spendingTrend = useMemo(
-        () => buildMonthlyTrend(kpi.rows, (r) => ["paid", "completed", "delivered"].includes(r.status), (r) => r.amount),
+        () => buildMonthlyTrend(kpi.rows, (r) => ["confirmed", "paid", "active", "completed", "delivered"].includes(r.status), (r) => r.amount),
         [kpi.rows]
     );
 
     const kpiCards = [
-        { id: "active", label: "Active Rentals", sub: "Land • Air • Sea", value: kpi.activeRentals, icon: Car, tint: "bg-blue-50 text-blue-600", color: "#3b82f6", trend: activeTrend },
+        { id: "active", label: "Active Rentals", sub: "In progress today", value: kpi.activeRentals, icon: Car, tint: "bg-blue-50 text-blue-600", color: "#3b82f6", trend: activeTrend },
         { id: "upcoming", label: "Upcoming Reservations", sub: "Next 30 days", value: kpi.upcomingReservations, icon: Calendar, tint: "bg-emerald-50 text-emerald-600", color: "#10b981", trend: upcomingTrend },
         { id: "due", label: "Rentals Due Today", sub: "Requires return/action", value: kpi.dueToday, icon: Clock, tint: "bg-amber-50 text-amber-600", color: "#f59e0b", trend: dueTodayTrend },
         { id: "spend", label: "Total Spending", sub: "This month", value: formatMoney(kpi.totalSpendingThisMonth), icon: Wallet, tint: "bg-purple-50 text-purple-600", color: "#8b5cf6", trend: spendingTrend },
@@ -518,7 +518,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
         const baseName = `vehicle-bookings-${dateStamp}`;
 
         if (format === "PDF") downloadPdf(rows, `${baseName}.pdf`);
-        else if (format === "Excel") downloadCsv(rows, `${baseName}.xlsx`);
+        else if (format === "Excel") downloadCsv(rows, `${baseName}.csv`);
         else downloadCsv(rows, `${baseName}.csv`);
 
         setShowExportModal(false);
@@ -534,7 +534,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     ];
 
     return (
-        <div className="min-h-screen w-full bg-[#F4F6F9] poppins">
+        <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] poppins">
             <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6">
                 {/* Header */}
                 <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -744,7 +744,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                         </thead>
                                         <tbody>
                                             {pagedRows.map((r) => (
-                                                <tr key={r.id} className="border-t border-slate-50 hover:bg-slate-50/60 transition-colors">
+                                                <tr key={`${r.mode}-${r.id}`} className="border-t border-slate-50 hover:bg-slate-50/60 transition-colors">
                                                     <td className="px-4 py-3 text-[12.5px] font-[600] text-slate-500 whitespace-nowrap">{r.bookingCode}</td>
                                                     <td className="px-2 py-3">
                                                         <span className="inline-flex w-8 h-8 rounded-lg bg-slate-50 items-center justify-center">
@@ -840,7 +840,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                             ) : (
                                 <div className="space-y-3">
                                     {upcomingList.map((r) => (
-                                        <div key={r.id} className="flex items-center gap-3">
+                                        <div key={`${r.mode}-${r.id}`} className="flex items-center gap-3">
                                             <span className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
                                                 <ModeIcon mode={r.mode} className="w-4 h-4 text-[#0955AC]" />
                                             </span>
@@ -971,10 +971,10 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                         <p className="text-[12px] text-slate-400 mb-2">Monthly total (last 6 months)</p>
                         <div className="h-[240px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={spendingTrend} margin={{ left: -20, right: 10, top: 10 }}>
+                                <BarChart data={spendingTrend} margin={{ left: 0, right: 10, top: 10 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                     <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                                    <YAxis tickLine={false} axisLine={false} fontSize={11} />
+                                    <YAxis tickLine={false} axisLine={false} fontSize={11} width={44} tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
                                     <RTooltip formatter={(value) => formatMoney(value)} />
                                     <Bar dataKey="value" name="Spending" fill="#0955AC" radius={[6, 6, 0, 0]} />
                                 </BarChart>
@@ -1050,7 +1050,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                             </div>
                                             <div className="text-left">
                                                 <p className="text-[14px] font-medium text-slate-900">Export as Excel</p>
-                                                <p className="text-[12px] text-slate-500">Spreadsheet format (.xlsx)</p>
+                                                <p className="text-[12px] text-slate-500">Excel-compatible (.csv)</p>
                                             </div>
                                         </div>
                                         <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />

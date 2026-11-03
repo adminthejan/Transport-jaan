@@ -235,7 +235,7 @@ const CourierShipmentDetail = () => {
     return (
         <div>
             <Header />
-            <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+            <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] md:p-20 poppins">
                 {successNotice && (
                     <div role="status" className="fixed top-6 right-6 z-50 flex max-w-sm items-start gap-3 rounded-xl bg-green-600 px-5 py-4 text-white shadow-lg">
                         <div className="flex-1 text-sm">

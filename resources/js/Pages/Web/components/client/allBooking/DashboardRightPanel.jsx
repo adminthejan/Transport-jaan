@@ -1,5 +1,6 @@
 import React from "react";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
+import { chatRoute } from "@/Components/chat/chatUtils";
 import { route } from "ziggy-js";
 import {
     Car,
@@ -21,6 +22,10 @@ import {
  * reference dashboard's 3-panel sidebar.
  */
 const DashboardRightPanel = ({ notifications = [] }) => {
+    const { support } = usePage().props;
+    const phone = support?.phone;
+    const email = support?.email;
+
     const shortcuts = [
         { href: route("vehicle.list"), icon: Car, label: "Rent a Vehicle" },
         { href: route("clientTicketBookingDashboard"), icon: Plane, label: "Book a Ticket" },
@@ -96,24 +101,28 @@ const DashboardRightPanel = ({ notifications = [] }) => {
                     Our support team is available around the clock for anything booking-related.
                 </p>
                 <div className="space-y-2">
-                    <a
-                        href="tel:+94112345678"
-                        className="flex items-center gap-2 text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-2 transition-colors"
-                    >
-                        <PhoneCall className="w-3.5 h-3.5" /> +94 11 234 5678
-                    </a>
-                    <a
-                        href="mailto:support@transport-jaan.com"
-                        className="flex items-center gap-2 text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-2 transition-colors"
-                    >
-                        <Mail className="w-3.5 h-3.5" /> support@transport-jaan.com
-                    </a>
-                    <a
-                        href="mailto:support@transport-jaan.com"
+                    {phone && (
+                        <a
+                            href={`tel:${phone.replace(/[^+\d]/g, "")}`}
+                            className="flex items-center gap-2 text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-2 transition-colors"
+                        >
+                            <PhoneCall className="w-3.5 h-3.5" /> {phone}
+                        </a>
+                    )}
+                    {email && (
+                        <a
+                            href={`mailto:${email}`}
+                            className="flex items-center gap-2 text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-2 transition-colors"
+                        >
+                            <Mail className="w-3.5 h-3.5" /> {email}
+                        </a>
+                    )}
+                    <Link
+                        href={chatRoute("chat.page")}
                         className="flex items-center gap-2 text-[12.5px] font-[600] bg-white text-[#0955AC] hover:bg-white/90 rounded-lg px-3 py-2 transition-colors"
                     >
                         <MessageCircle className="w-3.5 h-3.5" /> Start Live Chat
-                    </a>
+                    </Link>
                 </div>
             </div>
         </div>

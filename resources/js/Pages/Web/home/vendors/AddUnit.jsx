@@ -80,6 +80,8 @@ const initialState = {
   aircraft_type: "", icao_type_designator: "", base_airport_iata: "", base_airport_icao: "", crew_required: "", range_km: "", mtow_kg: "", cruising_speed_kts: "", air_fuel_type: "", flight_hours_total: "",
   vessel_type: "", hull_material: "", length_m: "", beam_m: "", draft_m: "", engine_type: "", engine_power_hp: "", sea_fuel_type: "", cabins: "", berths: "", toilets: "", fuel_tank_l: "", water_tank_l: "",
   rentalPricePerDay: "", totalRentalPrice: "", deposit: "", advancePayment: "",
+  currency: "LKR", extraKmCharge: "", lateReturnCharge: "",
+  chassisNumber: "", engineNumber: "", engineCapacity: "",
   gps: false, childSeat: false, wifi: false, insuranceCoverage: false, extra: "",
   gpsPrice: "", childSeatPrice: "", wifiPrice: "", insuranceCoveragePrice: "", addDriver: false, addDriverPrice: "",
   extraFeatures: [],
@@ -154,6 +156,8 @@ const AddUnit = () => {
   const [showCenterModal, setShowCenterModal] = useState(false);
   const [imageFiles, setImageFiles] = useState([]), [imagePreviews, setImagePreviews] = useState([]);
   const [insuranceFiles, setInsuranceFiles] = useState([]), [insurancePreviews, setInsurancePreviews] = useState([]);
+  const [regCertFile, setRegCertFile] = useState(null);
+  const [revLicenseFile, setRevLicenseFile] = useState(null);
   const [existingImages, setExistingImages] = useState([]), [existingInsurance, setExistingInsurance] = useState([]);
   const [removedExistingImages, setRemovedExistingImages] = useState(new Set());
   const [removedExistingInsurance, setRemovedExistingInsurance] = useState(new Set());
@@ -268,6 +272,8 @@ const AddUnit = () => {
       vessel_type: vehicle.vessel_type || "", hull_material: vehicle.hull_material || "", length_m: vehicle.length_m ?? "", beam_m: vehicle.beam_m ?? "", draft_m: vehicle.draft_m ?? "", engine_type: vehicle.engine_type || "", engine_power_hp: vehicle.engine_power_hp ?? "", sea_fuel_type: vehicle.sea_fuel_type || "",
       cabins: vehicle.cabins ?? "", berths: vehicle.berths ?? "", toilets: vehicle.toilets ?? "", fuel_tank_l: vehicle.fuel_tank_l ?? "", water_tank_l: vehicle.water_tank_l ?? "",
       rentalPricePerDay: vehicle.rentalPricePerDay ?? vehicle.rental_price_per_day ?? "", totalRentalPrice: vehicle.totalRentalPrice ?? vehicle.total_rental_price ?? "", deposit: vehicle.deposit ?? "", advancePayment: vehicle.advancePayment ?? vehicle.advance_payment ?? "",
+      currency: vehicle.currency || "LKR", extraKmCharge: vehicle.extraKmCharge ?? "", lateReturnCharge: vehicle.lateReturnCharge ?? "",
+      chassisNumber: vehicle.chassisNumber ?? "", engineNumber: vehicle.engineNumber ?? "", engineCapacity: vehicle.engineCapacity ?? "",
       gpsPrice, childSeatPrice, wifiPrice, insuranceCoveragePrice, addDriver: mapYesNo(addDriver), addDriverPrice, extraFeatures: []
     };
     next.extraFeatures = parseExtraFeatures(extrasRaw, vehicle.extra || "");
@@ -392,7 +398,12 @@ const AddUnit = () => {
       } else if (typeof value === "boolean") { data.append(key, value ? "true" : "false"); }
       else appendIfPresent(data, key, value);
     });
+    if (regCertFile) data.append("registrationCertificate[]", regCertFile);
+    if (revLicenseFile) data.append("revenueLicense[]", revLicenseFile);
     appendRemovalPayloads(data);
+    // vehicle type is derived from the category-specific type field instead of being typed twice
+    const derivedType = form.category === "Air" ? form.aircraft_type : form.category === "Sea" ? form.vessel_type : form.bodyType;
+    data.set("vehicleType", String(derivedType || form.vehicleType || ""));
 
     if (form.category === "Land") {
       const bodyTypeRaw = toEnum(form.bodyType);
@@ -560,18 +571,6 @@ const AddUnit = () => {
                 </select>
                 {errors.category && <div className="text-red-500 text-xs mt-1">{errors.category}</div>}
               </div>
-              <div className="space-y-2">
-                <label htmlFor="vehicleType" className="block text-[14px] font-medium text-gray-700">Vehicle Type</label>
-                <input
-                  id="vehicleType"
-                  name="vehicleType"
-                  className={inputClasses("vehicleType")}
-                  value={form.vehicleType}
-                  onChange={handleChange}
-                  placeholder={getVehicleTypePlaceholder(form.category)}
-                />
-                {errors.vehicleType && <div className="text-red-500 text-xs mt-1">{errors.vehicleType}</div>}
-              </div>
             </div>
           </section>
 
@@ -609,6 +608,32 @@ const AddUnit = () => {
                 <input id="colour" name="colour" className={inputClasses("colour")} value={form.colour} onChange={handleChange} placeholder="Enter colour" {...req("Please enter the colour.")} />
                 {errors.colour && <div className="text-red-500 text-xs mt-1">{errors.colour}</div>}
               </div>
+              {form.category === "Land" && (
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="chassisNumber" className="block text-[14px] font-medium text-gray-700">Chassis Number</label>
+                    <input id="chassisNumber" name="chassisNumber" className={inputClasses("chassisNumber")} value={form.chassisNumber} onChange={handleChange} placeholder="Enter chassis number" />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="engineNumber" className="block text-[14px] font-medium text-gray-700">Engine Number</label>
+                    <input id="engineNumber" name="engineNumber" className={inputClasses("engineNumber")} value={form.engineNumber} onChange={handleChange} placeholder="Enter engine number" />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="engineCapacity" className="block text-[14px] font-medium text-gray-700">Engine Capacity (cc)</label>
+                    <input id="engineCapacity" type="number" min="0" name="engineCapacity" className={inputClasses("engineCapacity")} value={form.engineCapacity} onChange={handleChange} placeholder="e.g., 1500" />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="registrationCertificate" className="block text-[14px] font-medium text-gray-700">Vehicle Registration Certificate</label>
+                    <input id="registrationCertificate" type="file" accept=".pdf,image/*" onChange={(e) => setRegCertFile(e.target.files?.[0] || null)} className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-blue-700 hover:file:bg-blue-100" />
+                    <p className="text-xs text-gray-500">PDF or image, up to 10MB</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="revenueLicense" className="block text-[14px] font-medium text-gray-700">Revenue License</label>
+                    <input id="revenueLicense" type="file" accept=".pdf,image/*" onChange={(e) => setRevLicenseFile(e.target.files?.[0] || null)} className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-blue-700 hover:file:bg-blue-100" />
+                    <p className="text-xs text-gray-500">PDF or image, up to 10MB</p>
+                  </div>
+                </>
+              )}
             </div>
           </section>
 
@@ -982,6 +1007,22 @@ const AddUnit = () => {
                   <label htmlFor="advancePayment" className="block text-[14px] font-medium text-gray-700">Advance Payment ($) <Req /></label>
                   <input id="advancePayment" type="number" name="advancePayment" min="0" step="0.01" className={inputClasses("advancePayment")} value={form.advancePayment} onChange={handleChange} placeholder="0.00" {...req("Please enter the advance payment.")} />
                   {errors.advancePayment && <div className="text-red-500 text-xs mt-1">{errors.advancePayment}</div>}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="currency" className="block text-[14px] font-medium text-gray-700">Currency</label>
+                  <select id="currency" name="currency" className={selectClasses("currency")} value={form.currency} onChange={handleChange}>
+                    {["LKR", "USD", "EUR", "GBP", "INR"].map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="extraKmCharge" className="block text-[14px] font-medium text-gray-700">Extra KM Charge ({form.currency}/km)</label>
+                  <input id="extraKmCharge" type="number" name="extraKmCharge" min="0" step="0.01" className={inputClasses("extraKmCharge")} value={form.extraKmCharge} onChange={handleChange} placeholder="0.00" />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="lateReturnCharge" className="block text-[14px] font-medium text-gray-700">Late Return Charge ({form.currency}/hour)</label>
+                  <input id="lateReturnCharge" type="number" name="lateReturnCharge" min="0" step="0.01" className={inputClasses("lateReturnCharge")} value={form.lateReturnCharge} onChange={handleChange} placeholder="0.00" />
                 </div>
               </div>
 

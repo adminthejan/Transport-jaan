@@ -198,6 +198,29 @@ const PaymentContent = () => {
                 </div> */}
             </div>
 
+            {/* ==================== PAYMENT SUMMARY ==================== */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 w-full -mb-5">
+                {[
+                    { label: "Total Booking Value", value: stats?.total_booking_value, tone: "#D8E4F2" },
+                    { label: "Amount Collected", value: stats?.total_completed, tone: "#DDF3D3" },
+                    { label: "Pending Payments", value: stats?.total_pending, tone: "#FFF0C2" },
+                    { label: "Refunds", value: stats?.total_refunds, tone: "#FADADA" },
+                    { label: "Platform Commission", value: stats?.platform_commission, tone: "#E9DDF8" },
+                    { label: "Vendor Earnings", value: stats?.vendor_earnings, tone: "#D6EEF5" },
+                ].map((card) => (
+                    <div
+                        key={card.label}
+                        className="bg-[#FFFFFF] rounded-[8px] px-5 py-4 flex items-center gap-4"
+                        style={{ boxShadow: "4px 4px 4px #0000001A", borderLeft: `6px solid ${card.tone}` }}
+                    >
+                        <div>
+                            <h2 className="text-[14px] font-[500] text-[#7B7B7A]">{card.label}</h2>
+                            <p className="text-[20px] font-[700]">${Number(card.value || 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             {/* ==================== MINI CARDS ==================== */}
             <div className="flex flex-col md:flex-row gap-5 w-full">
                 {/* card 1 */}

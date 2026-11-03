@@ -589,6 +589,12 @@ class BookingController extends Controller
                 ];
             }
 
+            $commissionEarnings = CommissionEarning::query()
+                ->byVendor($vendorId)
+                ->byServiceType('vehicle')
+                ->whereIn('status', ['paid', 'pending'])
+                ->get();
+
             $stats = [
                 'total_revenue' => $totalRevenue,
                 'total_completed' => $totalCompleted,
@@ -596,6 +602,10 @@ class BookingController extends Controller
                 'completed_count' => $completedCount,
                 'pending_count' => $pendingCount,
                 'total_transactions' => count($transactions),
+                'total_booking_value' => (float) $bookings->sum('total_amount'),
+                'total_refunds' => (float) $bookings->sum('refund_amount'),
+                'platform_commission' => (float) $commissionEarnings->sum('total_commission'),
+                'vendor_earnings' => (float) $commissionEarnings->sum('vendor_amount'),
             ];
 
             // Get unread notification count

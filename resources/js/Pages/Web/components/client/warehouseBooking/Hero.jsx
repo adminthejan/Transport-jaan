@@ -888,7 +888,7 @@ const Hero = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen w-full bg-[#F4F6F9] md:p-20 poppins">
+            <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] md:p-20 poppins">
                 <div className="mx-auto flex h-full max-w-[700px] flex-col items-center justify-center gap-4 rounded-3xl bg-white p-12 text-center shadow-sm">
                     <Loader2 className="h-10 w-10 animate-spin text-[#0955AC]" />
                     <p className="text-sm text-slate-500">
@@ -901,7 +901,7 @@ const Hero = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen w-full bg-[#F4F6F9] md:p-20 poppins">
+            <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] md:p-20 poppins">
                 <div className="mx-auto flex h-full max-w-[700px] flex-col items-center justify-center gap-6 rounded-3xl bg-white p-12 text-center shadow-sm">
                     <AlertTriangle className="h-10 w-10 text-amber-500" />
                     <div>
@@ -928,7 +928,7 @@ const Hero = () => {
     }
 
     return (
-        <div className="min-h-screen w-full bg-[#F4F6F9] poppins">
+        <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] poppins">
             <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6">
                 <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-1">

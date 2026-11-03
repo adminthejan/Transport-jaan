@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import axios from "axios";
+import { chatRoute } from "@/Components/chat/chatUtils";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import BookingCancellationModal from "./BookingCancellationModal";
@@ -75,6 +76,12 @@ const BookingTypeIcon = ({ type, className }) => {
     return <Calendar className={className} />;
 };
 
+// Statuses that count as money actually committed (excludes pending/cancelled).
+const SPENT_STATUSES = ["confirmed", "paid", "active", "in_transit", "completed", "delivered"];
+
+// Ids repeat across booking tables (BK-1 / ABK-1 / SBK-1), so React keys and selection use type + id.
+const rowKey = (b) => `${b.booking_type || 'booking'}-${b.id}`;
+
 const statusMap = {
     confirmed: {
         label: "Confirmed",
@@ -140,7 +147,6 @@ const Hero = ({
     const [statusFilter, setStatusFilter] = useState("all");
     const [sortBy, setSortBy] = useState("recent");
     const [selectedBookings, setSelectedBookings] = useState([]);
-    const [showBulkActions, setShowBulkActions] = useState(false);
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
     const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState("card"); // card or table
@@ -152,7 +158,8 @@ const Hero = ({
     const receiptRef = useRef(null);
 
     // ---------- Wallet balance (shown in the greeting bar) ----------
-    const { auth } = usePage().props;
+    const { auth, support } = usePage().props;
+    const companyName = support?.name || "Transport Jaan";
     const [walletBalance, setWalletBalance] = useState(null);
     const [walletCurrency, setWalletCurrency] = useState("LKR");
 
@@ -181,8 +188,8 @@ const Hero = ({
         ).length;
 
         const totalSpent = allBookings
-            .filter(b => ['paid', 'completed', 'delivered'].includes(b.status?.toLowerCase()))
-            .reduce((sum, b) => sum + (b.total_amount || b.amount || 0), 0);
+            .filter(b => SPENT_STATUSES.includes(b.status?.toLowerCase()))
+            .reduce((sum, b) => sum + (parseFloat(b.total_amount || b.amount || 0) || 0), 0);
 
         const thisMonthBookings = allBookings.filter(b => {
             const bookingDate = new Date(b.created_at || b.booking_date);
@@ -386,7 +393,7 @@ const Hero = ({
 
     const paymentOverview = useMemo(() => {
         const paidAmount = allBookings
-            .filter((b) => ["paid", "completed", "delivered"].includes(b.status?.toLowerCase()))
+            .filter((b) => SPENT_STATUSES.includes(b.status?.toLowerCase()))
             .reduce((sum, b) => sum + (parseFloat(b.total_amount || b.amount || 0) || 0), 0);
         const pendingAmount = allBookings
             .filter((b) => ["pending", "unpaid"].includes(b.status?.toLowerCase()))
@@ -399,7 +406,7 @@ const Hero = ({
         if (selectedBookings.length === visibleBookings.length) {
             setSelectedBookings([]);
         } else {
-            setSelectedBookings(visibleBookings.map(b => b.id));
+            setSelectedBookings(visibleBookings.map(rowKey));
         }
     };
 
@@ -409,12 +416,6 @@ const Hero = ({
                 ? prev.filter(id => id !== bookingId)
                 : [...prev, bookingId]
         );
-    };
-
-    const handleBulkAction = (action) => {
-        alert(`Bulk ${action} for ${selectedBookings.length} bookings`);
-        setSelectedBookings([]);
-        setShowBulkActions(false);
     };
 
     const formatExportDate = (value) => {
@@ -586,7 +587,7 @@ const Hero = ({
 
     const handleExport = (format) => {
         const dataToExport = selectedBookings.length > 0 
-            ? filteredBookings.filter(b => selectedBookings.includes(b.id))
+            ? filteredBookings.filter(b => selectedBookings.includes(rowKey(b)))
             : filteredBookings;
 
         const rows = getExportRows(dataToExport);
@@ -598,7 +599,7 @@ const Hero = ({
         if (format === "PDF") {
             downloadPdf(rows, `${baseName}.pdf`);
         } else if (format === "Excel") {
-            downloadCsv(rows, `${baseName}.xlsx`);
+            downloadCsv(rows, `${baseName}.csv`);
         } else {
             downloadCsv(rows, `${baseName}.csv`);
         }
@@ -785,7 +786,7 @@ const Hero = ({
         { label: "Active Bookings", value: kpiMetrics.activeBookings, icon: Activity, tone: "text-[#0955AC]" },
         { label: "This Month", value: kpiMetrics.thisMonthBookings, icon: Calendar, tone: "text-purple-600" },
         { label: "Upcoming", value: kpiMetrics.upcomingTrips, icon: Clock, tone: "text-amber-600" },
-        { label: "Total Spent", value: `$${kpiMetrics.totalSpent.toFixed(0)}`, icon: DollarSign, tone: "text-emerald-600" },
+        { label: "Total Spent", value: `LKR ${kpiMetrics.totalSpent.toFixed(0)}`, icon: DollarSign, tone: "text-emerald-600" },
         { label: "Completed", value: analytics.completedBookings, icon: CheckSquare, tone: "text-green-600" },
         { label: "Cancelled", value: analytics.cancelledBookings, icon: X, tone: "text-rose-600" },
     ];
@@ -799,7 +800,7 @@ const Hero = ({
     ];
 
     return (
-        <div className="min-h-screen w-full bg-[#F4F6F9] poppins">
+        <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] poppins">
             <ClientHeader />
 
             <div className="flex flex-col min-h-screen">
@@ -867,7 +868,7 @@ const Hero = ({
                                 <div className="space-y-1">
                                     {upcomingBookings.map((b) => (
                                         <button
-                                            key={b.id}
+                                            key={rowKey(b)}
                                             onClick={() => handleViewDetails(b)}
                                             className="w-full flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-xl hover:bg-slate-50 transition-colors text-left"
                                         >
@@ -898,7 +899,7 @@ const Hero = ({
                                 <div className="space-y-1">
                                     {actionRequired.map((b) => (
                                         <button
-                                            key={b.id}
+                                            key={rowKey(b)}
                                             onClick={() => handleViewDetails(b)}
                                             className="w-full flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-xl hover:bg-amber-50/60 transition-colors text-left"
                                         >
@@ -923,21 +924,21 @@ const Hero = ({
                             <h3 className="text-[15px] font-[700] text-slate-800 mb-4">Payment Overview</h3>
                             <div className="space-y-4">
                                 <div>
-                                    <p className="text-[11px] text-slate-400 uppercase tracking-wide">Total Revenue</p>
-                                    <p className="text-[24px] font-[700] text-[#0955AC]">${analytics.totalRevenue.toFixed(0)}</p>
+                                    <p className="text-[11px] text-slate-400 uppercase tracking-wide">Total Booked Value</p>
+                                    <p className="text-[24px] font-[700] text-[#0955AC]">LKR {analytics.totalRevenue.toFixed(0)}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
                                     <div>
                                         <p className="text-[11px] text-slate-400">Paid</p>
-                                        <p className="text-[15px] font-[700] text-emerald-600">${paymentOverview.paidAmount.toFixed(0)}</p>
+                                        <p className="text-[15px] font-[700] text-emerald-600">LKR {paymentOverview.paidAmount.toFixed(0)}</p>
                                     </div>
                                     <div>
                                         <p className="text-[11px] text-slate-400">Pending</p>
-                                        <p className="text-[15px] font-[700] text-amber-600">${paymentOverview.pendingAmount.toFixed(0)}</p>
+                                        <p className="text-[15px] font-[700] text-amber-600">LKR {paymentOverview.pendingAmount.toFixed(0)}</p>
                                     </div>
                                     <div>
                                         <p className="text-[11px] text-slate-400">Avg. Booking</p>
-                                        <p className="text-[15px] font-[700] text-slate-700">${analytics.avgBookingValue.toFixed(0)}</p>
+                                        <p className="text-[15px] font-[700] text-slate-700">LKR {analytics.avgBookingValue.toFixed(0)}</p>
                                     </div>
                                     <div>
                                         <p className="text-[11px] text-slate-400">Success Rate</p>
@@ -1110,11 +1111,8 @@ const Hero = ({
                                 <div className="rounded-xl bg-[#0955AC] text-white px-4 py-3 flex items-center justify-between gap-3">
                                     <span className="text-[13px] font-[600]">{selectedBookings.length} selected</span>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={() => handleBulkAction("export")} className="text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5">
+                                        <button onClick={() => setShowExportModal(true)} className="text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5">
                                             Export
-                                        </button>
-                                        <button onClick={() => handleBulkAction("archive")} className="text-[12.5px] font-[600] bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5">
-                                            Archive
                                         </button>
                                         <button onClick={() => setSelectedBookings([])} className="text-[12.5px] font-[600] hover:bg-white/15 rounded-lg px-2.5 py-1.5">
                                             <X className="w-4 h-4" />
@@ -1157,10 +1155,10 @@ const Hero = ({
                                             </thead>
                                             <tbody>
                                                 {visibleBookings.map((booking) => (
-                                                    <tr key={booking.id} className="border-t border-slate-50 hover:bg-slate-50/60 transition-colors">
+                                                    <tr key={rowKey(booking)} className="border-t border-slate-50 hover:bg-slate-50/60 transition-colors">
                                                         <td className="px-4 py-3">
-                                                            <button onClick={() => handleSelectBooking(booking.id)} className="flex items-center">
-                                                                {selectedBookings.includes(booking.id) ? (
+                                                            <button onClick={() => handleSelectBooking(rowKey(booking))} className="flex items-center">
+                                                                {selectedBookings.includes(rowKey(booking)) ? (
                                                                     <CheckSquare className="w-4 h-4 text-[#0955AC]" />
                                                                 ) : (
                                                                     <Square className="w-4 h-4 text-slate-300" />
@@ -1196,7 +1194,7 @@ const Hero = ({
                                                         </td>
                                                         <td className="px-2 py-3 text-right whitespace-nowrap">
                                                             <span className="text-[13px] font-[700] text-[#0955AC]">
-                                                                ${(parseFloat(booking.total_amount || booking.amount || 0) || 0).toFixed(2)}
+                                                                LKR {(parseFloat(booking.total_amount || booking.amount || 0) || 0).toFixed(2)}
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-3">
@@ -1301,7 +1299,7 @@ const Hero = ({
                                             <FileText className="h-5 w-5 text-green-600" />
                                             <div>
                                                 <div className="font-medium text-[14px]">Export as Excel</div>
-                                                <div className="text-[12px] text-slate-500">Spreadsheet format (.xlsx)</div>
+                                                <div className="text-[12px] text-slate-500">Excel-compatible (.csv)</div>
                                             </div>
                                         </div>
                                         <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600" />
@@ -1392,7 +1390,7 @@ const Hero = ({
                                             <div>
                                                 <p className="text-[12px] sm:text-[13px] text-slate-600 mb-1">Total Amount</p>
                                                 <p className="text-[28px] sm:text-[36px] font-bold text-[#0955AC]">
-                                                    ${(parseFloat(selectedBookingDetails.total_amount || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
+                                                    LKR {(parseFloat(selectedBookingDetails.total_amount || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
                                                 </p>
                                                 <p className="text-[11px] sm:text-[12px] text-slate-500 mt-1">
                                                     {selectedBookingDetails.currency || 'LKR'} • {bookingPaymentMethodLabel} • {bookingPaymentStatusLabel}
@@ -1472,7 +1470,7 @@ const Hero = ({
                                                     {selectedBookingDetails.price_per_day && (
                                                         <div className="flex justify-between gap-2">
                                                             <span className="text-slate-600">Daily Rate:</span>
-                                                            <span className="font-semibold text-slate-900">${(parseFloat(selectedBookingDetails.price_per_day) || 0).toFixed(2)}</span>
+                                                            <span className="font-semibold text-slate-900">LKR {(parseFloat(selectedBookingDetails.price_per_day) || 0).toFixed(2)}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -1983,26 +1981,26 @@ const Hero = ({
                                             {selectedBookingDetails.base_price && (
                                                 <div className="flex justify-between py-2">
                                                     <span className="text-slate-600">Base Price:</span>
-                                                    <span className="font-semibold text-slate-900">${(parseFloat(selectedBookingDetails.base_price) || 0).toFixed(2)}</span>
+                                                    <span className="font-semibold text-slate-900">LKR {(parseFloat(selectedBookingDetails.base_price) || 0).toFixed(2)}</span>
                                                 </div>
                                             )}
                                             {selectedBookingDetails.tax_amount && (
                                                 <div className="flex justify-between py-2">
                                                     <span className="text-slate-600">Tax:</span>
-                                                    <span className="font-semibold text-slate-900">${(parseFloat(selectedBookingDetails.tax_amount) || 0).toFixed(2)}</span>
+                                                    <span className="font-semibold text-slate-900">LKR {(parseFloat(selectedBookingDetails.tax_amount) || 0).toFixed(2)}</span>
                                                 </div>
                                             )}
                                             {selectedBookingDetails.discount && (
                                                 <div className="flex justify-between py-2 text-green-600">
                                                     <span>Discount:</span>
-                                                    <span className="font-semibold">-${(parseFloat(selectedBookingDetails.discount) || 0).toFixed(2)}</span>
+                                                    <span className="font-semibold">-LKR {(parseFloat(selectedBookingDetails.discount) || 0).toFixed(2)}</span>
                                                 </div>
                                             )}
                                             <div className="border-t-2 border-slate-300 pt-3 mt-2">
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-800 font-bold text-[15px] sm:text-[16px]">Total Amount:</span>
                                                     <span className="font-bold text-[17px] sm:text-[18px] text-[#0955AC]">
-                                                        ${(parseFloat(selectedBookingDetails.total_amount || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
+                                                        LKR {(parseFloat(selectedBookingDetails.total_amount || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -2132,7 +2130,7 @@ const Hero = ({
                                 <div className="bg-slate-50 px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200">
                                     <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                                         <div className="text-[12px] sm:text-[13px] text-slate-600 text-center sm:text-left">
-                                            <p>Need help? <a href="mailto:support@transportjaan.com" className="text-[#0955AC] font-medium hover:underline">Contact support</a></p>
+                                            <p>Need help? <a href={support?.email ? `mailto:${support.email}` : chatRoute("chat.page")} className="text-[#0955AC] font-medium hover:underline">Contact support</a></p>
                                         </div>
                                         <div className="flex items-center gap-2 w-full sm:w-auto">
                                             <button 
@@ -2181,7 +2179,7 @@ const Hero = ({
                                     <div className="border-b-2 border-slate-200 pb-6 mb-6">
                                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                             <div>
-                                                <h1 className="text-3xl font-bold text-[#0955AC]">Leo Transport</h1>
+                                                <h1 className="text-3xl font-bold text-[#0955AC]">{companyName}</h1>
                                                 <p className="text-sm text-slate-600 mt-1">Your Trusted Transport Partner</p>
                                             </div>
                                             <div className="text-left sm:text-right">
@@ -2193,11 +2191,10 @@ const Hero = ({
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                                             <div>
-                                                <p className="font-semibold text-slate-900">Leo Transport</p>
-                                                <p className="text-slate-600">123 Transport Street</p>
-                                                <p className="text-slate-600">Colombo, Sri Lanka</p>
-                                                <p className="text-slate-600">info@leotransport.com</p>
-                                                <p className="text-slate-600">+94 11 234 5678</p>
+                                                <p className="font-semibold text-slate-900">{companyName}</p>
+                                                {support?.address && <p className="text-slate-600">{support.address}</p>}
+                                                {support?.email && <p className="text-slate-600">{support.email}</p>}
+                                                {support?.phone && <p className="text-slate-600">{support.phone}</p>}
                                             </div>
                                             <div className="text-left sm:text-right">
                                                 <p className="text-slate-600">
@@ -2697,7 +2694,7 @@ const Hero = ({
                                     {/* Footer */}
                                     <div className="text-center mt-8 pt-6 border-t border-slate-200">
                                         <p className="text-xs text-slate-500">
-                                            Thank you for choosing Leo Transport!
+                                            Thank you for choosing {companyName}!
                                         </p>
                                         <p className="text-xs text-slate-500 mt-1">
                                             This is a computer-generated receipt and does not require a signature.

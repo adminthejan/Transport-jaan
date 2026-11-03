@@ -85,6 +85,9 @@ export default function Driver() {
     vehicle_type: "",
     address: "",
     notes: "",
+    preferred_language: "",
+    daily_rate: "",
+    overtime_rate_per_hour: "",
     license_photo: null,
     nic_photo: null,
     license_photo_url: "",
@@ -400,6 +403,9 @@ export default function Driver() {
       vehicle_type: r.vehicle_type,
       address: r.address || "",
       notes: r.notes || "",
+      preferred_language: r.preferred_language || "",
+      daily_rate: r.daily_rate ?? "",
+      overtime_rate_per_hour: r.overtime_rate_per_hour ?? "",
       license_photo: null,
       nic_photo: null,
       license_photo_url: r.license_photo_url || "",
@@ -794,6 +800,40 @@ export default function Driver() {
                 requiredText
                 kind="nic"
               />
+
+              <div className="space-y-1">
+                <Label>Preferred Language</Label>
+                <select
+                  className={inputClasses(false)}
+                  value={form.preferred_language}
+                  onChange={(e) => setForm({ ...form, preferred_language: e.target.value })}
+                >
+                  <option value="">Select language</option>
+                  {["Sinhala", "English", "Tamil"].map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Daily Rate (LKR)</Label>
+                <input
+                  type="number" min="0" step="0.01"
+                  className={inputClasses(false)}
+                  value={form.daily_rate}
+                  onChange={(e) => setForm({ ...form, daily_rate: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label>Overtime Rate (LKR / hour)</Label>
+                <input
+                  type="number" min="0" step="0.01"
+                  className={inputClasses(false)}
+                  value={form.overtime_rate_per_hour}
+                  onChange={(e) => setForm({ ...form, overtime_rate_per_hour: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
 
               <div className="md:col-span-2 space-y-1">
                 <Label>Address</Label>

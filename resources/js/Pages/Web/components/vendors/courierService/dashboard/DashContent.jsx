@@ -10,7 +10,8 @@ const METRIC_CARD_CLASSES = {
     pendingPickups: "bg-[#F2EEFF] text-[#3F2472]",
     delivered: "bg-[#E8FAEF] text-[#1B6C3A]",
     onTime: "bg-[#E9F8FF] text-[#0F5270]",
-    early: "bg-[#ECFBF2] text-[#1B6C3A]",
+    outForDelivery: "bg-[#E6F4FF] text-[#0B4F8A]",
+    failedDelivery: "bg-[#FFE9E9] text-[#8A1C1C]",
 };
 
 const EMPTY_DASHBOARD = {
@@ -21,7 +22,8 @@ const EMPTY_DASHBOARD = {
         pendingPickups: 0,
         delivered: 0,
         onTime: 0,
-        early: 0,
+        outForDelivery: 0,
+        failedDelivery: 0,
     },
     rows: [],
     filters: {
@@ -71,10 +73,10 @@ const metricCards = [
     { key: "delayed", label: "Delayed" },
     { key: "exceptions", label: "Exceptions" },
     { key: "labelCreated", label: "Label Created" },
-    { key: "pendingPickups", label: "Pending Pickups" },
     { key: "delivered", label: "Delivered" },
     { key: "onTime", label: "On Time" },
-    { key: "early", label: "Early" },
+    { key: "outForDelivery", label: "Out for Delivery" },
+    { key: "failedDelivery", label: "Failed Delivery" },
 ];
 
 const DashContent = ({ mode = "dashboard" }) => {
@@ -506,21 +508,33 @@ const DashContent = ({ mode = "dashboard" }) => {
                     <table className="min-w-full text-left text-[13px]">
                         <thead className="bg-[#D8E4F2] text-[#1F2937]">
                             <tr>
-                                <th className="px-4 py-3 font-[700]">Booking Number</th>
-                                <th className="px-4 py-3 font-[700]">Booking Date</th>
-                                <th className="px-4 py-3 font-[700]">Tracking Number</th>
-                                <th className="px-4 py-3 font-[700]">Service</th>
+                                <th className="px-4 py-3 font-[700]">Booking</th>
+                                <th className="px-4 py-3 font-[700]">Pickup</th>
+                                <th className="px-4 py-3 font-[700]">Delivery</th>
+                                <th className="px-4 py-3 font-[700]">Shipment</th>
+                                <th className="px-4 py-3 font-[700]">Customer</th>
+                                <th className="px-4 py-3 font-[700]">Payment</th>
+                                <th className="px-4 py-3 font-[700]">Provider</th>
                                 <th className="px-4 py-3 font-[700]">Status</th>
-                                <th className="px-4 py-3 font-[700]">Estimated Delivery</th>
                             </tr>
                         </thead>
                         <tbody>
                             {dashboard.rows.length > 0 ? (
                                 dashboard.rows.map((row) => (
-                                    <tr key={row.id} className="border-b border-[#E5E7EB]">
-                                        <td className="px-4 py-3 font-[600]">{row.bookingNumber}</td>
-                                        <td className="px-4 py-3">{row.bookingDate || "-"}</td>
-                                        <td className="px-4 py-3">{row.trackingNumber}</td>
+                                    <tr key={row.id} className="border-b border-[#E5E7EB] align-top">
+                                        <td className="px-4 py-3">
+                                            <div className="font-[600]">{row.bookingNumber}</div>
+                                            <div className="text-[12px] text-[#6B7280]">{row.trackingNumber}</div>
+                                            <div className="text-[12px] text-[#6B7280]">{row.bookingDate || "-"}</div>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <div>{row.pickupDate || "-"}</div>
+                                            <div className="text-[12px] text-[#6B7280]">{row.pickupTime || "-"}</div>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <div>{row.estimatedDelivery || "-"}</div>
+                                            <div className="text-[12px] text-[#6B7280]">{row.deliverySlot || "-"}</div>
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
                                                 <span>{row.service}</span>
@@ -528,6 +542,35 @@ const DashContent = ({ mode = "dashboard" }) => {
                                                     {row.category}
                                                 </span>
                                             </div>
+                                            <div className="text-[12px] text-[#6B7280]">
+                                                {row.packageType} × {row.packageCount} · {row.weightKg} kg
+                                            </div>
+                                            <div className="text-[12px] text-[#6B7280]">{row.dimensions}</div>
+                                            <span className="mt-1 inline-flex px-2 py-0.5 rounded-full text-[10px] font-[700] bg-[#EAF1FF] text-[#0F3D8A]">
+                                                {row.priority}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 min-w-[200px]">
+                                            <div className="font-[600]">{row.customerContact || "-"}</div>
+                                            <div className="text-[12px] text-[#6B7280]">From: {row.pickupLocation || "-"}</div>
+                                            <div className="text-[12px] text-[#6B7280]">To: {row.deliveryLocation || "-"}</div>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <div className="font-[600]">{row.paymentStatus}</div>
+                                            <div className="text-[12px] text-[#6B7280]">{row.paymentMethod || "-"}</div>
+                                            {row.codAmount != null && (
+                                                <div className="text-[12px] text-[#6B7280]">COD: {row.currency} {row.codAmount.toLocaleString()}</div>
+                                            )}
+                                            <div className="text-[12px] text-[#6B7280]">
+                                                Shipping: {row.shippingCharge != null ? `${row.currency} ${row.shippingCharge.toLocaleString()}` : "-"}
+                                            </div>
+                                            <div className="text-[12px] font-[600]">
+                                                Total: {row.totalAmount != null ? `${row.currency} ${row.totalAmount.toLocaleString()}` : "-"}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div>{row.assignedProvider}</div>
+                                            <div className="text-[12px] text-[#6B7280]">{row.providerStatus}</div>
                                         </td>
                                         <td className="px-4 py-3">
                                             <span
@@ -536,12 +579,11 @@ const DashContent = ({ mode = "dashboard" }) => {
                                                 {row.statusLabel}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{row.estimatedDelivery || "-"}</td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-10 text-center text-[#6B7280]">
+                                    <td colSpan={8} className="px-4 py-10 text-center text-[#6B7280]">
                                         No courier bookings found for the selected filters.
                                     </td>
                                 </tr>

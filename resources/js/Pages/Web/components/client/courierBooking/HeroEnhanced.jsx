@@ -481,7 +481,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
     ];
 
     return (
-        <div className="min-h-screen w-full bg-[#F4F6F9] poppins">
+        <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] poppins">
             <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6">
                 {/* Header */}
                 <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

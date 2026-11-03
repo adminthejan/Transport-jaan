@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { API_BASE_URL } from '../../../../../config/api';
 
+import WarehouseSpecsFields, { EMPTY_SPECS } from '../../../components/vendors/warehouse/units/WarehouseSpecsFields';
+
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../assets/vendors/dashboard/bell.svg";
@@ -86,6 +88,9 @@ const defaultAmenities = [
 
 const AddUnit = () => {
   const [form, setForm] = useState(initialState);
+  const [specs, setSpecs] = useState(EMPTY_SPECS);
+  const [specDocs, setSpecDocs] = useState({});
+  const [existingSpecDocs, setExistingSpecDocs] = useState({});
   const [errors, setErrors] = useState({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -386,6 +391,8 @@ const AddUnit = () => {
 
     // Clear form immediately after confirmation
     setForm(initialState);
+    setSpecs(EMPTY_SPECS);
+    setSpecDocs({});
     setImageFiles([]);
     setImagePreviews([]);
     setDocumentFiles([]);
@@ -423,6 +430,8 @@ const AddUnit = () => {
       data.append('terms_conditions', form.terms_conditions || '');
       data.append('is_active', form.is_active ? '1' : '0');
       data.append('amenities', JSON.stringify(form.amenities || []));
+      data.append('specs', JSON.stringify(specs));
+      Object.entries(specDocs).forEach(([key, file]) => file && data.append(`spec_documents[${key}]`, file));
       // files
       imageFiles.forEach((f) => data.append('images[]', f));
       documentFiles.forEach((f) => data.append('documents[]', f));
@@ -976,6 +985,15 @@ const AddUnit = () => {
               ))}
             </div>
           </section>
+
+          {/* Extended unit details */}
+          <WarehouseSpecsFields
+            specs={specs}
+            onChange={setSpecs}
+            documents={specDocs}
+            existingDocuments={existingSpecDocs}
+            onDocumentChange={(key, file) => setSpecDocs((prev) => ({ ...prev, [key]: file }))}
+          />
 
           {/* Terms & Conditions */}
           <section className="bg-[#FFFFFF] p-6 rounded-lg">

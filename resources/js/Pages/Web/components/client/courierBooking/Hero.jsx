@@ -236,7 +236,7 @@ const Hero = () => {
     );
 
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+        <div className="min-h-screen w-full bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] md:p-20 poppins">
             <div className="mx-auto max-w-[1300px]">
                 {/* Header */}
                 <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">

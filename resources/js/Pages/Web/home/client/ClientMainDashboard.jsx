@@ -1,41 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { Head } from "@inertiajs/react";
 import ClientHeader from "./ClientHeader";
 import ClientCardDashboard from "../../components/client/ClientCardDashboard";
 
-const ClientMainDashboard = () => {
-    const [isRefreshing, setIsRefreshing] = useState(false);
-
-    // Auto-refresh the page EVERY time it's visited to prevent stale CSRF token
+const ClientMainDashboard = ({ csrf_token }) => {
+    // Keep the CSRF meta tag in step with the server-issued token so later form
+    // posts and axios calls don't fail with 419 after an in-app (Inertia) visit.
     useEffect(() => {
-        // Use a URL parameter to track if we just refreshed
-        const urlParams = new URLSearchParams(window.location.search);
-        const justRefreshed = urlParams.get('refreshed');
-
-        if (!justRefreshed) {
-            // Show loader and refresh with parameter
-            setIsRefreshing(true);
-            setTimeout(() => {
-                const currentUrl = new URL(window.location.href);
-                currentUrl.searchParams.set('refreshed', '1');
-                window.location.href = currentUrl.toString();
-            }, 500);
-        }
-    }, []);
-
-    // Simple loader overlay
-    if (isRefreshing) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-                <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                    <p className="mt-4 text-gray-600 text-sm">Loading...</p>
-                </div>
-            </div>
-        );
-    }
+        if (!csrf_token) return;
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) meta.setAttribute("content", csrf_token);
+        if (window.axios) window.axios.defaults.headers.common["X-CSRF-TOKEN"] = csrf_token;
+    }, [csrf_token]);
 
     return (
-        <div className="bg-[#E5E5E5] min-h-screen">
+        <div className="min-h-screen bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC]">
+            <Head title="Client Dashboard" />
             <ClientHeader />
             <ClientCardDashboard />
         </div>
@@ -43,4 +23,3 @@ const ClientMainDashboard = () => {
 };
 
 export default ClientMainDashboard;
-

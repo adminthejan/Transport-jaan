@@ -62,12 +62,14 @@ class WarehouseUnit extends Model
         'operating_hours',
         'special_requirements',
         'restrictions',
+        'specs',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'is_available' => 'boolean',
         'services' => 'array',
+        'specs' => 'array',
         'latitude' => 'float',
         'longitude' => 'float',
         'total_area' => 'decimal:2',

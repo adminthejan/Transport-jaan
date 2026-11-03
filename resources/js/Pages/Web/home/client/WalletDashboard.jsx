@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, RefreshCcw, SlidersHorizontal } from "lucide-react";
+import BackToDashboard from "./BackToDashboard";
 import ClientHeader from "./ClientHeader";
 
 const money = (v) => Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -58,32 +59,36 @@ const WalletDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9]">
+    <div className="min-h-screen bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC]">
       <ClientHeader />
+      <BackToDashboard />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
         {/* Balance card */}
-        <div className="rounded-2xl bg-gradient-to-br from-[#0955AC] to-[#073E82] text-white shadow-lg p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
-              <Wallet size={18} />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-6 sm:p-8 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div className="pointer-events-none absolute -right-14 -top-14 h-52 w-52 rounded-full bg-blue-50" />
+          <div className="relative">
+            <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <Wallet size={16} />
+              </span>
               <span>Wallet Balance</span>
             </div>
-            <div className="mt-2 text-4xl sm:text-5xl font-bold tracking-tight">
+            <div className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight text-slate-900">
               {wallet.currency} {money(wallet.balance)}
             </div>
-            <p className="mt-2 text-white/70 text-sm">
+            <p className="mt-2 text-slate-500 text-sm">
               Use your wallet balance to pay instantly across Vehicle Rental, Ticket Booking, Courier and more.
             </p>
           </div>
-          <div className="shrink-0 rounded-2xl bg-white/10 backdrop-blur-sm p-4">
-            <Wallet size={56} className="text-white/90" />
+          <div className="relative shrink-0 rounded-2xl bg-blue-50 p-4">
+            <Wallet size={48} className="text-blue-600" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Top up form */}
-          <div className="lg:col-span-2 rounded-2xl bg-white shadow-sm p-6 h-fit">
+          <div className="lg:col-span-2 rounded-2xl border border-slate-200/70 bg-white shadow-sm p-6 h-fit">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <Plus size={20} className="text-[#0955AC]" />
               Top Up Wallet
@@ -137,7 +142,7 @@ const WalletDashboard = () => {
           </div>
 
           {/* Transaction history */}
-          <div className="lg:col-span-3 rounded-2xl bg-white shadow-sm p-6">
+          <div className="lg:col-span-3 rounded-2xl border border-slate-200/70 bg-white shadow-sm p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <SlidersHorizontal size={18} className="text-[#0955AC]" />

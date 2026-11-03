@@ -20,7 +20,7 @@ import {
 /*  Re-usable components                                              */
 /* ------------------------------------------------------------------ */
 const Section = ({ title, description, children, editBtn }) => (
-    <section className="bg-white rounded-[10px] border border-gray-200 p-6 md:p-8 transition-all duration-300 shadow-sm">
+    <section className="bg-white rounded-2xl border border-slate-200/70 p-6 md:p-8 transition-all duration-300 shadow-sm">
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h2 className="text-[18px] font-[700] text-gray-900">{title}</h2>
@@ -336,7 +336,7 @@ const Settings = ({ user = {} }) => {
     ];
 
     return (
-        <div className="bg-[#E5E5E5] poppins min-h-screen pb-10">
+        <div className="bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] poppins min-h-screen pb-10">
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
             <div className="max-w-[1300px] mx-auto px-4 md:px-6 lg:px-10 py-10">
                 
@@ -1115,7 +1115,7 @@ const Settings = ({ user = {} }) => {
 
             
 
-            <style dangerouslySetAttribute={{__html: `
+            <style dangerouslySetInnerHTML={{__html: `
                 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}} />

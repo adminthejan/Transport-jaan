@@ -351,6 +351,12 @@ class VehicleController extends Controller
             'totalRentalPrice'   => $v->total_rental_price,
             'deposit'            => $v->deposit_amount,
             'advancePayment'     => $v->advance_payment_amount,
+            'currency'           => $v->currency,
+            'extraKmCharge'      => $v->extra_km_charge,
+            'lateReturnCharge'   => $v->late_return_charge,
+            'chassisNumber'      => $v->chassis_number,
+            'engineNumber'       => $v->engine_number,
+            'engineCapacity'     => $v->engine_capacity_cc,
 
             'insuranceProvider'  => $v->insurance_provider,
 
@@ -526,6 +532,16 @@ class VehicleController extends Controller
             'totalRentalPrice'   => ['nullable','numeric','min:0'],
             'deposit'            => ['nullable','numeric','min:0'],
             'advancePayment'     => ['nullable','numeric','min:0'],
+            'currency'           => ['nullable', Rule::in(['LKR','USD','EUR','GBP','INR'])],
+            'extraKmCharge'      => ['nullable','numeric','min:0'],
+            'lateReturnCharge'   => ['nullable','numeric','min:0'],
+
+            // registration details
+            'chassisNumber'      => ['nullable','string','max:64'],
+            'engineNumber'       => ['nullable','string','max:64'],
+            'engineCapacity'     => ['nullable','integer','min:0'],
+            'registrationCertificate.*' => ['nullable','file','mimes:pdf,png,jpg,jpeg,webp','max:10240'],
+            'revenueLicense.*'          => ['nullable','file','mimes:pdf,png,jpg,jpeg,webp','max:10240'],
 
             // toggles & prices
             'gps'                      => ['nullable','boolean'],
@@ -604,6 +620,13 @@ class VehicleController extends Controller
                     'total_rental_price'     => $request->input('totalRentalPrice'),
                     'deposit_amount'         => $request->input('deposit'),
                     'advance_payment_amount' => $request->input('advancePayment'),
+                    'extra_km_charge'        => $request->input('extraKmCharge'),
+                    'late_return_charge'     => $request->input('lateReturnCharge'),
+                    'currency'               => $request->input('currency') ?: ($vehicle?->currency ?? 'LKR'),
+
+                    'chassis_number'         => $request->input('chassisNumber'),
+                    'engine_number'          => $request->input('engineNumber'),
+                    'engine_capacity_cc'     => $request->integer('engineCapacity') ?: null,
 
                     'insurance_provider'     => $request->input('insuranceProvider'),
 
@@ -719,6 +742,23 @@ class VehicleController extends Controller
                         $vehicle->documents()->create([
                             'doc_type'             => 'insurance',
                             'provider_name'        => $request->input('insuranceProvider'),
+                            'policy_or_doc_number' => null,
+                            'issue_date'           => null,
+                            'expiry_date'          => null,
+                            'file_path'            => Storage::url($path),
+                        ]);
+                    }
+                }
+
+                foreach (['registrationCertificate' => 'registration', 'revenueLicense' => 'permit'] as $field => $docType) {
+                    if (!$request->hasFile($field)) continue;
+                    $vehicle->documents()->where('doc_type', $docType)->delete();
+                    foreach ((array) $request->file($field) as $file) {
+                        if (!$file) continue;
+                        $path = $file->store("vehicles/{$vehicle->id}/documents", 'public');
+                        $vehicle->documents()->create([
+                            'doc_type'             => $docType,
+                            'provider_name'        => null,
                             'policy_or_doc_number' => null,
                             'issue_date'           => null,
                             'expiry_date'          => null,

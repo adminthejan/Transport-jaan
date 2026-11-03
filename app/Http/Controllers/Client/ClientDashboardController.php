@@ -125,7 +125,7 @@ class ClientDashboardController extends Controller
 
             if ($amountColumn) {
                 $out['spent'] = (float) (clone $base)
-                    ->whereNotIn(DB::raw('LOWER(status)'), self::STATUS_BUCKETS['cancelled'])
+                    ->whereNotIn(DB::raw('LOWER(status)'), array_merge(self::STATUS_BUCKETS['cancelled'], self::STATUS_BUCKETS['pending']))
                     ->sum($amountColumn);
             }
 
