@@ -193,143 +193,8 @@ const CalendarContent = ({
         }
     };
 
-    // Mock data for demonstration - remove when backend is ready
-    const mockEvents = !initialEvents || initialEvents.length === 0 ? [
-        {
-            day: 0, // Monday (December 1, 2025)
-            time: "8:00 AM",
-            title: "Electronics Storage",
-            person: "John Smith",
-            status: "done",
-            fullData: {
-                id: 1,
-                pickup_at: new Date(2025, 11, 1), // December 1, 2025
-                dropoff_at: new Date(2025, 11, 15),
-                pickup_time: "8:00 AM",
-                title: "Electronics Storage",
-                person: "John Smith",
-                notes: "Temperature controlled storage required",
-                vehicle: {
-                    name: "Cold Storage Unit A",
-                    type: "Climate Controlled",
-                    plate_number: "REF-001",
-                    transmission: "500 sq ft"
-                }
-            }
-        },
-        {
-            day: 0, // Monday (December 1, 2025)
-            time: "12:00 PM",
-            title: "Furniture Storage",
-            person: "Sarah Johnson",
-            status: "done",
-            fullData: {
-                id: 2,
-                pickup_at: new Date(2025, 11, 1), // December 1, 2025
-                dropoff_at: new Date(2025, 11, 20),
-                pickup_time: "12:00 PM",
-                title: "Furniture Storage",
-                person: "Sarah Johnson",
-                notes: "Fragile items - handle with care",
-                vehicle: {
-                    name: "General Storage B",
-                    type: "Standard",
-                    plate_number: "STD-002",
-                    transmission: "800 sq ft"
-                }
-            }
-        },
-        {
-            day: 1, // Tuesday (December 2, 2025)
-            time: "9:00 AM",
-            title: "Auto Parts Storage",
-            person: "Mike Davis",
-            status: "cancelled",
-            fullData: {
-                id: 3,
-                pickup_at: new Date(2025, 11, 2), // December 2, 2025
-                dropoff_at: new Date(2025, 11, 10),
-                pickup_time: "9:00 AM",
-                title: "Auto Parts Storage",
-                person: "Mike Davis",
-                notes: "Cancelled due to schedule conflict",
-                vehicle: {
-                    name: "Secure Storage C",
-                    type: "High Security",
-                    plate_number: "SEC-003",
-                    transmission: "300 sq ft"
-                }
-            }
-        },
-        {
-            day: 2, // Wednesday (December 3, 2025)
-            time: "8:00 AM",
-            title: "Textile Goods",
-            person: "Emily Wilson",
-            status: "done",
-            fullData: {
-                id: 4,
-                pickup_at: new Date(2025, 11, 3), // December 3, 2025
-                dropoff_at: new Date(2025, 11, 18),
-                pickup_time: "8:00 AM",
-                title: "Textile Goods",
-                person: "Emily Wilson",
-                notes: "Dry storage area required",
-                vehicle: {
-                    name: "Dry Storage D",
-                    type: "Climate Controlled",
-                    plate_number: "DRY-004",
-                    transmission: "600 sq ft"
-                }
-            }
-        },
-        {
-            day: 3, // Thursday (December 4, 2025)
-            time: "10:00 AM",
-            title: "Medical Supplies",
-            person: "Dr. Robert Brown",
-            status: "done",
-            fullData: {
-                id: 5,
-                pickup_at: new Date(2025, 11, 4), // December 4, 2025
-                dropoff_at: new Date(2025, 11, 12),
-                pickup_time: "10:00 AM",
-                title: "Medical Supplies",
-                person: "Dr. Robert Brown",
-                notes: "Temperature sensitive - maintain 2-8°C",
-                vehicle: {
-                    name: "Pharma Storage E",
-                    type: "Temperature Controlled",
-                    plate_number: "MED-005",
-                    transmission: "400 sq ft"
-                }
-            }
-        },
-        {
-            day: 4, // Friday (December 5, 2025)
-            time: "11:00 AM",
-            title: "Office Equipment",
-            person: "Lisa Anderson",
-            status: "done",
-            fullData: {
-                id: 6,
-                pickup_at: new Date(2025, 11, 5), // December 5, 2025
-                dropoff_at: new Date(2025, 11, 25),
-                pickup_time: "11:00 AM",
-                title: "Office Equipment",
-                person: "Lisa Anderson",
-                notes: "Computer servers and office furniture",
-                vehicle: {
-                    name: "Standard Storage F",
-                    type: "Standard",
-                    plate_number: "STD-006",
-                    transmission: "700 sq ft"
-                }
-            }
-        }
-    ] : [];
 
-    // Convert events or use mock data
+    // Convert backend events
     const processedEvents = initialEvents && initialEvents.length > 0
         ? initialEvents.map((event) => {
             const pickupDate = new Date(event.pickup_at);
@@ -346,10 +211,8 @@ const CalendarContent = ({
                 fullData: event,
             };
         })
-        : mockEvents;
+        : [];
 
-    console.log('Initial Events:', initialEvents);
-    console.log('Processed Events:', processedEvents);
 
     const times = [
         "8:00 AM",
