@@ -103,7 +103,7 @@ const DashContent = () => {
                                 <div
                                     className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
-                                        boxShadow: "4px 4px 4px #0000001A",
+                                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                                     }}
                                 >
                                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -138,7 +138,7 @@ const DashContent = () => {
                                 <div
                                     className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
-                                        boxShadow: "4px 4px 4px #0000001A",
+                                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                                     }}
                                 >
                                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -174,7 +174,7 @@ const DashContent = () => {
                                 <div
                                     className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
-                                        boxShadow: "4px 4px 4px #0000001A",
+                                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                                     }}
                                 >
                                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -208,7 +208,7 @@ const DashContent = () => {
                                 <div
                                     className="xl:min-h-[91px] w-full bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
-                                        boxShadow: "4px 4px 4px #0000001A",
+                                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                                     }}
                                 >
                                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -245,7 +245,7 @@ const DashContent = () => {
                         {/* booking chart */}
                         <div
                             className="w-full h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-5 px-4 md:px-5"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             {/* Booking Overview header and dropdown */}
                             <div className="flex flex-col xl:flex-row items-center justify-between mb-16 w-full">
@@ -289,7 +289,7 @@ const DashContent = () => {
 
                         <div
                             className="w-full min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-5 px-4 md:px-5"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <div className="flex flex-col xl:flex-row items-center justify-between mb-12 w-full">
                                 <h1 className="text-[24px] font-[700]">
@@ -333,7 +333,7 @@ const DashContent = () => {
                     <div className="flex flex-col items-center gap-5 w-full">
                         <div
                             className="w-full min-h-[206px] bg-[#D8E4F2] flex flex-col px-5 py-5 justify-center items-center rounded-[10px]"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <h1 className="text-[24px] font-[700] mb-3">
                                 Car Availability
@@ -383,7 +383,7 @@ const DashContent = () => {
                         </div>
                         <div
                             className="w-full xl:min-h-[437px] bg-[#FFFFFF] rounded-[10px] py-5 px-4 md:px-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <div className="flex flex-col xl:flex-row items-center justify-between w-full">
                                 <h1 className="text-[24px] font-[700]">
@@ -424,7 +424,7 @@ const DashContent = () => {
                         {/* Reminder section  */}
                         <div
                             className="w-full xl:min-h-[335px] bg-[#FFFFFF] rounded-[10px] py-5 px-5"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <div className="flex flex-row items-center justify-between w-full">
                                 <h1 className="text-[24px] font-[700]">
@@ -472,7 +472,7 @@ const DashContent = () => {
 
                 <div
                     className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] py-5 px-5"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-col xl:flex-row justify-between">
                         <h1 className="text-[24px] font-[700] mb-5 xl:mb-0">Car Booking</h1>
@@ -502,7 +502,7 @@ const DashContent = () => {
                 <div className="flex flex-col xl:flex-row gap-5 justify-between">
                     <div
                         className="w-full min-h-[858px] bg-[#FFFFFF] rounded-[10px] px-4 md:px-10 py-10"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex flex-row justify-between items-center">
                             <h1 className="text-[24px] font-[700]">
@@ -550,7 +550,7 @@ const DashContent = () => {
                     </div>
                     <div
                         className="w-full xl:min-h-[858px] bg-[#0F0F0F08] rounded-[10px] px-5 md:px-10 py-5 md:py-10"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex flex-row justify-between items-center">
                             <h1 className="text-[20px] md:text-[24px] font-[700]">

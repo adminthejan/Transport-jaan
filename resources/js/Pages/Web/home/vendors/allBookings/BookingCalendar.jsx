@@ -359,7 +359,7 @@ const CalendarContent = () => {
 
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
             >
                 <div className="px-20 flex flex-row items-center justify-between">
                     <div className="flex flex-row justify-center items-center gap-6">

@@ -134,7 +134,7 @@ const TAB_FIELDS = {
 };
 
 const SectionCard = ({ title, description, children }) => (
-    <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+    <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
         <div className="mb-4">
             <h2 className="text-[18px] font-[700] text-[#111827]">{title}</h2>
             {description && <p className="text-[12px] text-[#6B7280] mt-1">{description}</p>}
@@ -802,7 +802,7 @@ const ProfileContent = () => {
 
             <div className={`grid grid-cols-1 md:grid-cols-2 ${isTeamUser ? "xl:grid-cols-1" : "xl:grid-cols-4"} gap-4 mb-5`}>
                 {summaryCards.map((card) => (
-                    <div key={card.key} className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <div key={card.key} className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                         <p className="text-[12px] text-[#6B7280] font-[600]">{card.label}</p>
                         <p className="text-[26px] leading-tight font-[700] mt-1">{card.value}</p>
                     </div>
@@ -810,7 +810,7 @@ const ProfileContent = () => {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[250px_1fr] gap-5">
-                <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">{isTeamUser ? "My Profile" : "Profile Modules"}</p>
                     <div className="space-y-2">
                         {visibleTabs.map((tab) => {

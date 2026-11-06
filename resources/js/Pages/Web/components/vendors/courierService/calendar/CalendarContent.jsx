@@ -188,33 +188,33 @@ const CalendarContent = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 mb-6">
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Total Events</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1">{calendar.summary.totalEvents}</p>
                 </div>
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Pickups</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1">{calendar.summary.pickups}</p>
                 </div>
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Deliveries / ETA</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1">{calendar.summary.deliveries}</p>
                 </div>
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Exceptions</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1 text-[#B91C1C]">{calendar.summary.exceptions}</p>
                 </div>
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">High Priority</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1 text-[#92400E]">{calendar.summary.highPriority}</p>
                 </div>
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Active Shipments</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1">{calendar.summary.activeShipments}</p>
                 </div>
             </div>
 
-            <div className="bg-white rounded-[10px] p-4 mb-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="bg-white rounded-[10px] p-4 mb-6" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1fr_auto_auto_auto] gap-3 items-center">
                     <div className="h-[38px] rounded-[8px] bg-[#F3F4F6] px-3 flex items-center gap-2">
                         <Search size={16} className="text-[#6B7280]" />
@@ -268,7 +268,7 @@ const CalendarContent = () => {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_330px] gap-5">
-                <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <div className="grid grid-cols-7 gap-2 text-center text-[12px] font-[700] text-[#6B7280] mb-2">
                         <div>Sun</div>
                         <div>Mon</div>
@@ -331,7 +331,7 @@ const CalendarContent = () => {
                 </div>
 
                 <div className="space-y-4">
-                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                         <h2 className="text-[18px] font-[700] mb-1">Daily Agenda</h2>
                         <p className="text-[12px] text-[#6B7280] mb-3">{selectedDate || "Select a date"}</p>
 
@@ -355,7 +355,7 @@ const CalendarContent = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                         <div className="flex items-center gap-2 mb-3">
                             <AlertTriangle size={16} className="text-[#B91C1C]" />
                             <h2 className="text-[16px] font-[700]">Exception Queue</h2>
@@ -377,7 +377,7 @@ const CalendarContent = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                         <div className="flex items-center gap-2 mb-2">
                             <Truck size={16} className="text-[#0955AC]" />
                             <h2 className="text-[16px] font-[700]">Legend</h2>

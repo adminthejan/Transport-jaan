@@ -914,7 +914,7 @@ const DEFAULT_SPEED_ETA_TIER_TEMPLATE = {
 };
 
 const SectionCard = ({ title, description, children }) => (
-    <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+    <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
         <div className="mb-4">
             <h2 className="text-[18px] font-[700] text-[#111827]">{title}</h2>
             {description && <p className="text-[12px] text-[#6B7280] mt-1">{description}</p>}
@@ -5427,7 +5427,7 @@ const Settings = () => {
     if (!settings || typeof settings !== "object") {
         return (
             <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
-                <div className="bg-white rounded-[10px] p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] p-6" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[14px] text-[#6B7280]">Unable to load settings data.</p>
                 </div>
             </div>
@@ -6485,7 +6485,7 @@ const Settings = () => {
 
             return (
                 <div className="space-y-4">
-                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
                                 <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide">Pricing Category</p>
@@ -6512,7 +6512,7 @@ const Settings = () => {
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-5">
-                        <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                        <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                             <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Pricing Topics</p>
                             <div className="space-y-2">
                                 {PRICING_TOPIC_CONFIG.map((topic) => (
@@ -8318,7 +8318,7 @@ const Settings = () => {
 
         return (
             <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
-                <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Team Access Topics</p>
                     <div className="space-y-2">
                         {TEAM_ACCESS_TOPIC_CONFIG.map((topic) => (

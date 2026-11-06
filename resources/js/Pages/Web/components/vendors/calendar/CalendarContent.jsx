@@ -159,7 +159,7 @@ const CalendarContent = ({
                 {/* Selected Booking Details */}
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     {selectedBooking ? (
                         <>
@@ -255,7 +255,7 @@ const CalendarContent = ({
                 {/* Reminders */}
                 <div
                     className="w-full lg:min-w-[349px] lg:w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-row items-center justify-between w-full">
                         <h1 className="text-[24px] font-[700]">Reminders</h1>
@@ -289,7 +289,7 @@ const CalendarContent = ({
                 {/* Calendar Month Picker */}
                 <div
                     className="w-full lg:min-w-[315px] lg:w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <CalendarMonthPicker />
                 </div>
@@ -298,7 +298,7 @@ const CalendarContent = ({
             {/* ==================== MAIN CALENDAR GRID ==================== */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
             >
                 <div className="px-5 sm:px-10 lg:px-20 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-6">

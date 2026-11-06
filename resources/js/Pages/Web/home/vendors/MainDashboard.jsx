@@ -47,7 +47,7 @@ const MainDashboard = () => {
     }
 
     return (
-        <div className="bg-[#E5E5E5] min-h-screen">
+        <div className="bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] min-h-screen">
             <div className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black/10 backdrop-blur-sm shadow-md' : ''}`}>
                 <Header />
             </div>

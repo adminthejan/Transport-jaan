@@ -233,7 +233,7 @@ const CalendarContent = () => {
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-5 py-5"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     <div className="flex flex-col sm:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
@@ -283,7 +283,7 @@ const CalendarContent = () => {
                 <div
                     className="w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     {/* Reminder section  */}
@@ -336,7 +336,7 @@ const CalendarContent = () => {
                 <div
                     className="w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     <CalendarMonthPicker />
@@ -346,7 +346,7 @@ const CalendarContent = () => {
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
                 style={{
-                    boxShadow: "4px 4px 4px #0000001A",
+                    boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                 }}
             >
                 <div className="px-4 sm:px-10 lg:px-20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

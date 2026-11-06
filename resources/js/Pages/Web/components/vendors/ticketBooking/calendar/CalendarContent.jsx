@@ -101,7 +101,7 @@ const CalendarContent = () => {
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-5 lg:px-8 py-10"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     {/* Month schedule overview */}
@@ -149,7 +149,7 @@ const CalendarContent = () => {
                 <div
                     className="xl:max-w-[300px] xl:min-w-[349px] w-full h-auto xl:min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     {/* Attention needed section (cancelled/delayed schedules) */}
@@ -182,7 +182,7 @@ const CalendarContent = () => {
                 <div
                     className="w-full h-auto mx-auto xl:min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     <CalendarMonthPicker
@@ -197,7 +197,7 @@ const CalendarContent = () => {
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
                 style={{
-                    boxShadow: "4px 4px 4px #0000001A",
+                    boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                 }}
             >
                 <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">

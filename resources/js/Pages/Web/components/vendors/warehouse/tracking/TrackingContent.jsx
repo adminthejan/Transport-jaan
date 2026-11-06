@@ -70,7 +70,7 @@ const TrackingContent = () => {
                     <div
                         key={c.label}
                         className="w-full min-h-[80px] bg-[#FFFFFF] rounded-[10px] flex flex-col justify-center px-6"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <span className="text-[13px] text-[#7B7B7A] font-[500]">{c.label}</span>
                         <span className="text-[26px] font-[700]">{c.value}</span>
@@ -93,7 +93,7 @@ const TrackingContent = () => {
                     {/* Units list */}
                     <div
                         className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-4 md:px-10 py-10"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <h1 className="text-[24px] font-[700]">Storage Units</h1>
                         <div className="w-full h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5 my-5">
@@ -159,7 +159,7 @@ const TrackingContent = () => {
                         {selectedUnit && (
                             <div
                                 className="w-full bg-[#FFFFFF] rounded-[10px] px-5 py-5"
-                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                             >
                                 <div className="flex flex-row items-center gap-5">
                                     <Package className="size-[50px] 2xl:size-[70px] text-[#39CEF3] shrink-0" />
@@ -180,7 +180,7 @@ const TrackingContent = () => {
 
                         <div
                             className="w-full min-h-[200px] h-auto bg-[#FFFFFF] rounded-[10px] px-5 py-5"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <h1 className="text-[24px] font-[700]">Current Occupant</h1>
                             {selectedUnit?.occupied ? (
@@ -229,7 +229,7 @@ const TrackingContent = () => {
 
                         <div
                             className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 py-5"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <h1 className="text-[24px] font-[700] flex items-center gap-2">
                                 <CalendarClock className="w-5 h-5" /> Upcoming Move-ins

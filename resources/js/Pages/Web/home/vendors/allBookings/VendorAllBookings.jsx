@@ -397,7 +397,7 @@ const VendorAllBookings = ({
                         {/* Card 1 - Total Bookings */}
                         <div
                             className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <div className="flex flex-row gap-5 justify-center items-center">
                                 <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -424,7 +424,7 @@ const VendorAllBookings = ({
                         {/* Card 2 - Active Bookings */}
                         <div
                             className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <div className="flex flex-row gap-5 justify-center items-center">
                                 <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -453,7 +453,7 @@ const VendorAllBookings = ({
                         {/* Card 3 - Total Earned */}
                         <div
                             className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <div className="flex flex-row gap-5 justify-center items-center">
                                 <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -480,7 +480,7 @@ const VendorAllBookings = ({
                         {/* Card 4 - This Month */}
                         <div
                             className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <div className="flex flex-row gap-5 justify-center items-center">
                                 <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -511,7 +511,7 @@ const VendorAllBookings = ({
                     {/* Bookings table */}
                     <div
                         className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-15 px-3 md:px-10"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex flex-col gap-4 w-full">
                             {/* Header and Buttons */}

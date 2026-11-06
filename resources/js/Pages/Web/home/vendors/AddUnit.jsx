@@ -499,7 +499,7 @@ const AddUnit = () => {
                 <div
                   key={d.id}
                   className="bg-white rounded-[10px] border border-[#E5E5E5] p-4 flex flex-col gap-2"
-                  style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                  style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-[16px] font-[700] text-[#000000CC]">
@@ -1123,7 +1123,7 @@ const AddUnit = () => {
                     {selectedDriver ? (
                       <div
                         className="w-full bg-[#FFFFFF] rounded-[10px] border border-[#E5E5E5] px-4 py-4 flex items-center justify-between"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                       >
                         <div className="flex flex-col">
                           <span className="text-[16px] font-[700] text-[#000000CC]">
@@ -1153,7 +1153,7 @@ const AddUnit = () => {
                     ) : (
                       <div
                         className="w-full bg-[#FFFFFF] rounded-[10px] border border-dashed border-[#E5E5E5] px-4 py-6 flex items-center justify-between"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                       >
                         <div className="text-[14px] text-[#00000080]">
                           No driver selected.

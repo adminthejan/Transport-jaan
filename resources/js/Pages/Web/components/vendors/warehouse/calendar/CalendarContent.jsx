@@ -386,7 +386,7 @@ const CalendarContent = ({
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-5 lg:px-8 py-10"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     {selectedBooking ? (
@@ -464,7 +464,7 @@ const CalendarContent = ({
                 {/* ==================== MAIN CALENDAR GRID ==================== */}
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[8px] py-10"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
                         <div className="flex flex-row justify-center items-center gap-3">

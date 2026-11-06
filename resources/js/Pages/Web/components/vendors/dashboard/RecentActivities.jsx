@@ -178,7 +178,7 @@ const RecentActivities = ({ activities }) => {
   return (
     <div
       className="w-full min-w-0 min-h-0 bg-[#0F0F0F08] rounded-[10px] px-4 md:px-10 py-5 md:py-10"
-      style={{ boxShadow: "4px 4px 4px #0000001A" }}
+      style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
     >
       <div className="flex flex-row justify-between items-center">
         <h1 className="text-[20px] md:text-[24px] font-[700]">Recent Activities</h1>

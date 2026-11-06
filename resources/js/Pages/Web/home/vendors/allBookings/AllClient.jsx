@@ -51,7 +51,7 @@ const AllClient = () => {
                     <div
                         className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-5 lg:px-10 py-10"
                         style={{
-                            boxShadow: "4px 4px 4px #0000001A",
+                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                         }}
                     >
                         <ClientTable />

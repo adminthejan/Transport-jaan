@@ -42,7 +42,7 @@ const TrackingContent = () => {
             <div className="flex flex-col xl:flex-row gap-4 w-full py-10">
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 py-5"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <h1 className="text-[24px] font-[700]">Car Types</h1>
                     <div className="flex flex-row justify-between items-center gap-4 sm:gap-8">
@@ -277,7 +277,7 @@ const TrackingContent = () => {
                         <div className="flex flex-col gap-4 w-full">
                             <div
                                 className="xl:min-w-[255px] w-full xl:min-h-[128px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
-                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                             >
                                 <div className="flex flex-row gap-5">
                                     <img src={proPicTwo} />
@@ -302,7 +302,7 @@ const TrackingContent = () => {
                             </div>
                             <div
                                 className="xl:min-w-[255px] w-full xl:min-h-[102px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
-                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                             >
                                 <div className="flex flex-row gap-3">
                                     <img
@@ -331,7 +331,7 @@ const TrackingContent = () => {
                         </div>
                         <div
                             className="xl:min-w-[257px] w-full xl:min-h-[241px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <h1 className="text-[24px] font-[700]">
                                 Rent Info
@@ -377,7 +377,7 @@ const TrackingContent = () => {
                     <img
                         src={map}
                         className="w-full h-auto rounded-[10px]"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     />
                 </div>
             </div>

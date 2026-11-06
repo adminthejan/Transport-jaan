@@ -12,7 +12,7 @@ const MobileCalendarCard = ({ days, times, events, proPicTwo }) => {
 
   return (
     <div className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 py-5 md:hidden"
-         style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+         style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
       <h1 className="text-[20px] font-[700] mb-5">Weekly Schedule</h1>
       <div className="flex flex-col gap-4">
         {eventsByDay.map((day, dayIdx) => (

@@ -203,7 +203,7 @@ const BookingContent = () => {
               <div
                 key={idx}
                 className="xl:w-[600px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
               >
                 <div className="flex flex-row gap-5 justify-center items-center">
                   <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -231,7 +231,7 @@ const BookingContent = () => {
               <div
                 key={idx}
                 className="xl:w-[600px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
               >
                 <div className="flex flex-row gap-5 justify-center items-center">
                   <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -258,14 +258,14 @@ const BookingContent = () => {
         <div className="flex flex-col xl:flex-row gap-5">
           <div
             className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center"
-            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
           >
             <div className="text-center text-gray-600">Chart coming soon...</div>
           </div>
 
           <div
             className="flex-1 bg-white rounded-[10px] py-5 px-5"
-            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
           >
             <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-5">
               <div className="flex items-center gap-2 w-full md:w-[70%] bg-[#F3F3F3] rounded-[6px] px-3 py-2">

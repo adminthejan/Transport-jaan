@@ -75,7 +75,7 @@ const VehicleContent = () => {
             </div>
 
             {vehicles.length === 0 ? (
-                <div className="bg-white rounded-[10px] p-10 mt-6 text-center" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] p-10 mt-6 text-center" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[15px] text-[#374151] font-[600]">No vehicles registered yet.</p>
                     <p className="text-[13px] text-[#6B7280] mt-1">
                         Add a delivery vehicle to start accepting courier assignments for it.
@@ -97,7 +97,7 @@ const VehicleContent = () => {
                             <div
                                 key={vehicle.id}
                                 className="bg-white rounded-[10px] p-4"
-                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                             >
                                 <div className="flex items-start justify-between">
                                     <div>

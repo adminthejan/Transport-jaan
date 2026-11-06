@@ -86,7 +86,7 @@ const BookingContent = () => {
                     <div
                         className="w-full xl:min-w-[300px] xl:min-h-[91px] h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
-                            boxShadow: "4px 4px 4px #0000001A",
+                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                         }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
@@ -106,7 +106,7 @@ const BookingContent = () => {
                     <div
                         className="w-full xl:min-w-[300px] h-auto xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
-                            boxShadow: "4px 4px 4px #0000001A",
+                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                         }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
@@ -126,7 +126,7 @@ const BookingContent = () => {
                     <div
                         className="w-full xl:min-w-[300px] xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
-                            boxShadow: "4px 4px 4px #0000001A",
+                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                         }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
@@ -146,7 +146,7 @@ const BookingContent = () => {
                     <div
                         className="w-full xl:min-w-[300px] xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
-                            boxShadow: "4px 4px 4px #0000001A",
+                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                         }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
@@ -167,7 +167,7 @@ const BookingContent = () => {
                 {/* mini right */}
                 <div
                     className="w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     {isMobile ? (
                         <div className="w-full p-4">
@@ -204,7 +204,7 @@ const BookingContent = () => {
             {/* booking table section */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
             >
                 <div className="flex xl:flex-row flex-col justify-between">
                     <h1 className="text-[24px] font-[700]">Bus & Train Bookings</h1>

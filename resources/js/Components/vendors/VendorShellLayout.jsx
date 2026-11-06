@@ -360,9 +360,9 @@ const VendorShellLayout = ({
     }, [settingsModuleActive]);
 
     const menuCls = (active) =>
-        `flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${active
-            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-            : "text-[#00000066] hover:bg-gray-50"
+        `flex items-center gap-3 w-full h-11 rounded-[10px] px-3 cursor-pointer transition-colors text-[14px] font-[600] ${active
+            ? "bg-[#EEF3FA] text-[#0955AC] ring-1 ring-inset ring-[#D7E3F4]"
+            : "text-gray-700 hover:bg-[#EEF3FA] hover:text-[#0955AC]"
         }`;
 
     const handleUnverified = (serviceName) => {
@@ -414,9 +414,9 @@ const VendorShellLayout = ({
     };
 
     const tabLinkCls = (isActiveSvc) =>
-        `flex-1 lg:flex-none px-6 py-4 lg:px-8 text-center font-[500] text-[14px] whitespace-nowrap border-b-4 transition-all rounded-t-lg ${isActiveSvc
-            ? "border-[#0955AC] bg-[#0955AC29] text-[#0955AC] font-[600]"
-            : "border-transparent text-[#666666] hover:bg-[#F3F3F3] hover:border-[#0955AC]"
+        `flex-1 lg:flex-none px-4 py-2 text-center text-[13px] whitespace-nowrap rounded-full transition-colors ${isActiveSvc
+            ? "bg-[#0955AC] text-white font-[700] shadow-sm"
+            : "text-slate-600 font-[600] hover:bg-[#EEF3FA] hover:text-[#0955AC]"
         }`;
 
     const pillCls = (isActiveSvc) =>
@@ -426,7 +426,7 @@ const VendorShellLayout = ({
         }`;
 
     return (
-        <div className="bg-[#E5E5E5] min-h-screen">
+        <div className="bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] min-h-screen">
             <style>{`
                 .sidebar-scroll::-webkit-scrollbar { width: 6px; }
                 .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -455,7 +455,7 @@ const VendorShellLayout = ({
                         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
                         lg:translate-x-0`}
                 >
-                    <div className="poppins min-w-[250px] h-screen bg-white flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] shadow-lg overflow-hidden">
+                    <div className="poppins min-w-[250px] h-screen bg-white flex flex-col py-4 px-4 border-r border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)] overflow-hidden">
 
                         {/* Logo + back + close (mobile) */}
                         <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
@@ -489,7 +489,7 @@ const VendorShellLayout = ({
 
                         {/* Scrollable menu */}
                         <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
-                            <div className="figtree flex flex-col items-start gap-3 text-[18px] font-[500]">
+                            <div className="figtree flex flex-col items-start gap-1 text-[14px] font-[600]">
 
                                 {cfg.dashboard && hasCourierPermission("courier.dashboard.view") && (
                                     <div className={menuCls(isActive(cfg.dashboard))} onClick={() => navigate(cfg.dashboard)}>
@@ -592,12 +592,12 @@ const VendorShellLayout = ({
                                         </div>
 
                                         {showFinancial && (
-                                            <div className="ml-8 w-full flex flex-col gap-1 text-[16px] font-[500]">
+                                            <div className="ml-[38px] pl-3 border-l-2 border-[#E3EBF5] w-[calc(100%-38px)] flex flex-col gap-0.5 text-[13px] font-[500]">
                                                 {cfg.payment && hasCourierPermission("courier.finance.view") && (
                                                     <div
                                                         className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.payment)
-                                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                                            : "text-[#00000066] hover:bg-gray-50"
+                                                            ? "bg-[#EEF3FA] text-[#0955AC] font-[700]"
+                                                            : "text-gray-600 hover:text-[#0955AC] hover:bg-[#F3F7FC]"
                                                             }`}
                                                         onClick={() => navigate(cfg.payment)}
                                                     >
@@ -607,8 +607,8 @@ const VendorShellLayout = ({
                                                 {cfg.expenses && hasCourierPermission("courier.finance.view") && (
                                                     <div
                                                         className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.expenses)
-                                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                                            : "text-[#00000066] hover:bg-gray-50"
+                                                            ? "bg-[#EEF3FA] text-[#0955AC] font-[700]"
+                                                            : "text-gray-600 hover:text-[#0955AC] hover:bg-[#F3F7FC]"
                                                             }`}
                                                         onClick={() => navigate(cfg.expenses)}
                                                     >
@@ -618,8 +618,8 @@ const VendorShellLayout = ({
                                                 {cfg.earnings && hasCourierPermission("courier.finance.view") && (
                                                     <div
                                                         className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.earnings)
-                                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                                            : "text-[#00000066] hover:bg-gray-50"
+                                                            ? "bg-[#EEF3FA] text-[#0955AC] font-[700]"
+                                                            : "text-gray-600 hover:text-[#0955AC] hover:bg-[#F3F7FC]"
                                                             }`}
                                                         onClick={() => navigate(cfg.earnings)}
                                                     >
@@ -649,13 +649,13 @@ const VendorShellLayout = ({
                                             </div>
 
                                             {showSettingsMenu && (
-                                                <div className="ml-8 w-full flex flex-col gap-1 text-[16px] font-[500]">
+                                                <div className="ml-[38px] pl-3 border-l-2 border-[#E3EBF5] w-[calc(100%-38px)] flex flex-col gap-0.5 text-[13px] font-[500]">
                                                     {cfg.settingsModules.map((moduleItem) => (
                                                         <div
                                                             key={moduleItem.key}
                                                             className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(moduleItem.route)
-                                                                ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                                                : "text-[#00000066] hover:bg-gray-50"
+                                                                ? "bg-[#EEF3FA] text-[#0955AC] font-[700]"
+                                                                : "text-gray-600 hover:text-[#0955AC] hover:bg-[#F3F7FC]"
                                                                 }`}
                                                             onClick={() => navigate(moduleItem.route)}
                                                         >
@@ -691,7 +691,7 @@ const VendorShellLayout = ({
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
                     {/* ── MOBILE HEADER ── */}
-                    <div className="lg:hidden flex-shrink-0 sticky top-0 z-30 bg-white" style={{ boxShadow: "0 2px 8px #0000001A" }}>
+                    <div className="lg:hidden flex-shrink-0 sticky top-0 z-30 bg-white border-b border-slate-200/70">
                         {/* Top row: hamburger + service name + actions */}
                         <div className="flex items-center gap-3 px-4 py-3">
                             <button
@@ -743,8 +743,8 @@ const VendorShellLayout = ({
                     </div>
 
                     {/* ── DESKTOP TAB NAVBAR ── */}
-                    <div className="hidden lg:flex flex-shrink-0 sticky top-0 z-30 bg-white items-center justify-between px-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-                        <div className="flex flex-row gap-0 overflow-x-auto min-w-0 flex-1">
+                    <div className="hidden lg:flex flex-shrink-0 sticky top-0 z-30 bg-white/90 backdrop-blur items-center justify-between px-4 py-2.5 border-b border-slate-200/70">
+                        <div className="flex flex-row gap-1.5 overflow-x-auto min-w-0 flex-1 pill-scroll">
                             {SERVICE_TABS.map((tab, idx) =>
                                 isVerified && canAccessService(tab.name) ? (
                                     <Link
@@ -766,7 +766,7 @@ const VendorShellLayout = ({
                                 )
                             )}
                         </div>
-                        <div className="flex-shrink-0 flex items-center gap-2 ml-3 border-l border-gray-200 pl-3">
+                        <div className="flex-shrink-0 flex items-center gap-2 ml-3 border-l border-slate-200 pl-3">
                             <button
                                 onClick={() => setIsSearchOpen(true)}
                                 className="h-10 w-10 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center justify-center"
@@ -781,7 +781,7 @@ const VendorShellLayout = ({
                     </div>
 
                     {/* ── Page content ── */}
-                    <div className="flex-1 bg-[#E5E5E5] overflow-y-auto">
+                    <div className="flex-1 bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] overflow-y-auto">
                         {children}
                     </div>
                 </div>

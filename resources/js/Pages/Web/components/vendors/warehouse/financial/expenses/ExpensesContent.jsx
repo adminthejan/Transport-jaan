@@ -251,7 +251,7 @@ const ExpensesContent = () => {
                     <div
                         key={c.label}
                         className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-2"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 justify-center items-center">
                             <div className="size-[40px] sm:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
@@ -279,12 +279,12 @@ const ExpensesContent = () => {
 
             {/* bar chart and pie chart section */}
             <div className="flex flex-col lg:flex-row items-start xl:items-center w-full gap-4 lg:gap-8">
-                <div className="w-full min-h-[350px] lg:min-h-[456px] bg-[#FFFFFF] rounded-[10px]" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="w-full min-h-[350px] lg:min-h-[456px] bg-[#FFFFFF] rounded-[10px]" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <CashflowChart points={stats.cashflow} />
                 </div>
                 <div
                     className="w-full xl:w-[349px] min-h-[350px] lg:min-h-[456px] bg-[#FFFFFF] flex flex-col justify-between items-center rounded-[10px] px-4 sm:px-10 py-10"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="w-full flex flex-row justify-between items-center mb-5">
                         <h2 className="text-lg sm:text-[24px] font-bold w-full text-left">Expenses Breakdown</h2>
@@ -297,7 +297,7 @@ const ExpensesContent = () => {
             {/* Expenses table */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-3 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
             >
                 <div className="flex flex-col md:flex-row gap-3 md:gap-0 justify-between">
                     <h1 className="text-lg sm:text-xl lg:text-[24px] font-[700]">Recent Expenses</h1>

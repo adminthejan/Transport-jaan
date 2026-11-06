@@ -310,7 +310,7 @@ const BookingContent = ({
                     {/* Upcoming */}
                     <div
                         className="w-full xl:min-w-[300px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 items-center">
                             <div className="size-[40px] sm:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center flex-shrink-0">
@@ -347,7 +347,7 @@ const BookingContent = ({
                     {/* Pending */}
                     <div
                         className="w-full xl:min-w-[300px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 items-center">
                             <div className="size-[40px] sm:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center flex-shrink-0">
@@ -384,7 +384,7 @@ const BookingContent = ({
                     {/* Cancelled */}
                     <div
                         className="w-full xl:min-w-[300px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 items-center">
                             <div className="size-[40px] sm:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center flex-shrink-0">
@@ -421,7 +421,7 @@ const BookingContent = ({
                     {/* Completed */}
                     <div
                         className="w-full xl:min-w-[300px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 items-center">
                             <div className="size-[40px] sm:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center flex-shrink-0">
@@ -459,7 +459,7 @@ const BookingContent = ({
                 {/* Right: Chart */}
                 <div
                     className="w-full min-w-[280px] lg:min-w-[495px] xl:max-w-[700px] min-h-[250px] sm:min-h-[300px] lg:min-h-[437px] bg-white rounded-[8px] sm:rounded-[10px] flex items-center justify-center overflow-x-auto"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     {isMobile ? (
                         <div className="w-full p-4">
@@ -493,7 +493,7 @@ const BookingContent = ({
             {/* Table */}
             <div
                 className="w-full bg-white rounded-[8px] sm:rounded-[10px] py-4 sm:py-6 lg:py-10 px-3 sm:px-4 lg:px-10 overflow-x-auto mt-6 sm:mt-0"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
             >
                 <div className="flex flex-col gap-4">
                     {/* Header and Export */}

@@ -626,25 +626,25 @@ const TeamContent = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Total Team Users</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1">{stats.total}</p>
                 </div>
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Active</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1">{stats.active}</p>
                 </div>
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Suspended</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1">{stats.suspended}</p>
                 </div>
-                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <p className="text-[12px] text-[#6B7280] font-[600]">Owners</p>
                     <p className="text-[26px] leading-tight font-[700] mt-1">{stats.owners}</p>
                 </div>
             </div>
 
-            <div className="bg-white rounded-[10px] p-4 lg:p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="bg-white rounded-[10px] p-4 lg:p-6" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-[22px] font-[700] text-[#111827]">Team Users</h2>
                     <div className="inline-flex items-center gap-2 text-[12px] text-[#6B7280]">
@@ -779,7 +779,7 @@ const TeamContent = () => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-[10px] p-4 lg:p-6 mt-5" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="bg-white rounded-[10px] p-4 lg:p-6 mt-5" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-[22px] font-[700] text-[#111827]">Team Activity Timeline</h2>
                     <div className="inline-flex items-center gap-2 text-[12px] text-[#6B7280]">

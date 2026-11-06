@@ -248,7 +248,7 @@ const PaymentContent = () => {
                         <div
                             key={card.label}
                             className="w-full min-h-[92px] bg-white rounded-[8px] px-5 py-4"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <h2 className="text-[14px] font-[500] text-[#6c7583]">{card.label}</h2>
                             <h3 className="text-[24px] font-[700] text-[#111827]">{card.value}</h3>
@@ -259,7 +259,7 @@ const PaymentContent = () => {
 
                 <div
                     className="w-full h-auto bg-white rounded-[10px] px-6 py-6"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-col gap-4">
                         <h2 className="text-[24px] font-[700]">Payment Transactions</h2>

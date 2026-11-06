@@ -354,7 +354,7 @@ const ExpensesContent = () => {
                 {/* card 1 */}
                 <div
                     className="xl:min-w-[300px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -383,7 +383,7 @@ const ExpensesContent = () => {
                 {/* card 2 */}
                 <div
                     className="xl:min-w-[300px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -412,7 +412,7 @@ const ExpensesContent = () => {
                 {/* card 3 */}
                 <div
                     className="xl:min-w-[300px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -443,7 +443,7 @@ const ExpensesContent = () => {
             <div className="flex flex-col lg:flex-row w-full gap-8">
                 <div
                     className="w-full min-h-[426px] xl:min-w-[680px] bg-[#FFFFFF] rounded-[10px]"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     {isMobile ? (
                         // Mobile cashflow list view
@@ -483,7 +483,7 @@ const ExpensesContent = () => {
                 </div>
                 <div
                     className="w-full xl:min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-5 py-5"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     {isMobile ? (
                         // Mobile expenses breakdown list view
@@ -537,7 +537,7 @@ const ExpensesContent = () => {
             {/* ==================== EXPENSES TABLE ==================== */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-4 md:px-10 py-5 md:py-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
             >
                 {/* Table Header */}
                 <div className="flex flex-col xl:flex-row justify-between gap-4 md:gap-0">

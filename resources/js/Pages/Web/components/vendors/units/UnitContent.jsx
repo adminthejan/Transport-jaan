@@ -704,7 +704,7 @@ const UnitContent = () => {
                     {unitsPage.data.map((unit) => (
                         <div
                             key={unit.id}
-                            className="relative w-full bg-white rounded-[10px] my-4 shadow-[4px_4px_4px_#0000001A] overflow-hidden"
+                            className="relative w-full bg-white rounded-[10px] my-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)] overflow-hidden"
                         >
                             <div className="flex flex-col lg:flex-row items-stretch">
                                 {/* Image container */}

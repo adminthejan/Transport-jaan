@@ -381,7 +381,7 @@ const BookingContent = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-6">
                 {summaryCards.map((card) => (
-                    <div key={card.key} className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <div key={card.key} className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                         <p className="text-[12px] text-[#6B7280] font-[600]">{card.label}</p>
                         <p className="text-[26px] leading-tight font-[700] mt-1">{card.value}</p>
                     </div>
@@ -411,7 +411,7 @@ const BookingContent = () => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-[10px] p-4 mt-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="bg-white rounded-[10px] p-4 mt-6" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-9 gap-2 mb-4">
                     <div className="xl:col-span-2 h-[38px] rounded-[8px] bg-[#F3F4F6] px-3 flex items-center gap-2">
                         <Search size={16} className="text-[#6B7280]" />

@@ -221,7 +221,7 @@ const UnitDetailsContent = () => {
                 <span className="text-[#000]">{unit.name}</span>
             </div>
 
-            <div className="bg-white rounded-[10px] p-6 flex flex-col md:flex-row justify-between gap-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="bg-white rounded-[10px] p-6 flex flex-col md:flex-row justify-between gap-4" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                 <div className="flex items-center gap-4">
                     <div className="size-[56px] rounded-full bg-[#D8E4F2] flex items-center justify-center">
                         {unit.type === "bus" ? <BusFront className="w-6 h-6 text-[#0955AC]" /> : <TrainFront className="w-6 h-6 text-[#0955AC]" />}
@@ -246,11 +246,11 @@ const UnitDetailsContent = () => {
             </div>
 
             {!unit.schedules?.length ? (
-                <div className="bg-white rounded-[10px] p-16 text-center text-[#7B7B7A]" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] p-16 text-center text-[#7B7B7A]" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     No schedules yet. Add one so customers can search and book this {unit.type}.
                 </div>
             ) : (
-                <div className="bg-white rounded-[10px] overflow-x-auto" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] overflow-x-auto" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     <table className="w-full text-[13px]">
                         <thead>
                             <tr className="bg-[#D8E4F2] text-[13px] font-[600]">

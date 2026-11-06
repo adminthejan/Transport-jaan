@@ -351,7 +351,7 @@ const ExpensesContent = () => {
                 <div
                     className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     <div className="flex flex-row xl:gap-5 gap-2 justify-center items-center">
@@ -379,7 +379,7 @@ const ExpensesContent = () => {
                 <div
                     className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     <div className="flex flex-row xl:gap-5 gap-2 justify-center items-center">
@@ -407,7 +407,7 @@ const ExpensesContent = () => {
                 <div
                     className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     <div className="flex flex-row xl:gap-5 gap-2 justify-center items-center">
@@ -442,7 +442,7 @@ const ExpensesContent = () => {
                 <div
                     className="w-full xl:min-w-[700px] bg-[#FFFFFF] rounded-[10px]"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     <CashflowChart />
@@ -450,7 +450,7 @@ const ExpensesContent = () => {
                 <div
                     className="w-full xl:min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-5 py-5"
                     style={{
-                        boxShadow: "4px 4px 4px #0000001A",
+                        boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                     }}
                 >
                     <div className="w-full flex flex-row justify-between items-center ">
@@ -467,7 +467,7 @@ const ExpensesContent = () => {
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-4 md:px-10 py-5 md:py-10"
                 style={{
-                    boxShadow: "4px 4px 4px #0000001A",
+                    boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                 }}
             >
                 {/* card header */}
@@ -579,7 +579,7 @@ const ExpensesContent = () => {
                             key={expense.name + startIdx + idx}
                             className="bg-[#FFFFFF] rounded-[10px] p-4 shadow-md"
                             style={{
-                                boxShadow: "4px 4px 4px #0000001A",
+                                boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                             }}
                         >
                             <div className="flex flex-col gap-2 justify-between items-start mb-2">

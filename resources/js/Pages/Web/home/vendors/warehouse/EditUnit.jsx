@@ -917,7 +917,7 @@ const EditUnit = () => {
         <div>
           <form id="warehouse-form" onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-6 font-[400]">
             {/* Basic Information */}
-            <section className="bg-[#FFFFFF] p-8 rounded-[10px] shadow-[4px_4px_4px_#0000001A]">
+            <section className="bg-[#FFFFFF] p-8 rounded-[10px] shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)]">
               <h2 className="text-[20px] font-[700] text-[#000000] mb-8">Warehouse Basic Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">

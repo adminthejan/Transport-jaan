@@ -211,7 +211,7 @@ const PaymentContent = () => {
                     <div
                         key={card.label}
                         className="bg-[#FFFFFF] rounded-[8px] px-5 py-4 flex items-center gap-4"
-                        style={{ boxShadow: "4px 4px 4px #0000001A", borderLeft: `6px solid ${card.tone}` }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)", borderLeft: `6px solid ${card.tone}` }}
                     >
                         <div>
                             <h2 className="text-[14px] font-[500] text-[#7B7B7A]">{card.label}</h2>
@@ -226,7 +226,7 @@ const PaymentContent = () => {
                 {/* card 1 */}
                 <div
                     className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -257,7 +257,7 @@ const PaymentContent = () => {
                 {/* card 2 */}
                 <div
                     className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -283,7 +283,7 @@ const PaymentContent = () => {
                 {/* card 3 */}
                 <div
                     className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[40px] xl:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -368,7 +368,7 @@ const PaymentContent = () => {
             </div>
             <div
                 className="hidden md:block w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
             >
 
                 {/* Table Headings */}

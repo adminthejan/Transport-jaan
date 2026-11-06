@@ -93,7 +93,7 @@ const CardDashboard = () => {
   ];
 
   return (
-    <div className='flex flex-col justify-start items-center px-10 py-20 relative h-full'>
+    <div className='flex flex-col items-center px-4 py-8 sm:px-6 lg:px-8 xl:py-10 relative h-full'>
       {/* Access Denied Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -119,9 +119,14 @@ const CardDashboard = () => {
           </div>
         </div>
       )}
-      <h1 className="text-[40px] font-[700] text-[#0955AC] absolute top-0 xl:left-20 poppins">Dashboard</h1>
-      <div className='w-full rounded-[10px] mb-20 text-[44px] font-[700] xl:pl-10 poppins'> Hello, Steve 👋</div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <div className="w-full max-w-[1280px] mb-8">
+        <p className="poppins text-[13px] font-[700] uppercase tracking-wide text-[#0955AC]">Vendor dashboard</p>
+        <h1 className="poppins mt-1 text-[30px] font-[700] leading-tight text-slate-900 sm:text-[34px]">
+          Hello, {String(auth?.user?.name || "there").split(" ")[0]} 👋
+        </h1>
+        <p className="mt-1 text-[14px] text-slate-500">Pick a service to manage your bookings, units and earnings.</p>
+      </div>
+      <div className="grid w-full max-w-[1280px] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {services.map((service, index) => (
           <Card
             key={service.key}

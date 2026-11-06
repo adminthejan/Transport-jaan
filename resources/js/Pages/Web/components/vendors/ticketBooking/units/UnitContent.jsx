@@ -77,7 +77,7 @@ const UnitContent = () => {
             </div>
 
             {filtered.length === 0 ? (
-                <div className="bg-white rounded-[10px] p-16 text-center text-[#7B7B7A]" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="bg-white rounded-[10px] p-16 text-center text-[#7B7B7A]" style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}>
                     No buses or trains yet. Click "Add Bus / Train" to add your first one.
                 </div>
             ) : (
@@ -88,7 +88,7 @@ const UnitContent = () => {
                             <div
                                 key={`${unit.type}-${unit.id}`}
                                 className="bg-white rounded-[10px] p-5 flex flex-col gap-4"
-                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                             >
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-3">

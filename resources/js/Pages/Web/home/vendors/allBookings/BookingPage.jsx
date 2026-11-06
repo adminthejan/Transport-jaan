@@ -262,7 +262,7 @@ const BookingPage = () => {
                             <div
                                 key={label}
                                 className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
-                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                             >
                                 <div className="flex flex-row gap-5 justify-center items-center">
                                     <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -292,7 +292,7 @@ const BookingPage = () => {
                             <div
                                 key={label}
                                 className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
-                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                                style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                             >
                                 <div className="flex flex-row gap-5 justify-center items-center">
                                     <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -318,12 +318,12 @@ const BookingPage = () => {
                 {/* ── White Card: Toolbar + Table + Pagination ── */}
                 <div
                     className="w-full bg-white rounded-[10px] px-5 py-6 mt-6"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                 >
                     {/* car booking section */}
                     <div
                         className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
                         <div className="flex xl:flex-row flex-col justify-between gap-4">
                             <h1 className="text-[24px] font-[700]">All Bookings</h1>

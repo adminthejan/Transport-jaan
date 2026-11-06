@@ -355,7 +355,7 @@ const UnitContent = () => {
                         <div
                             key={unit.id}
                             className="relative w-full h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-col xl:flex-row xl:items-stretch items-center my-5 md:my-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                         >
                             <div className="flex-shrink-0 p-4 xl:p-0">
                                 <img src={car1} alt="Car" className="w-24 h-24 md:w-auto md:h-auto" />
