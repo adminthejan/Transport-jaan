@@ -7,9 +7,13 @@ import { SERVICES, asArray } from "./warehouseFilters";
 // client can book on top of storage. Kept as two separate filter groups to
 // match how vendors configure their listings (see WarehouseUnitController).
 const WAREHOUSE_TYPES = [
-  { id: "general_warehouse", label: "General Warehouse" },
-  { id: "bonded_warehouse", label: "Bonded Warehouse" },
   { id: "cold_storage", label: "Cold Storage" },
+  { id: "dry_storage", label: "Dry Storage" },
+  { id: "climate_controlled", label: "Climate Controlled" },
+  { id: "hazmat_storage", label: "Hazmat Storage" },
+  { id: "bonded_warehouse", label: "Bonded Storage" },
+  { id: "open_yard", label: "Open Yard" },
+  { id: "general_warehouse", label: "General Warehouse" },
   { id: "distribution_center", label: "Distribution Center" },
   { id: "fulfillment_center", label: "Fulfillment Center" },
   { id: "smart_warehouse", label: "Smart Warehouse" },

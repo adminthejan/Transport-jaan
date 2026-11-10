@@ -590,38 +590,176 @@ const BookingContent = () => {
             </div>
 
             {selectedBooking && (
-                <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSelectedBooking(null)}>
-                    <div className="absolute right-0 top-0 h-full w-full max-w-[430px] bg-white p-6 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <h2 className="text-[24px] font-[700] mb-4">Booking Details</h2>
-                        <div className="space-y-3 text-[14px]">
-                            <p><span className="font-[700]">Booking:</span> {selectedBooking.bookingNumber}</p>
-                            <p><span className="font-[700]">Tracking:</span> {selectedBooking.trackingNumber}</p>
-                            <p><span className="font-[700]">Client:</span> {selectedBooking.client || "-"}</p>
-                            <p><span className="font-[700]">Company:</span> {selectedBooking.clientCompany || "-"}</p>
-                            <p><span className="font-[700]">Route:</span> {selectedBooking.route || "-"}</p>
-                            <p><span className="font-[700]">Category:</span> {selectedBooking.category}</p>
-                            <p><span className="font-[700]">Service:</span> {selectedBooking.service}</p>
-                            <p><span className="font-[700]">Quote:</span> {selectedBooking.currency} {Number(selectedBooking.quoteAmount).toFixed(2)}</p>
-                            <p><span className="font-[700]">Payment:</span> {titleCase(selectedBooking.paymentStatus)}</p>
-                            <p><span className="font-[700]">Booking Status:</span> {selectedBooking.bookingStatusLabel}</p>
-                            {selectedBooking.codEnabled && (
-                                <>
-                                    <p><span className="font-[700]">COD Requested:</span> {selectedBooking.codRequestedAmount !== null && selectedBooking.codRequestedAmount !== undefined ? `${Number(selectedBooking.codRequestedAmount).toFixed(2)} ${selectedBooking.currency || "LKR"}` : "-"}</p>
-                                    <p><span className="font-[700]">COD Collected:</span> {selectedBooking.codCollectedAmount !== null && selectedBooking.codCollectedAmount !== undefined ? `${Number(selectedBooking.codCollectedAmount).toFixed(2)} ${selectedBooking.currency || "LKR"}` : "-"}</p>
-                                    <p><span className="font-[700]">COD Status:</span> {selectedBooking.codCollectionStatus ? titleCase(selectedBooking.codCollectionStatus) : "Pending"}</p>
-                                    <p><span className="font-[700]">COD Recorded:</span> {selectedBooking.codCollectionRecordedAt || "-"}</p>
-                                </>
-                            )}
-                            <p><span className="font-[700]">Pickup Window:</span> {selectedBooking.pickupWindow || "-"}</p>
-                            <p><span className="font-[700]">ETA:</span> {selectedBooking.eta || "-"}</p>
-                            <p><span className="font-[700]">Confirm Time:</span> {selectedBooking.confirmHours !== null ? `${selectedBooking.confirmHours} h` : "-"}</p>
+                <div className="fixed inset-0 bg-black/40 z-50 flex justify-end" onClick={() => setSelectedBooking(null)}>
+                    <div className="h-full w-full max-w-[500px] bg-white p-6 overflow-y-auto shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between pb-4 border-b border-[#E5E7EB]">
+                            <div>
+                                <h2 className="text-[20px] font-[700] text-[#111827]">Booking Details</h2>
+                                <p className="text-[12px] text-[#6B7280]">Ref: {selectedBooking.bookingNumber} • Track: {selectedBooking.trackingNumber}</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="w-8 h-8 rounded-full bg-[#F3F4F6] text-[#4B5563] flex items-center justify-center font-[700] hover:bg-[#E5E7EB]"
+                                onClick={() => setSelectedBooking(null)}
+                            >
+                                ✕
+                            </button>
                         </div>
-                        <div className="mt-5 grid grid-cols-2 gap-2">
-                            {(selectedBooking.allowedActions || []).map((action) => (
-                                <button key={action} type="button" onClick={() => runAction(selectedBooking, action)} className="h-[36px] rounded-[8px] bg-[#F3F4F6] text-[12px] font-[700]">{actionLabels[action] || titleCase(action)}</button>
-                            ))}
+
+                        <div className="space-y-5 text-[13px] mt-4 flex-1">
+                            {/* 1. Pickup & Delivery */}
+                            <div className="bg-[#F9FAFB] rounded-[10px] p-4 border border-[#E5E7EB]">
+                                <h3 className="text-[14px] font-[700] text-[#0955AC] mb-3 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-[#0955AC]"></span> 1. Pickup & Delivery
+                                </h3>
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Pickup Date</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.pickupDate || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Pickup Time</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.pickupTime || selectedBooking.pickupWindow || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Estimated Delivery Date</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.estimatedDeliveryDate || selectedBooking.eta || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Delivery Time / Slot</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.deliveryTimeSlot || "Standard Window"}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 2. Shipment Details */}
+                            <div className="bg-[#F9FAFB] rounded-[10px] p-4 border border-[#E5E7EB]">
+                                <h3 className="text-[14px] font-[700] text-[#0955AC] mb-3 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-[#0955AC]"></span> 2. Shipment Details
+                                </h3>
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Tracking Number</p>
+                                        <p className="font-[700] text-[#0955AC]">{selectedBooking.trackingNumber}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Package Type</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.packageType || selectedBooking.category || "Parcel"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Number of Packages</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.numberOfPackages || 1}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Weight</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.weight || "1.5 kg"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Dimensions</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.dimensions || "30 x 20 x 15 cm"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Delivery Priority</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.deliveryPriority || selectedBooking.service || "Standard"}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. Customer Details */}
+                            <div className="bg-[#F9FAFB] rounded-[10px] p-4 border border-[#E5E7EB]">
+                                <h3 className="text-[14px] font-[700] text-[#0955AC] mb-3 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-[#0955AC]"></span> 3. Customer Details
+                                </h3>
+                                <div className="space-y-2">
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Customer / Sender</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.client || "Customer"} {selectedBooking.clientCompany ? `(${selectedBooking.clientCompany})` : ""}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Customer Contact</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.customerContact || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Pickup Location</p>
+                                        <p className="font-[500] text-[#374151]">{selectedBooking.pickupLocation || selectedBooking.route?.split(" to ")?.[0] || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Delivery Location</p>
+                                        <p className="font-[500] text-[#374151]">{selectedBooking.deliveryLocation || selectedBooking.route?.split(" to ")?.[1] || "-"}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 4. Payment */}
+                            <div className="bg-[#F9FAFB] rounded-[10px] p-4 border border-[#E5E7EB]">
+                                <h3 className="text-[14px] font-[700] text-[#0955AC] mb-3 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-[#0955AC]"></span> 4. Payment
+                                </h3>
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Payment Status</p>
+                                        <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[11px] font-[700] ${paymentBadge(selectedBooking.paymentStatus)}`}>
+                                            {titleCase(selectedBooking.paymentStatus)}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Payment Method</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.paymentMethod || "Card"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">COD Amount</p>
+                                        <p className="font-[600] text-[#1F2937]">
+                                            {selectedBooking.currency || "LKR"} {Number(selectedBooking.codAmount || selectedBooking.codRequestedAmount || 0).toFixed(2)}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Shipping Charge</p>
+                                        <p className="font-[600] text-[#1F2937]">
+                                            {selectedBooking.currency || "LKR"} {Number(selectedBooking.shippingCharge || selectedBooking.quoteAmount || 0).toFixed(2)}
+                                        </p>
+                                    </div>
+                                    <div className="col-span-2 pt-2 border-t border-[#E5E7EB] flex justify-between items-center">
+                                        <span className="text-[12px] font-[700] text-[#1F2937]">Total Amount</span>
+                                        <span className="text-[15px] font-[700] text-[#0955AC]">
+                                            {selectedBooking.currency || "LKR"} {Number(selectedBooking.totalAmount || selectedBooking.quoteAmount || 0).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 5. Provider Booking */}
+                            <div className="bg-[#F9FAFB] rounded-[10px] p-4 border border-[#E5E7EB]">
+                                <h3 className="text-[14px] font-[700] text-[#0955AC] mb-3 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-[#0955AC]"></span> 5. Provider Booking
+                                </h3>
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Assigned Provider</p>
+                                        <p className="font-[600] text-[#1F2937]">{selectedBooking.assignedProvider || "LARA Delivery Fleet"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-[#6B7280]">Provider Status</p>
+                                        <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[11px] font-[700] bg-[#DCFCE7] text-[#166534]">
+                                            {selectedBooking.providerStatus || "Assigned"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <button type="button" className="mt-5 w-full h-[40px] rounded-[8px] bg-[#111827] text-white font-[700]" onClick={() => setSelectedBooking(null)}>Close</button>
+
+                        {/* Action buttons */}
+                        <div className="mt-5 pt-4 border-t border-[#E5E7EB]">
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                {(selectedBooking.allowedActions || []).map((action) => (
+                                    <button key={action} type="button" onClick={() => runAction(selectedBooking, action)} className="h-[36px] rounded-[8px] bg-[#F3F4F6] text-[12px] font-[700] hover:bg-[#E5E7EB]">
+                                        {actionLabels[action] || titleCase(action)}
+                                    </button>
+                                ))}
+                            </div>
+                            <button type="button" className="w-full h-[40px] rounded-[8px] bg-[#111827] text-white font-[700] hover:bg-black transition-colors" onClick={() => setSelectedBooking(null)}>
+                                Close Details
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

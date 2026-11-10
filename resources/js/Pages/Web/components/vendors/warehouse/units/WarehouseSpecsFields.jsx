@@ -53,7 +53,7 @@ export const EMPTY_SPECS = {
     access_rules: "",
 };
 
-const STORAGE_TYPES = ["Ambient", "Cold Storage", "Frozen", "Climate Controlled", "Bonded", "Hazardous", "Open Yard", "Container Yard"];
+const STORAGE_TYPES = ["Cold Storage", "Dry Storage", "Climate Controlled", "Hazmat Storage", "Bonded Storage", "Open Yard", "General Warehouse", "Distribution Center", "Fulfillment Center", "Smart Warehouse", "Ambient", "Frozen", "Hazardous", "Container Yard"];
 const UNIT_STATUSES = [
     { value: "available", label: "Available" },
     { value: "occupied", label: "Occupied" },

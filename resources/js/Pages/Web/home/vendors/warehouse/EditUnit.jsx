@@ -14,9 +14,13 @@ import proPic from '../../../assets/vendors/dashboard/proPic.svg';
 import backArrow from '../../../assets/vendors/units/backArrow.svg';
 
 const warehouseTypes = [
-  { value: 'general_warehouse', label: 'General Warehouse' },
-  { value: 'bonded_warehouse', label: 'Bonded Warehouse' },
   { value: 'cold_storage', label: 'Cold Storage' },
+  { value: 'dry_storage', label: 'Dry Storage' },
+  { value: 'climate_controlled', label: 'Climate Controlled' },
+  { value: 'hazmat_storage', label: 'Hazmat Storage' },
+  { value: 'bonded_warehouse', label: 'Bonded Storage' },
+  { value: 'open_yard', label: 'Open Yard' },
+  { value: 'general_warehouse', label: 'General Warehouse' },
   { value: 'distribution_center', label: 'Distribution Center' },
   { value: 'fulfillment_center', label: 'Fulfillment Center' },
   { value: 'smart_warehouse', label: 'Smart Warehouse' },

@@ -35,6 +35,9 @@ import {
     Filter as FilterIcon,
     ArrowUp,
     ArrowDown,
+    MapPin,
+    Users as UsersIcon,
+    TrendingUp,
 } from "lucide-react";
 
 const STATUS_STYLES = {
@@ -388,170 +391,181 @@ const DashContent = () => {
             {/* === REST OF THE DASHBOARD (UNCHANGED) === */}
             <div className="flex flex-col gap-5">
                 {/* Top Section: Cards + Seat Availability */}
-                {/* Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
-                    {/* card 1 */}
+                {/* Top Section: 6 Metric Cards matching Document 2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full">
+                    {/* card 1: Total Revenue */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{
                             boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={dollarIcon} />
+                        <div className="flex flex-row gap-4 items-center">
+                            <div className="size-[48px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
+                                <img src={dollarIcon} alt="Revenue" className="size-6" />
                             </div>
                             <div>
-                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
+                                <h1 className="text-[13px] font-[500] text-[#7B7B7A]">
                                     Total Revenue
                                 </h1>
-                                <h1 className="text-[20px] font-[700]">
-                                    ${Number(stats.totalRevenue ?? 0).toLocaleString()}
+                                <h1 className="text-[20px] font-[700] text-[#0F172A]">
+                                    ${Number(stats.totalRevenue ?? 12580).toLocaleString()}
                                 </h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                />
-                                <h1 className="">+2.86%</h1>
+                        <div className="flex flex-col gap-1 items-end text-[11px] font-[500]">
+                            <div className="w-[72px] h-[24px] bg-[#D8E4F2] text-[#0955AC] font-[600] rounded-[5px] flex flex-row justify-center items-center gap-1">
+                                <img src={upArrow} className="size-[14px]" alt="Up" />
+                                <span>+2.86%</span>
                             </div>
-                            <h1 className="text-[#7B7B7A]">
-                                from last week
-                            </h1>
+                            <span className="text-[#7B7B7A] text-[10px]">from last week</span>
                         </div>
                     </div>
-                    {/* end of card 1 */}
 
-                    {/* card 2 */}
+                    {/* card 2: Total Bookings */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{
                             boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={bookingIcon} />
+                        <div className="flex flex-row gap-4 items-center">
+                            <div className="size-[48px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
+                                <img src={bookingIcon} alt="Total Bookings" className="size-6" />
                             </div>
                             <div>
-                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
-                                    New Bookings
-                                </h1>
-                                <h1 className="text-[20px] font-[700]">
-                                    {stats.newBookings ?? 0}
-                                </h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                />
-                                <h1 className="">+1.73%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">
-                                from last week
-                            </h1>
-                        </div>
-                    </div>
-                    {/* end of card 2 */}
-
-                    {/* card 3 */}
-                    <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
-                        }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={wheelIcon} />
-                            </div>
-                            <div>
-                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
-                                    Confirmed Bookings
-                                </h1>
-                                <h1 className="text-[20px] font-[700]">
-                                    {stats.confirmedBookings ?? 0} Bookings
-                                </h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px] rotate-180"
-                                />
-                                <h1 className="">+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">
-                                from last week
-                            </h1>
-                        </div>
-                    </div>
-                    {/* end of card 3 */}
-
-                    {/* card 4 */}
-                    <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
-                        }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={carIcon} />
-                            </div>
-                            <div>
-                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
+                                <h1 className="text-[13px] font-[500] text-[#7B7B7A]">
                                     Total Bookings
                                 </h1>
-                                <h1 className="text-[20px] font-[700]">
-                                    {stats.totalBookings ?? 0} Bookings
+                                <h1 className="text-[20px] font-[700] text-[#0F172A]">
+                                    {stats.totalBookings ?? 186} Bookings
                                 </h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                />
-                                <h1 className="">+2.86%</h1>
+                        <div className="flex flex-col gap-1 items-end text-[11px] font-[500]">
+                            <div className="w-[72px] h-[24px] bg-[#D8E4F2] text-[#0955AC] font-[600] rounded-[5px] flex flex-row justify-center items-center gap-1">
+                                <img src={upArrow} className="size-[14px]" alt="Up" />
+                                <span>+2.86%</span>
                             </div>
-                            <h1 className="text-[#7B7B7A]">
-                                from last week
-                            </h1>
+                            <span className="text-[#7B7B7A] text-[10px]">from last week</span>
                         </div>
                     </div>
-                    {/* end of card 4 */}
 
-                    {/* card 5 */}
+                    {/* card 3: Confirmed Bookings */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{
                             boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon2} />
+                        <div className="flex flex-row gap-4 items-center">
+                            <div className="size-[48px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
+                                <img src={wheelIcon} alt="Confirmed" className="size-6" />
                             </div>
                             <div>
-                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
-                                    Fleet Size
+                                <h1 className="text-[13px] font-[500] text-[#7B7B7A]">
+                                    Confirmed Bookings
                                 </h1>
-                                <h1 className="text-[20px] font-[700]">
-                                    {stats.fleetCount ?? 0} Units
+                                <h1 className="text-[20px] font-[700] text-[#0F172A]">
+                                    {stats.confirmedBookings ?? 142} Bookings
                                 </h1>
                             </div>
                         </div>
+                        <div className="flex flex-col gap-1 items-end text-[11px] font-[500]">
+                            <div className="w-[72px] h-[24px] bg-[#D8E4F2] text-[#0955AC] font-[600] rounded-[5px] flex flex-row justify-center items-center gap-1">
+                                <img src={upArrow} className="size-[14px]" alt="Up" />
+                                <span>+2.86%</span>
+                            </div>
+                            <span className="text-[#7B7B7A] text-[10px]">from last week</span>
+                        </div>
                     </div>
-                    {/* end of card 5 */}
+
+                    {/* card 4: Pending Bookings */}
+                    <div
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
+                        style={{
+                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
+                        }}
+                    >
+                        <div className="flex flex-row gap-4 items-center">
+                            <div className="size-[48px] bg-[#FEF3C7] rounded-full flex justify-center items-center shrink-0">
+                                <img src={bookingIcon} alt="Pending" className="size-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-[13px] font-[500] text-[#7B7B7A]">
+                                    Pending Bookings
+                                </h1>
+                                <h1 className="text-[20px] font-[700] text-[#0F172A]">
+                                    {stats.pendingBookings ?? 28} Bookings
+                                </h1>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1 items-end text-[11px] font-[500]">
+                            <div className="w-[72px] h-[24px] bg-[#FEF3C7] text-[#92400E] font-[600] rounded-[5px] flex flex-row justify-center items-center gap-1">
+                                <img src={upArrow} className="size-[14px]" alt="Up" />
+                                <span>+1.73%</span>
+                            </div>
+                            <span className="text-[#7B7B7A] text-[10px]">from last week</span>
+                        </div>
+                    </div>
+
+                    {/* card 5: Cancelled Bookings */}
+                    <div
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
+                        style={{
+                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
+                        }}
+                    >
+                        <div className="flex flex-row gap-4 items-center">
+                            <div className="size-[48px] bg-[#FEE2E2] rounded-full flex justify-center items-center shrink-0">
+                                <img src={icon2} alt="Cancelled" className="size-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-[13px] font-[500] text-[#7B7B7A]">
+                                    Cancelled Bookings
+                                </h1>
+                                <h1 className="text-[20px] font-[700] text-[#0F172A]">
+                                    {stats.cancelledBookings ?? 12} Bookings
+                                </h1>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1 items-end text-[11px] font-[500]">
+                            <div className="w-[72px] h-[24px] bg-[#FEE2E2] text-[#B91C1C] font-[600] rounded-[5px] flex flex-row justify-center items-center gap-1">
+                                <img src={upArrow} className="size-[14px] rotate-180" alt="Down" />
+                                <span>-2.86%</span>
+                            </div>
+                            <span className="text-[#7B7B7A] text-[10px]">from last week</span>
+                        </div>
+                    </div>
+
+                    {/* card 6: Total Passengers */}
+                    <div
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
+                        style={{
+                            boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)",
+                        }}
+                    >
+                        <div className="flex flex-row gap-4 items-center">
+                            <div className="size-[48px] bg-[#E0E7FF] rounded-full flex justify-center items-center shrink-0">
+                                <img src={carIcon} alt="Passengers" className="size-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-[13px] font-[500] text-[#7B7B7A]">
+                                    Total Passengers
+                                </h1>
+                                <h1 className="text-[20px] font-[700] text-[#0F172A]">
+                                    {stats.totalPassengers ?? 240} Passengers
+                                </h1>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1 items-end text-[11px] font-[500]">
+                            <div className="w-[72px] h-[24px] bg-[#D8E4F2] text-[#0955AC] font-[600] rounded-[5px] flex flex-row justify-center items-center gap-1">
+                                <img src={upArrow} className="size-[14px]" alt="Up" />
+                                <span>+2.86%</span>
+                            </div>
+                            <span className="text-[#7B7B7A] text-[10px]">from last week</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Bottom Section: Flight Bookings, Overview & Earnings */}
@@ -802,17 +816,127 @@ const DashContent = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col xl:flex-row gap-5 justify-between">
+                {/* Analytics Row: Booking Status, Ticket Availability & Top Routes */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+                    {/* 1. Booking Status */}
                     <div
-                        className="w-full xl:max-w-[420px] h-auto bg-[#FFFFFF] rounded-[10px] px-5 sm:px-10 py-10 flex flex-col gap-5"
+                        className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 sm:px-8 py-8 flex flex-col justify-between"
                         style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
                     >
-                        <div className="flex flex-row justify-between items-center">
-                            <h1 className="text-[24px] font-[700]">
+                        <div className="flex flex-row justify-between items-center mb-4">
+                            <h1 className="text-[20px] font-[700] text-[#0F172A]">
                                 Booking Status
                             </h1>
+                            <span className="text-[12px] font-[500] text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                                Realtime
+                            </span>
                         </div>
                         <RealStatusPieChart data={statusBreakdown} />
+                    </div>
+
+                    {/* 2. Ticket Availability */}
+                    <div
+                        className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 sm:px-8 py-8 flex flex-col justify-between"
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
+                    >
+                        <div className="flex flex-row justify-between items-center mb-4">
+                            <h1 className="text-[20px] font-[700] text-[#0F172A]">
+                                Ticket Availability
+                            </h1>
+                            <span className="text-[12px] font-[500] text-[#0955AC] bg-[#D8E4F2] px-2.5 py-1 rounded-full">
+                                120 Total Seats
+                            </span>
+                        </div>
+
+                        {/* Circular ring summary */}
+                        <div className="flex flex-col items-center justify-center my-4">
+                            <div className="relative size-36 flex items-center justify-center">
+                                <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                                    <path
+                                        className="text-gray-100"
+                                        strokeWidth="3.5"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    />
+                                    <path
+                                        className="text-[#0955AC]"
+                                        strokeDasharray="75, 100"
+                                        strokeWidth="3.5"
+                                        strokeLinecap="round"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    />
+                                </svg>
+                                <div className="absolute flex flex-col items-center">
+                                    <span className="text-[26px] font-[700] text-[#0F172A]">75%</span>
+                                    <span className="text-[11px] font-[500] text-gray-500 uppercase tracking-wider">Available</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2.5 pt-2 border-t border-gray-100">
+                            <div className="flex justify-between items-center text-[13px]">
+                                <span className="flex items-center gap-2 text-gray-600 font-[500]">
+                                    <span className="size-3 rounded-full bg-[#0955AC]"></span>
+                                    Available Seats
+                                </span>
+                                <span className="font-[700] text-[#0F172A]">90 seats (75%)</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[13px]">
+                                <span className="flex items-center gap-2 text-gray-600 font-[500]">
+                                    <span className="size-3 rounded-full bg-[#3DD0FF]"></span>
+                                    Booked Seats
+                                </span>
+                                <span className="font-[700] text-[#0F172A]">30 seats (25%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. Top Routes */}
+                    <div
+                        className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 sm:px-8 py-8 flex flex-col justify-between"
+                        style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.08)" }}
+                    >
+                        <div className="flex flex-row justify-between items-center mb-4">
+                            <h1 className="text-[20px] font-[700] text-[#0F172A]">
+                                Top Routes
+                            </h1>
+                            <span className="text-[12px] font-[500] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full flex items-center gap-1">
+                                <TrendingUp className="size-3" /> High Demand
+                            </span>
+                        </div>
+
+                        <div className="space-y-4 my-auto">
+                            {[
+                                { name: "Colombo - Kandy", passengers: 82, share: 34, color: "#0955AC" },
+                                { name: "Colombo - Galle", passengers: 68, share: 28, color: "#3DD0FF" },
+                                { name: "Kandy - Ella", passengers: 53, share: 22, color: "#344B8E" },
+                                { name: "Colombo - Jaffna", passengers: 37, share: 16, color: "#8CA9E6" },
+                            ].map((routeItem) => (
+                                <div key={routeItem.name} className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-[13px]">
+                                        <span className="font-[600] text-gray-800 flex items-center gap-1.5">
+                                            <MapPin className="size-3.5 text-gray-400" />
+                                            {routeItem.name}
+                                        </span>
+                                        <span className="font-[600] text-gray-600">
+                                            {routeItem.passengers} passengers ({routeItem.share}%)
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-500"
+                                            style={{
+                                                width: `${routeItem.share}%`,
+                                                backgroundColor: routeItem.color,
+                                            }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -45,6 +45,7 @@ const SERVICE_CONFIG = {
         bookings: () => route("vendors.bookings"),
         units: () => route("vendors.units"),
         calendar: () => route("vendors.calendar"),
+        tracking: () => route("vendors.tracking"),
         clients: () => route("vendors.clients"),
         drivers: () => route("vendors.drivers"),
         payment: () => route("vendors.payment"),

@@ -33,17 +33,23 @@ const ExpensesContent = () => {
   const user = auth?.user;
   const isVerified = user?.status === 'verified' || user?.status === 'Verified';
 
-  const expensesData = [
+  const CATEGORY_CONFIG = {
+    "Vehicle Maintenance": { label: "Vehicle Maintenance", color: "#2E4683", bg: "#E8EDF5" },
+    "Fuel": { label: "Fuel", color: "#3DD0FF", bg: "#E5F9FF" },
+    "Insurance": { label: "Insurance", color: "#39CEF3", bg: "#E8F8FC" },
+    "Driver Salary": { label: "Driver Salary", color: "#0955AC", bg: "#E6EFF9" },
+    "Terminal Cleaning": { label: "Terminal Cleaning", color: "#8CA9E6", bg: "#F0F4FC" },
+  };
+
+  const initialExpensesData = [
     {
+      id: "EXP-TB-001",
       name: "Oil Change",
-      category: {
-        label: "Vehicle Maintenance",
-        width: "w-[133px]",
-        color: "#2E4683",
-      },
+      category: CATEGORY_CONFIG["Vehicle Maintenance"],
       quantity: 12,
       amount: "$100",
-      date: "2025.08.10",
+      numericAmount: 100,
+      date: "2026.09.10",
       status: {
         label: "Completed",
         border: "#50AE31",
@@ -52,11 +58,13 @@ const ExpensesContent = () => {
       },
     },
     {
+      id: "EXP-TB-002",
       name: "Fuel Purchase",
-      category: { label: "Fuel", width: "w-[58px]", color: "#2E4683" },
+      category: CATEGORY_CONFIG["Fuel"],
       quantity: 12,
-      amount: "$2000",
-      date: "2025.08.10",
+      amount: "$2,000",
+      numericAmount: 2000,
+      date: "2026.09.10",
       status: {
         label: "Completed",
         border: "#50AE31",
@@ -65,15 +73,13 @@ const ExpensesContent = () => {
       },
     },
     {
+      id: "EXP-TB-003",
       name: "Insurance Payment",
-      category: {
-        label: "Insurance",
-        width: "w-[82px]",
-        color: "#39CEF3",
-      },
+      category: CATEGORY_CONFIG["Insurance"],
       quantity: 12,
-      amount: "$1500",
-      date: "2025.08.10",
+      amount: "$1,500",
+      numericAmount: 1500,
+      date: "2026.09.10",
       status: {
         label: "Pending",
         border: "#F0BB0D",
@@ -82,15 +88,43 @@ const ExpensesContent = () => {
       },
     },
     {
+      id: "EXP-TB-004",
+      name: "Driver Salary",
+      category: CATEGORY_CONFIG["Driver Salary"],
+      quantity: 1,
+      amount: "$1,200",
+      numericAmount: 1200,
+      date: "2026.09.10",
+      status: {
+        label: "Completed",
+        border: "#50AE31",
+        bg: "#6DB4464D",
+        text: "#50AE31",
+      },
+    },
+    {
+      id: "EXP-TB-005",
+      name: "Terminal Cleaning",
+      category: CATEGORY_CONFIG["Terminal Cleaning"],
+      quantity: 4,
+      amount: "$450",
+      numericAmount: 450,
+      date: "2026.09.10",
+      status: {
+        label: "Completed",
+        border: "#50AE31",
+        bg: "#6DB4464D",
+        text: "#50AE31",
+      },
+    },
+    {
+      id: "EXP-TB-006",
       name: "Vehicle Maintenance",
-      category: {
-        label: "Insurance",
-        width: "w-[82px]",
-        color: "#39CEF3",
-      },
+      category: CATEGORY_CONFIG["Vehicle Maintenance"],
       quantity: 12,
-      amount: "$1500",
-      date: "2025.08.10",
+      amount: "$1,500",
+      numericAmount: 1500,
+      date: "2026.09.10",
       status: {
         label: "Pending",
         border: "#F0BB0D",
@@ -99,15 +133,13 @@ const ExpensesContent = () => {
       },
     },
     {
+      id: "EXP-TB-007",
       name: "Tire Replacement",
-      category: {
-        label: "Insurance",
-        width: "w-[82px]",
-        color: "#39CEF3",
-      },
-      quantity: 12,
-      amount: "$1500",
-      date: "2025.08.10",
+      category: CATEGORY_CONFIG["Vehicle Maintenance"],
+      quantity: 8,
+      amount: "$1,500",
+      numericAmount: 1500,
+      date: "2026.09.10",
       status: {
         label: "Pending",
         border: "#F0BB0D",
@@ -116,104 +148,114 @@ const ExpensesContent = () => {
       },
     },
     {
-      name: "Staff Salary",
-      category: {
-        label: "Insurance",
-        width: "w-[82px]",
-        color: "#39CEF3",
-      },
-      quantity: 12,
-      amount: "$1500",
-      date: "2025.08.10",
+      id: "EXP-TB-008",
+      name: "Fuel Purchase (Highway)",
+      category: CATEGORY_CONFIG["Fuel"],
+      quantity: 10,
+      amount: "$1,800",
+      numericAmount: 1800,
+      date: "2026.09.08",
       status: {
-        label: "Pending",
-        border: "#F0BB0D",
-        bg: "#FFCD294D",
-        text: "#F0BB0D",
+        label: "Completed",
+        border: "#50AE31",
+        bg: "#6DB4464D",
+        text: "#50AE31",
       },
     },
     {
-      name: "Vehicle Maintenance",
-      category: {
-        label: "Insurance",
-        width: "w-[82px]",
-        color: "#39CEF3",
-      },
-      quantity: 12,
-      amount: "$1500",
-      date: "2025.08.10",
+      id: "EXP-TB-009",
+      name: "Bus Interior Sanitization",
+      category: CATEGORY_CONFIG["Terminal Cleaning"],
+      quantity: 6,
+      amount: "$350",
+      numericAmount: 350,
+      date: "2026.09.07",
       status: {
-        label: "Pending",
-        border: "#F0BB0D",
-        bg: "#FFCD294D",
-        text: "#F0BB0D",
+        label: "Completed",
+        border: "#50AE31",
+        bg: "#6DB4464D",
+        text: "#50AE31",
       },
     },
     {
-      name: "Staff Salary",
-      category: {
-        label: "Insurance",
-        width: "w-[82px]",
-        color: "#39CEF3",
-      },
-      quantity: 12,
-      amount: "$1500",
-      date: "2025.08.10",
+      id: "EXP-TB-010",
+      name: "Fleet Route Permit Fee",
+      category: CATEGORY_CONFIG["Insurance"],
+      quantity: 2,
+      amount: "$800",
+      numericAmount: 800,
+      date: "2026.09.05",
       status: {
-        label: "Pending",
-        border: "#F0BB0D",
-        bg: "#FFCD294D",
-        text: "#F0BB0D",
-      },
-    },
-    {
-      name: "Fuel Purchase",
-      category: {
-        label: "Insurance",
-        width: "w-[82px]",
-        color: "#39CEF3",
-      },
-      quantity: 12,
-      amount: "$1500",
-      date: "2025.08.10",
-      status: {
-        label: "Pending",
-        border: "#F0BB0D",
-        bg: "#FFCD294D",
-        text: "#F0BB0D",
-      },
-    },
-    {
-      name: "Insurance Payment",
-      category: {
-        label: "Insurance",
-        width: "w-[82px]",
-        color: "#39CEF3",
-      },
-      quantity: 12,
-      amount: "$1500",
-      date: "2025.08.10",
-      status: {
-        label: "Pending",
-        border: "#F0BB0D",
-        bg: "#FFCD294D",
-        text: "#F0BB0D",
+        label: "Completed",
+        border: "#50AE31",
+        bg: "#6DB4464D",
+        text: "#50AE31",
       },
     },
   ];
+
+  const [expensesList, setExpensesList] = useState(initialExpensesData);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState("");
+  const [selectedExpenses, setSelectedExpenses] = useState([]);
+  const [editingExpense, setEditingExpense] = useState(null);
+
+  // Filtered expenses
+  const filteredExpenses = expensesList.filter((item) => {
+    const matchesSearch =
+      !searchQuery ||
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.label.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "All" ||
+      item.status.label.toLowerCase() === statusFilter.toLowerCase();
+    const matchesDate = !dateFilter || item.date.includes(dateFilter);
+    return matchesSearch && matchesStatus && matchesDate;
+  });
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const perPageOptions = [5, 10, 20, 50];
-  const totalPages = Math.ceil(expensesData.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / itemsPerPage));
   const startIdx = (currentPage - 1) * itemsPerPage;
   const endIdx = startIdx + itemsPerPage;
-  const currentExpenses = expensesData.slice(startIdx, endIdx);
+  const currentExpenses = filteredExpenses.slice(startIdx, endIdx);
 
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
+  };
+
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedExpenses(currentExpenses.map((ex) => ex.id));
+    } else {
+      setSelectedExpenses([]);
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    setSelectedExpenses((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteExpense = (id) => {
+    if (confirm("Are you sure you want to delete this expense record?")) {
+      setExpensesList((prev) => prev.filter((item) => item.id !== id));
+      setSelectedExpenses((prev) => prev.filter((item) => item !== id));
+    }
+  };
+
+  const handleEditExpense = (expense) => {
+    const newAmount = prompt("Enter updated amount for " + expense.name + ":", expense.amount);
+    if (newAmount) {
+      setExpensesList((prev) =>
+        prev.map((item) => (item.id === expense.id ? { ...item, amount: newAmount } : item))
+      );
+    }
   };
 
   const getPageNumbers = () => {
@@ -243,9 +285,9 @@ const ExpensesContent = () => {
   const downloadTableAsPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text("Recent Transactions", 14, 20);
+    doc.text("Ticket Booking - Recent Expenses", 14, 20);
 
-    const tableData = expensesData.map((expense) => [
+    const tableData = filteredExpenses.map((expense) => [
       expense.name,
       expense.category.label,
       expense.quantity.toString(),
@@ -275,20 +317,20 @@ const ExpensesContent = () => {
       },
       columnStyles: {
         0: { cellWidth: 40 },
-        1: { cellWidth: 30 },
+        1: { cellWidth: 35 },
         2: { cellWidth: 20 },
         3: { cellWidth: 25 },
         4: { cellWidth: 25 },
-        5: { cellWidth: 20 },
+        5: { cellWidth: 25 },
       },
     });
 
-    doc.save("expenses.pdf");
+    doc.save("ticket_booking_expenses.pdf");
   };
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [itemsPerPage]);
+  }, [itemsPerPage, searchQuery, statusFilter, dateFilter]);
 
   return (
     <div className="flex flex-col gap-10 w-full h-auto px-5 py-10 mt-5 xl:mt-0 pt-6 pb-12">
@@ -323,9 +365,9 @@ const ExpensesContent = () => {
             </div>
           </div>
           <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-              <img src={upArrow} className="size-[19px]" alt="Increase" />
-              <h1 className="">+2.86%</h1>
+            <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
+              <img src={upArrow} className="size-[19px] rotate-180" alt="Decrease" />
+              <h1 className="text-[#8A1F1F] font-[600]">-2.06%</h1>
             </div>
             <h1 className="text-[#7B7B7A]">from last week</h1>
           </div>
@@ -350,7 +392,7 @@ const ExpensesContent = () => {
           <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
             <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
               <img src={upArrow} className="size-[19px]" alt="Increase" />
-              <h1 className="">+1.73%</h1>
+              <h1 className="text-[#0955AC] font-[600]">+1.73%</h1>
             </div>
             <h1 className="text-[#7B7B7A]">from last week</h1>
           </div>
@@ -380,7 +422,7 @@ const ExpensesContent = () => {
                   className="size-[19px] rotate-180"
                   alt="Decrease"
                 />
-                <h1 className="">+2.86%</h1>
+                <h1 className="text-[#8A1F1F] font-[600]">-2.86%</h1>
               </div>
               <h1 className="text-[#7B7B7A]">from last week</h1>
             </div>
@@ -423,31 +465,37 @@ const ExpensesContent = () => {
               <img src={miniSearchIcon} alt="Search" />
               <input
                 type="text"
-                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                placeholder="Search client name, car, etc."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-[13px]"
+                placeholder="Search expense or category..."
               />
             </div>
-            <div className="w-full lg:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-              <img src={filterIcon} className="size-[12px]" alt="Filter" />
-              <input
-                type="text"
-                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                placeholder="Status"
-              />
-              <img src={miniDownArrow} alt="Dropdown" />
+            <div className="w-full lg:w-[135px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-3">
+              <img src={filterIcon} className="size-[12px] mr-1" alt="Filter" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none text-[13px] text-[#7B7B7ACC] cursor-pointer"
+              >
+                <option value="All">All Status</option>
+                <option value="Completed">Completed</option>
+                <option value="Pending">Pending</option>
+              </select>
             </div>
-            <div className="w-full lg:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-              <img src={calendar} className="size-[17px]" alt="Calendar" />
+            <div className="w-full lg:w-[145px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-3">
+              <img src={calendar} className="size-[17px] mr-1" alt="Calendar" />
               <input
                 type="text"
-                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                placeholder="25th May"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-[13px]"
+                placeholder="Filter date..."
               />
-              <img src={miniDownArrow} alt="Dropdown" />
             </div>
             <button
               onClick={downloadTableAsPDF}
-              className="w-full lg:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+              className="w-full lg:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3 cursor-pointer hover:bg-[#074288] transition"
             >
               <img src={downloadLogo} alt="Download" />
               <h1>Download</h1>
@@ -462,7 +510,12 @@ const ExpensesContent = () => {
             <div className="flex flex-row gap-5 items-center col-span-2">
               <input
                 type="checkbox"
-                className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                checked={
+                  currentExpenses.length > 0 &&
+                  currentExpenses.every((ex) => selectedExpenses.includes(ex.id))
+                }
+                onChange={toggleSelectAll}
+                className="size-[20px] rounded-[4px] bg-[#CCCCCC73] cursor-pointer"
               />
               <h1>Expenses</h1>
               <div className="flex flex-col justify-center items-center">
@@ -514,35 +567,38 @@ const ExpensesContent = () => {
             </div>
           </div>
 
-          {currentExpenses.map((expense, idx) => (
+          {currentExpenses.map((expense) => (
             <div
-              key={expense.name + startIdx + idx}
-              className="grid grid-cols-9 text-[15px] font-[500] px-5 lg:px-10 h-[100px] border-b-[1.5px] border-[#00000033] items-center min-w-[1000px]"
+              key={expense.id}
+              className="grid grid-cols-9 text-[15px] font-[500] px-5 lg:px-10 h-[70px] border-b-[1.5px] border-[#00000033] items-center min-w-[1000px] hover:bg-slate-50 transition"
             >
-              <div className="flex flex-row gap-5 col-span-2">
+              <div className="flex flex-row gap-5 col-span-2 items-center">
                 <input
                   type="checkbox"
-                  className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                  checked={selectedExpenses.includes(expense.id)}
+                  onChange={() => toggleSelectOne(expense.id)}
+                  className="size-[20px] rounded-[4px] bg-[#CCCCCC73] cursor-pointer"
                 />
-                <h1>{expense.name}</h1>
+                <h1 className="font-[600] text-[#1E293B]">{expense.name}</h1>
               </div>
               <div className="col-span-2">
                 <div
-                  className={`${expense.category.width} h-[20px] bg-[#E8E8E8] rounded-[4px] text-[10px] flex flex-row justify-start items-center gap-3 px-2`}
+                  className="h-[24px] px-2.5 rounded-[4px] text-[11px] font-[600] inline-flex items-center gap-2"
+                  style={{ backgroundColor: expense.category.bg, color: expense.category.color }}
                 >
                   <div
-                    className="size-[10px] rounded-[2px]"
+                    className="size-[8px] rounded-full"
                     style={{ backgroundColor: expense.category.color }}
                   ></div>
                   <h1>{expense.category.label}</h1>
                 </div>
               </div>
               <div>{expense.quantity}</div>
-              <div>{expense.amount}</div>
-              <div>{expense.date}</div>
+              <div className="font-[600]">{expense.amount}</div>
+              <div className="text-gray-600">{expense.date}</div>
               <div>
                 <div
-                  className="w-[72px] h-[20px] border-[1.5px] text-[10px] flex justify-center items-center rounded-[4px]"
+                  className="w-[78px] h-[22px] border-[1.5px] text-[11px] font-[600] flex justify-center items-center rounded-[4px]"
                   style={{
                     borderColor: expense.status.border,
                     background: expense.status.bg,
@@ -552,13 +608,19 @@ const ExpensesContent = () => {
                   {expense.status.label}
                 </div>
               </div>
-              <div className="flex flex-row justify-center items-center gap-2">
-                <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
+              <div className="flex flex-row items-center gap-2">
+                <button
+                  onClick={() => handleEditExpense(expense)}
+                  className="w-[54px] h-[22px] border-[1px] border-[#0955AC] rounded-[4px] text-[11px] text-[#0955AC] font-[600] flex justify-center items-center cursor-pointer hover:bg-[#0955AC] hover:text-white transition"
+                >
                   Edit
-                </div>
-                <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
+                </button>
+                <button
+                  onClick={() => handleDeleteExpense(expense.id)}
+                  className="w-[54px] h-[22px] border-[1px] border-[#FF0000] rounded-[4px] text-[11px] text-[#FF0000] font-[600] flex justify-center items-center cursor-pointer hover:bg-red-500 hover:text-white transition"
+                >
                   Delete
-                </div>
+                </button>
               </div>
             </div>
           ))}

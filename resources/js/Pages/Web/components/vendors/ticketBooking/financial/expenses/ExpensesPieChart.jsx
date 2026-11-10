@@ -3,10 +3,10 @@ import { PieChart, Pie, Cell } from "recharts";
 import miniArrow from "../../../../../assets/financial/expenses/miniArrow.svg";
 
 const data = [
-    { name: "Vehicle Maintenance", value: 3000, percent: 65, color: "#344B8E" },
-    { name: "Hired", value: 2500, percent: 25, color: "#3DD0FF" },
-    { name: "Pending", value: 2000, percent: 30, color: "#0955AC" },
-    { name: "Cancelled", value: 500, percent: 30, color: "#8CA9E6" },
+    { name: "Vehicle Maintenance", value: 3600, percent: 45, color: "#344B8E" },
+    { name: "Fuel", value: 2000, percent: 25, color: "#3DD0FF" },
+    { name: "Terminal / Parking", value: 1440, percent: 18, color: "#0955AC" },
+    { name: "Cancelled / Misc", value: 960, percent: 12, color: "#8CA9E6" },
 ];
 
 const total = data.reduce((sum, item) => sum + item.value, 0);
