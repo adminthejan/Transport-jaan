@@ -22,7 +22,7 @@ import {
 import Header from "../client/ClientHeader";
 import { ModuleTabs, TicketSubTabs } from "../../components/ModuleTabs";
 import PassengerSelector from "../../components/ticketBooking/PassengerSelector";
-import { AutoCompleteField, DateField } from "../../components/ticketBooking/shared/FormElements";
+import { AutoCompleteField, DateField, SegmentedControl } from "../../components/ticketBooking/shared/FormElements";
 import Footer from "../../layouts/Footer";
 import { useLocale } from "../../context/LocaleContext";
 
@@ -144,6 +144,8 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
   const [from, setFrom] = useState(searchParams.from || "");
   const [to, setTo] = useState(searchParams.to || "");
   const [date, setDate] = useState(searchParams.date || "");
+  const [tripType, setTripType] = useState(searchParams.tripType || "oneway");
+  const [returnDate, setReturnDate] = useState(searchParams.returnDate || "");
   const [passengers, setPassengers] = useState({
     adults: searchParams.adults ?? 1,
     youth: searchParams.youth ?? 0,
@@ -160,12 +162,16 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
     if (!next.from) e.from = "Required";
     if (!next.to) e.to = "Required";
     if (!next.date) e.date = "Required";
+    if (tripType === "roundtrip" && !returnDate) e.returnDate = "Required";
+    else if (tripType === "roundtrip" && returnDate < next.date) e.returnDate = "Before departure";
     setErrors(e);
     if (Object.keys(e).length) return;
     router.get("/landTicketBooking", {
       from: next.from,
       to: next.to,
       date: next.date,
+      tripType,
+      returnDate: tripType === "roundtrip" ? returnDate : undefined,
       adults: passengers.adults,
       youth: passengers.youth,
       seniors: passengers.seniors,
@@ -259,6 +265,16 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
           }}
           className="figtree bg-white p-4 sm:p-5 rounded-[20px] border border-black/5 shadow-[0_12px_32px_rgba(9,85,172,0.10)]"
         >
+          <SegmentedControl
+            value={tripType}
+            onChange={setTripType}
+            variant="boxed"
+            options={[
+              { value: "oneway", label: "One way" },
+              { value: "roundtrip", label: "Round Trip" },
+              { value: "multicity", label: "Multi-city" },
+            ]}
+          />
           <div className="flex flex-col lg:flex-row items-stretch lg:items-start gap-2.5 sm:gap-3">
             <div className="flex-1 min-w-0">
               <AutoCompleteField
@@ -313,6 +329,20 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
                 min={today}
               />
             </div>
+            {tripType === "roundtrip" && (
+              <div className="w-full lg:w-[180px] shrink-0">
+                <DateField
+                  label="RETURN"
+                  id="landReturnDate"
+                  value={returnDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                  error={errors.returnDate}
+                  icon={CalendarDays}
+                  variant="outline"
+                  min={date || today}
+                />
+              </div>
+            )}
             <div className="w-full lg:w-[190px] shrink-0">
               <PassengerSelector value={passengers} onChange={setPassengers} />
             </div>

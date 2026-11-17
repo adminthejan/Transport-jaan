@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import axios from "axios";
-import { chatRoute } from "@/Components/chat/chatUtils";
+import { openSupportChat } from "@/Components/chat/chatUtils";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import BookingCancellationModal from "./BookingCancellationModal";
@@ -2130,7 +2130,7 @@ const Hero = ({
                                 <div className="bg-slate-50 px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200">
                                     <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                                         <div className="text-[12px] sm:text-[13px] text-slate-600 text-center sm:text-left">
-                                            <p>Need help? <a href={support?.email ? `mailto:${support.email}` : chatRoute("chat.page")} className="text-[#0955AC] font-medium hover:underline">Contact support</a></p>
+                                            <p>Need help? <button type="button" onClick={() => openSupportChat()} className="text-[#0955AC] font-medium hover:underline">Chat with support</button></p>
                                         </div>
                                         <div className="flex items-center gap-2 w-full sm:w-auto">
                                             <button 

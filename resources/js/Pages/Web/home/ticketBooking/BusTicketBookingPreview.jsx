@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Head, router, usePage } from "@inertiajs/react";
-import { NicField, validateNic } from "../../../../Components/forms/IdentityFields";
+import PassengerDetailsFields, { isPassengerDetailsValid } from "../../components/ticketBooking/shared/PassengerDetailsFields";
 import Header from "../client/ClientHeader";
 import TripRouteMap from "../../components/ticketBooking/TripRouteMap";
 import LocaleSelector from "../../components/ticketBooking/LocaleSelector";
@@ -329,9 +329,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
         selected.length === requiredSeats &&
         allSeatsHaveGender(selected, seatGenders) &&
         (!isRoundTrip || (returnSelected.length === requiredSeats && allSeatsHaveGender(returnSelected, returnSeatGenders))) &&
-        passengerName.trim().length > 2 &&
-        !validateNic(nic) &&
-        mobile.trim().length >= 9 &&
+        isPassengerDetailsValid({ name: passengerName, nic, phone: mobile, email }) &&
         boarding &&
         destination;
 
@@ -388,14 +386,15 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                 } else if (data && data.reference) {
                     window.location.href = `/bus-booking-success/${data.reference}`;
                 } else if (data && data.success) {
-                    alert('Booking successful!');
-                    window.location.href = '/flight-booking';
+                    window.location.href = '/clientTicketBookingDashboard';
                 } else if (data && data.errors) {
                     const errorMessage = Object.values(data.errors).flat().join("\n");
                     alert(`Error: ${errorMessage}`);
+                } else if (data && data.message) {
+                    // Server-side failure: the booking was NOT made, so stay on the page.
+                    alert(data.message);
                 } else {
-                    alert('Booking completed but encountered an unexpected response. Please check your bookings.');
-                    window.location.href = '/flight-booking';
+                    alert('We could not confirm your booking. Please try again, or check My Bookings before retrying.');
                 }
             })
             .catch(error => {
@@ -499,46 +498,15 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                     <span className="text-[#0955AC] text-xl font-[800]">{formatPrice(total)}</span>
                                 </div>
 
-                                <div>
-                                    <label className="mb-1.5 block text-[12px] font-[700] text-[#64748B] tracking-wide">{t("passenger_name", "Passenger Name")}</label>
-                                    <input
-                                        type="text"
-                                        value={passengerName}
-                                        onChange={(e) => setPassengerName(e.target.value)}
-                                        placeholder="Enter passenger name"
-                                        className="w-full rounded-[12px] border border-[#E2E8F0] px-3.5 py-3 text-[14px] font-[600] text-[#0F172A] outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-                                    />
-                                </div>
-
-                                <NicField
-                                    value={nic}
-                                    onChange={setNic}
-                                    error={nic ? validateNic(nic) : null}
-                                    label="NIC Number"
-                                    inputClass="w-full rounded-[12px] border border-[#E2E8F0] px-3.5 py-3 text-[14px] font-[600] text-[#0F172A] outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
+                                <PassengerDetailsFields
+                                    values={{ name: passengerName, nic, phone: mobile, email }}
+                                    onChange={(field, value) => {
+                                        if (field === "name") setPassengerName(value);
+                                        else if (field === "nic") setNic(value);
+                                        else if (field === "phone") setMobile(value);
+                                        else setEmail(value);
+                                    }}
                                 />
-
-                                <div>
-                                    <label className="mb-1.5 block text-[12px] font-[700] text-[#64748B] tracking-wide">{t("mobile_number", "Mobile Number")}</label>
-                                    <input
-                                        type="tel"
-                                        value={mobile}
-                                        onChange={(e) => setMobile(e.target.value)}
-                                        placeholder="071 234 5678"
-                                        className="w-full rounded-[12px] border border-[#E2E8F0] px-3.5 py-3 text-[14px] font-[600] text-[#0F172A] outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-[12px] font-[700] text-[#64748B] tracking-wide">Email (Optional)</label>
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="user@domain.com"
-                                        className="w-full rounded-[12px] border border-[#E2E8F0] px-3.5 py-3 text-[14px] font-[600] text-[#0F172A] outline-none transition-colors focus:border-[#0955AC] focus:ring-2 focus:ring-[#0955AC]/15"
-                                    />
-                                </div>
 
                                 <div>
                                     <label className="mb-1.5 block text-[12px] font-[700] text-[#64748B] tracking-wide">{t("boarding_place", "Boarding Place")}</label>

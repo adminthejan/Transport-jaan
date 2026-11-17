@@ -81,6 +81,8 @@ class LandTicketController extends Controller
                 'to' => $to,
                 'date' => $date ? $date->format('Y-m-d') : '',
                 'mode' => in_array($request->input('mode'), ['bus', 'train'], true) ? $request->input('mode') : 'all',
+                'tripType' => in_array($request->input('tripType'), ['oneway', 'roundtrip', 'multicity'], true) ? $request->input('tripType') : 'oneway',
+                'returnDate' => (string) $request->input('returnDate', ''),
             ] + $passengers,
         ]);
     }

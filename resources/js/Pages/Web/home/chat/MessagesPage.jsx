@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { chatRoute } from "@/Components/chat/chatUtils";
+import { chatRoute, errorMessage } from "@/Components/chat/chatUtils";
 import { Head } from "@inertiajs/react";
 import axios from "axios";
 import { MessageSquare } from "lucide-react";
@@ -34,6 +34,7 @@ const rememberedService = () => {
  */
 const Inbox = ({ side, conversationId }) => {
     const [conversations, setConversations] = useState([]);
+    const [support, setSupport] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeId, setActiveId] = useState(conversationId || null);
     const [loadError, setLoadError] = useState(false);
@@ -43,6 +44,7 @@ const Inbox = ({ side, conversationId }) => {
             .get(chatRoute("chat.conversations"))
             .then(({ data }) => {
                 setConversations(data.conversations);
+                setSupport(data.support || null);
                 setLoadError(false);
             })
             .catch(() => setLoadError(true))
@@ -61,7 +63,29 @@ const Inbox = ({ side, conversationId }) => {
         };
     }, [load]);
 
-    const active = conversations.find((c) => c.id === activeId) || null;
+    const [supportThread, setSupportThread] = useState(null);
+    const [supportError, setSupportError] = useState("");
+
+    const openSupport = async () => {
+        setSupportError("");
+        try {
+            const { data } = await axios.post(chatRoute("chat.support.start"), {});
+            setSupportThread(data.conversation);
+            setActiveId(data.conversation.id);
+        } catch (err) {
+            setSupportError(errorMessage(err, "Could not open support chat."));
+        }
+    };
+
+    // Open straight into support when the page is linked with ?support=1
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get("support")) openSupport();
+    }, []);
+
+    const active =
+        conversations.find((c) => c.id === activeId) ||
+        (support && support.id === activeId ? support : null) ||
+        (supportThread && supportThread.id === activeId ? supportThread : null);
 
     return (
         <div className="p-4 md:p-6">
@@ -71,6 +95,12 @@ const Inbox = ({ side, conversationId }) => {
                     ? "Conversations with your clients."
                     : "Your conversations with vendors."}
             </p>
+
+            {supportError && (
+                <p role="alert" className="mb-3 text-sm text-red-600">
+                    {supportError}
+                </p>
+            )}
 
             {loadError && (
                 <p role="alert" className="mb-3 text-sm text-red-600">
@@ -89,6 +119,9 @@ const Inbox = ({ side, conversationId }) => {
                         activeId={activeId}
                         loading={loading}
                         onSelect={(c) => setActiveId(c.id)}
+                        showSupport
+                        support={support}
+                        onOpenSupport={openSupport}
                         emptyText={
                             side === "vendor"
                                 ? "No client messages yet. They will appear here when a client contacts you."

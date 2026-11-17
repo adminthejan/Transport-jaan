@@ -640,6 +640,7 @@ Route::middleware(['auth'])->prefix('chat')->name('chat.')->group(function () {
     Route::get('/', [$chat, 'page'])->name('page');
     Route::get('/conversations', [$chat, 'index'])->middleware('throttle:120,1')->name('conversations');
     Route::post('/conversations', [$chat, 'start'])->middleware('throttle:30,1')->name('conversations.start');
+    Route::post('/support', [$chat, 'startSupport'])->middleware('throttle:30,1')->name('support.start');
     Route::get('/unread-count', [$chat, 'unreadCount'])->middleware('throttle:120,1')->name('unread');
     Route::get('/conversations/{conversation}/messages', [$chat, 'messages'])->middleware('throttle:240,1')->name('messages');
     Route::post('/conversations/{conversation}/messages', [$chat, 'send'])->middleware('throttle:60,1')->name('send');
@@ -653,6 +654,11 @@ Route::middleware(['auth'])->prefix('chat')->name('chat.')->group(function () {
 */
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::redirect('/dashboard', '/superadmin/analytics')->name('dashboard');
+
+    // Support inbox: client and vendor threads addressed to the platform team.
+    Route::get('/support', fn () => Inertia::render('Web/home/SuperAdmin/SupportInbox', [
+        'conversationId' => request()->integer('conversation') ?: null,
+    ]))->name('support');
 
     // Profile Routes
     Route::get('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'index'])->name('profile');

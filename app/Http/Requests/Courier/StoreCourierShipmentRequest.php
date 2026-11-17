@@ -105,6 +105,11 @@ class StoreCourierShipmentRequest extends FormRequest
             'packages.*.extras.nonStackable' => ['nullable', 'boolean'],
             'packages.*.extras.containsBatteries' => ['nullable', 'boolean'],
             'packages.*.extras.dangerousGoods' => ['nullable', 'boolean'],
+            // Medicine shipments must carry a doctor's prescription (image or PDF, sent as a data URL).
+            'packages.*.extras.prescription' => ['nullable', 'array'],
+            'packages.*.extras.prescription.name' => ['nullable', 'string', 'max:255'],
+            'packages.*.extras.prescription.mime' => ['nullable', 'string', 'in:application/pdf,image/jpeg,image/png'],
+            'packages.*.extras.prescription.dataUrl' => ['nullable', 'string', 'max:4000000'],
             'packages.*.extras.items' => ['nullable', 'array', 'max:50'],
             'packages.*.extras.items.*.name' => ['nullable', 'string', 'max:80'],
             'packages.*.extras.items.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100000'],
@@ -130,6 +135,18 @@ class StoreCourierShipmentRequest extends FormRequest
             'reviewContext.selectedQuotes.*.weight' => ['nullable', 'numeric', 'min:0'],
             'reviewContext.selectedQuotes.*.billableWeight' => ['nullable', 'numeric', 'min:0'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            foreach ((array) $this->input('packages', []) as $index => $package) {
+                $extras = $package['extras'] ?? [];
+                if (($extras['shipmentType'] ?? null) === 'medicine' && empty($extras['prescription']['dataUrl'] ?? null)) {
+                    $validator->errors()->add("packages.{$index}.extras.prescription", 'A prescription is required for medicine shipments.');
+                }
+            }
+        });
     }
 
     public function attributes(): array

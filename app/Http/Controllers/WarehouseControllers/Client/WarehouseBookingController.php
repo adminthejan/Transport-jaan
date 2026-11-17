@@ -682,8 +682,14 @@ class WarehouseBookingController extends Controller
             // Prevent overselling the same physical space to overlapping bookings.
             // The row lock above serializes concurrent requests for this warehouse,
             // so the sum read here is safe from a race with another request's insert.
-            $capacity = (float) ($warehouse->capacity ?? 0);
-            if ($capacity > 0) {
+            // Use total_area: it is what the availability API and the booking UI show,
+            // and it is the same sq ft figure the requested space is entered in.
+            // `capacity` may be in another unit (sq_m, cubic_*), so it is only a fallback.
+            $capacity = (float) ($warehouse->total_area ?? 0);
+            if ($capacity <= 0 && ($warehouse->capacity_unit ?? 'sq_ft') === 'sq_ft') {
+                $capacity = (float) ($warehouse->capacity ?? 0);
+            }
+            if ($capacity > 0 && ($validated['storage_unit'] ?? 'sqft') === 'sqft') {
                 $requestedEndDate = $validated['end_date']
                     ?? \Carbon\Carbon::parse($validated['start_date'])->addMonths($validated['duration_months'] ?? 1)->toDateString();
 

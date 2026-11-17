@@ -1,7 +1,20 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
-import clock from "../../assets/landVehicleDetails/clock.svg";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  ShieldCheck,
+  Check,
+  ArrowRight,
+  Download,
+  Info,
+  Sparkles,
+  UserCheck,
+  FileText,
+  AlertCircle,
+} from "lucide-react";
 import QuoteModal from "./QuoteModal";
 import useScrollLock from "./useScrollLock";
 import VehicleLocationMap from "./VehicleLocationMap";
@@ -32,11 +45,10 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
   const [pickupTime, setPickupTime] = useState("10:00");
   const [dropoffDate, setDropoffDate] = useState("");
   const [dropoffTime, setDropoffTime] = useState("10:00");
-  const [dateError, setDateError] = useState("");
   const [needsDriver, setNeedsDriver] = useState(false);
   const DRIVER_FEE_RATE = 0.20;
 
-  // Initialize form values from URL query params (if present)
+  // Initialize from URL query params
   useEffect(() => {
     try {
       const sp = new URLSearchParams(window.location.search || "");
@@ -58,7 +70,6 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
     } catch (e) {
       // ignore
     }
-    // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -72,7 +83,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
       title,
       text,
       confirmButtonText: "OK",
-      confirmButtonColor: "#0955AC",
+      confirmButtonColor: "#2563EB",
       heightAuto: false,
       allowOutsideClick: true,
       backdrop: true,
@@ -87,7 +98,7 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
       axios
         .get(route("client.vehicles.extras", vehicleId))
         .then(({ data }) => setServerExtras(data?.extras || []))
-        .catch(() => { });
+        .catch(() => {});
     }
   }, [vehicleId, serverExtras?.length]);
 
@@ -99,55 +110,56 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
   const featureList = useMemo(() => {
     const raw = Array.isArray(serverExtras) ? serverExtras : [];
     return raw
-      .map((e) => ({
-        name: e?.name ?? e?.additional_feature_name ?? "",
-        price: Number(e?.price ?? e?.additional_feature_price ?? 0),
+      .map((item) => ({
+        name: item?.additional_feature_name ?? item?.name ?? "",
+        price: Number(item?.additional_feature_price ?? item?.price ?? 0),
       }))
-      .filter((x) => x.name);
+      .filter((item) => item.name);
   }, [serverExtras]);
 
   const priceByName = useMemo(() => {
     const map = {};
-    featureList.forEach((f) => {
-      map[f.name] = f.price;
-    });
+    featureList.forEach((f) => (map[f.name] = f.price));
     return map;
   }, [featureList]);
 
   const [extras, setExtras] = useState({});
+
   useEffect(() => {
-    setExtras((prev) => {
-      const next = {};
-      featureList.forEach((f) => {
-        next[f.name] = prev[f.name] ?? false;
+    if (featureList.length) {
+      setExtras((prev) => {
+        const next = { ...prev };
+        featureList.forEach((f) => {
+          if (next[f.name] === undefined) next[f.name] = false;
+        });
+        return next;
       });
-      return next;
-    });
+    }
   }, [featureList]);
 
-  const toggleExtra = (name) => setExtras((x) => ({ ...x, [name]: !x[name] }));
+  const toggleExtra = (name) =>
+    setExtras((prev) => ({ ...prev, [name]: !prev[name] }));
 
   const selectedAddons = () =>
     Object.entries(extras)
-      .filter(([, v]) => v)
+      .filter(([, active]) => active)
       .map(([name]) => ({ name, qty: 1 }));
 
-  const quoteParams = () => ({
-    vehicle_id: vehicleId,
-    pickup_date: pickupDate,
-    pickup_time: pickupTime || "10:00",
-    dropoff_date: dropoffDate,
-    dropoff_time: dropoffTime || "10:00",
-    addons: selectedAddons(),
-    needs_driver: needsDriver,
-  });
-
-  // Rates are returned even when the vehicle is taken, so the price is always shown.
   const requestQuote = async () => {
+    if (!vehicleId || !pickupDate || !dropoffDate) return null;
+
     const { data, status } = await axios.get(route("client.bookings.quote"), {
-      params: quoteParams(),
-      validateStatus: (code) => code === 200 || code === 422,
+      params: {
+        vehicle_id: vehicleId,
+        pickup_date: pickupDate,
+        pickup_time: pickupTime || "10:00",
+        dropoff_date: dropoffDate,
+        dropoff_time: dropoffTime || "10:00",
+        needs_driver: needsDriver ? "1" : "0",
+        addons: selectedAddons(),
+      },
     });
+
     setQuote(data);
     setAvailability({
       available: status === 200 && data.available !== false,
@@ -169,29 +181,16 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicleId, pickupDate, pickupTime, dropoffDate, dropoffTime, needsDriver, extras]);
 
-  const getQuote = async () => {
-    if (!vehicleId || !pickupDate || !dropoffDate) {
-      showCenter("Please select pick-up and drop-off dates.", "Missing dates", "info");
-      return;
-    }
-    try {
-      await requestQuote();
-      setShowQuoteModal(true);
-    } catch (e) {
-      showCenter("Could not fetch a quote. Please check your dates.", "Oops", "error");
-    }
-  };
-
   const continueToCheckout = async () => {
     if (!vehicleId || !pickupDate || !dropoffDate) {
-      showCenter("Please fill pick-up and drop-off first.", "Missing info", "info");
+      showCenter("Please select your pick-up and drop-off dates first.", "Missing Trip Dates", "info");
       return;
     }
 
     try {
       const result = await requestQuote();
-      if (!result.available) {
-        showCenter(result.message || "Vehicle is not available for the selected dates.", "Unavailable", "error");
+      if (result && !result.available) {
+        showCenter(result.message || "This vehicle is not available for the selected dates.", "Dates Unavailable", "error");
         return;
       }
 
@@ -211,354 +210,277 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
         preserveScroll: true,
       });
     } catch (e) {
-      showCenter("Something went wrong. Please try again.", "Oops", "error");
+      showCenter("Unable to proceed to checkout. Please check the dates and try again.", "Error", "error");
     }
   };
 
-  /* ===================== DOWNLOAD QUOTATION AS-IS ===================== */
+  /* ===================== DOWNLOAD QUOTATION PDF ===================== */
   const quoteRef = useRef(null);
 
   const downloadQuote = async () => {
     if (!quoteRef.current) return;
 
-    // Render the exact content to a canvas (crisp + white background)
-    const canvas = await html2canvas(quoteRef.current, {
-      scale: 3,              // sharper text
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      letterRendering: true,
-    });
-    const imgData = canvas.toDataURL("image/png");
+    try {
+      const canvas = await html2canvas(quoteRef.current, {
+        scale: 2.5,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
 
-    // Build an A4 PDF with clean margins
-    const pdf = new jsPDF("p", "mm", "a4");    // 210 x 297 mm
-    const pageW = pdf.internal.pageSize.getWidth();   // 210
-    const pageH = pdf.internal.pageSize.getHeight();  // 297
-    const margin = 12;                                  // mm (left/right/top/bottom)
-    const contentW = pageW - margin * 2;
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 12;
+      const contentW = pageW - margin * 2;
+      const imgW = contentW;
+      const imgH = (canvas.height * imgW) / canvas.width;
 
-    // Scale image to fit width within margins
-    const imgW = contentW;
-    const imgH = (canvas.height * imgW) / canvas.width;
+      let heightLeft = imgH;
+      let y = margin;
 
-    // Add first page
-    let heightLeft = imgH;
-    let y = margin;
-
-    pdf.addImage(imgData, "PNG", margin, y, imgW, imgH);
-    heightLeft -= (pageH - margin * 2);
-
-    // Additional pages (crop by shifting image upward but keeping same margins)
-    while (heightLeft > 0) {
-      pdf.addPage();
-      const offset = margin - (imgH - heightLeft);
-      pdf.addImage(imgData, "PNG", margin, offset, imgW, imgH);
+      pdf.addImage(imgData, "PNG", margin, y, imgW, imgH);
       heightLeft -= (pageH - margin * 2);
+
+      while (heightLeft > 0) {
+        pdf.addPage();
+        const offset = margin - (imgH - heightLeft);
+        pdf.addImage(imgData, "PNG", margin, offset, imgW, imgH);
+        heightLeft -= (pageH - margin * 2);
+      }
+
+      const fileName = `quotation_${(vehicle?.manufacturer || "vehicle").toString().toLowerCase()}_${vehicleId}.pdf`;
+      pdf.save(fileName);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to export quotation PDF.");
     }
-
-    const fileName = `quotation_${(vehicle?.manufacturer || "vehicle")
-      .toString()
-      .replace(/\s+/g, "-")
-      .toLowerCase()}_${new Date().toISOString().slice(0, 10)}.pdf`;
-
-    pdf.save(fileName);
   };
 
-  /* =================================================================== */
+  const handleOpenQuoteModal = async () => {
+    if (!vehicleId || !pickupDate || !dropoffDate) {
+      showCenter("Please choose pick-up and drop-off dates first.", "Select Dates", "info");
+      return;
+    }
+    await requestQuote();
+    setShowQuoteModal(true);
+  };
 
   return (
-    <div className="px-5 xl:px-0">
-      <QuoteModal open={showQuoteModal} onClose={() => setShowQuoteModal(false)}>
-        {/* Everything inside this wrapper is exported to PDF */}
-        <div ref={quoteRef}>
-          <div className="flex flex-row justify-between items-center">
-            <div className="figtree text-[16px] font-[600]">
-              <h1>Service Provider name: {provider?.name}</h1>
-              <h1>Service Provider Address: {provider?.address}</h1>
-              <h1>Service Provider Contact Number: {provider?.phone}</h1>
-              <h1>Service Provider Email: {provider?.email}</h1>
+    <div className="w-full">
+      {/* Quotation Modal */}
+      <QuoteModal isOpen={showQuoteModal} onClose={() => setShowQuoteModal(false)}>
+        <div ref={quoteRef} className="p-6 text-slate-800 text-xs bg-white space-y-4">
+          <div className="flex items-center justify-between border-b pb-4">
+            <div>
+              <h2 className="text-lg font-black text-blue-600">JAAN TRANSPORT</h2>
+              <p className="text-[11px] text-slate-400">Official Rental Quotation</p>
             </div>
-
-            <div className="text-center poppins text-[25px] font-[700] uppercase">
-              <h1>
-                Company <br /> <span className="text-[#0955AC]">Logo</span>
-              </h1>
+            <div className="text-right text-[11px] text-slate-500">
+              <p>Vehicle: {vehicle?.manufacturer} {vehicle?.model}</p>
+              <p>Registration: {vehicle?.registration_number || "—"}</p>
             </div>
           </div>
 
-          <div className="figtree flex flex-row justify-end text-[35px] font-[700] text-[#0955AC]">
-            <h1>Quotation</h1>
-          </div>
-
-          <div className="flex flex-row justify-between items-end">
-            <div className="text-[16px] font-[600]">
-              <h1 className="text-[#0955AC]">Bill To</h1>
-              <h1>Client Name: {authUser?.name}</h1>
-              <h1>Client Address: {authUser?.address}</h1>
-              <h1>Client Contact Number: {authUser?.phone}</h1>
+          <div className="grid grid-cols-2 gap-4 py-2 bg-slate-50 p-3 rounded-xl">
+            <div>
+              <span className="font-bold text-slate-500 block">Pick-up:</span>
+              <span>{pickupLocation || "Standard Hub"} ({pickupDate} at {pickupTime})</span>
             </div>
-
-            <div className="text-right text-[16px] font-[600]">
-              <h1>
-                <span className="text-[#0955AC]">Quotation No:</span> #123456
-              </h1>
-              <h1>
-                <span className="text-[#0955AC]">Quotation Date:</span>{" "}
-                {new Date().toLocaleDateString()}
-              </h1>
-              <h1>
-                <span className="text-[#0955AC]">Due Date:</span> —
-              </h1>
+            <div>
+              <span className="font-bold text-slate-500 block">Drop-off:</span>
+              <span>{dropoffLocation || "Standard Hub"} ({dropoffDate} at {dropoffTime})</span>
             </div>
           </div>
 
-          <div className="w-full h-[36px] bg-[#0955AC] mt-10 flex flex-row justify-center items-center text-[#FFFFFF] px-10 text-[14px] font-[700]">
-            <h1 className="w-[200px]">Description</h1>
-            <h1 className="w-[140px]">QTY.</h1>
-            <h1 className="w-[140px]">UNIT price</h1>
-            <h1 className="w-[140px] text-end">Sub Total</h1>
-          </div>
-
-          <div className="w-full h-[36px] flex flex-row justify-center items-center px-10 text-[14px] font-[600] mt-5">
-            <h1 className="w-[200px]">
-              {vehicle?.manufacturer} {vehicle?.model}
-            </h1>
-            <h1 className="w-[140px]">
-              {quote?.rental_days || "-"} {quote?.rental_days === 1 ? "Day" : "Days"}
-            </h1>
-            <h1 className="w-[140px]">
-              {quote ? Number(quote.price_per_day).toFixed(2) : "-"}
-            </h1>
-            <h1 className="w-[140px] text-end">
-              {quote ? (quote.price_per_day * quote.rental_days).toFixed(2) : "-"}
-            </h1>
-          </div>
-
-          {(quote?.addons_lines || []).map((line, idx) => (
-            <div
-              key={idx}
-              className="w-full h-[36px] flex flex-row justifycenter items-center px-10 text-[14px] font-[600]"
-            >
-              <h1 className="w-[200px]">{line.name}</h1>
-              <h1 className="w-[140px]">{line.qty}</h1>
-              <h1 className="w-[140px]">{Number(line.price).toFixed(2)}</h1>
-              <h1 className="w-[140px] text-end">
-                {Number(line.line_total).toFixed(2)}
-              </h1>
+          {quote && (
+            <div className="border rounded-xl divide-y text-xs">
+              <div className="flex justify-between p-2.5">
+                <span>Rental Duration</span>
+                <span className="font-bold">{quote.rental_days} {quote.rental_days === 1 ? "day" : "days"}</span>
+              </div>
+              <div className="flex justify-between p-2.5">
+                <span>Daily Base Rate</span>
+                <span>{quote.currency || "LKR"} {Number(quote.price_per_day).toFixed(2)}</span>
+              </div>
+              {Number(quote.driver_fee_total) > 0 && (
+                <div className="flex justify-between p-2.5">
+                  <span>Chauffeur Service Fee</span>
+                  <span>{quote.currency || "LKR"} {Number(quote.driver_fee_total).toFixed(2)}</span>
+                </div>
+              )}
+              {Number(quote.addons_total) > 0 && (
+                <div className="flex justify-between p-2.5">
+                  <span>Included Extras</span>
+                  <span>{quote.currency || "LKR"} {Number(quote.addons_total).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between p-2.5 bg-blue-50/50 font-bold text-blue-700">
+                <span>Estimated Total</span>
+                <span>{quote.currency || "LKR"} {Number(quote.total).toFixed(2)}</span>
+              </div>
             </div>
-          ))}
+          )}
 
-          <div className="w-full h-[1.5px] bg-[#0955AC] my-5" />
-
-          <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
-            <h1 className="w-[140px]">Subtotal</h1>
-            <h1 className="w-[140px] text-end">
-              {quote ? Number(quote.subtotal).toFixed(2) : "-"}
-            </h1>
+          <div className="text-[11px] text-slate-500 pt-2 border-t">
+            <p className="font-semibold text-slate-700">Terms & Conditions:</p>
+            <p>Quotations are valid for 7 days. Final price subject to host availability upon reservation.</p>
           </div>
-
-          <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
-            <h1 className="w-[140px]">Sales Tax (5%)</h1>
-            <h1 className="w-[140px] text-end">—</h1>
-          </div>
-
-          <div className="flex justify-end items-center">
-            <div className="flex flex-row items-center border-t-[1px] border-b-[1px] w-[340px] px-10 h-[39px] bg-[#E8EBEF] border-[#0955AC] text-[14px] font-[700] text-[#0955AC]">
-              <h1 className="w-[140px]">Total ({vehicle?.currency || "LKR"})</h1>
-              <h1 className="w-[140px] text-end">
-                {quote ? Number(quote.total).toFixed(2) : "-"}
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex justify-end items-center">
-            <div className="flex flex-row items-center w-[340px] px-10 h-[36px] text-[14px] font-[600]">
-              <h1 className="w-[140px]">Refundable deposit</h1>
-              <h1 className="w-[140px] text-end">{quote ? Number(quote.deposit_amount).toFixed(2) : "-"}</h1>
-            </div>
-          </div>
-          <div className="flex justify-end items-center">
-            <div className="flex flex-row items-center w-[340px] px-10 h-[36px] text-[14px] font-[600]">
-              <h1 className="w-[140px]">Advance payment</h1>
-              <h1 className="w-[140px] text-end">{quote ? Number(quote.advance_amount).toFixed(2) : "-"}</h1>
-            </div>
-          </div>
-
-          <h1 className="text-[14px] font-[700] text-[#0955AC]">Terms and Conditions</h1>
-          <h1 className="text-[14px] font-[500]">Payment is due in 14 days</h1>
         </div>
 
-        {/* Download button (not included in the PDF capture) */}
-        <div className="flex justify-center items-center mt-4">
-          <div
-            className="w-auto min-w-[231px] h-auto px-6 py-3 bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[600] text-[12px] poppins flex justify-center items-center cursor-pointer hover:bg-[#074489] transition-colors"
+        <div className="p-4 border-t bg-slate-50 flex justify-end">
+          <button
+            type="button"
             onClick={downloadQuote}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-md hover:bg-blue-700 transition-colors cursor-pointer"
           >
-            Download quotation
-          </div>
+            <Download className="w-4 h-4" />
+            <span>Download Official PDF</span>
+          </button>
         </div>
       </QuoteModal>
 
-      {/* ==== Sidebar card (unchanged) ==== */}
-      <div className="poppins w-full xl:w-[440px] h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 xl:px-20 px-6 sm:px-10">
-        <div className="flex justify-end">
-          <LocaleSelector />
-        </div>
-        <div className="text-[25px] font-[700] -mt-6">
-          <h1>
-            {formatPrice(vehicle?.rental_price_per_day ?? 620, vehicle?.currency || "LKR")}{" "}
-            <span className="text-[10px] text-[#00000080]">/day</span>
-          </h1>
-          <h1 className="text-[10px] font-[600] text-[#00000080] py-4">
-            Total before taxes
-          </h1>
-          <div className=" w-auto md:w-[346px] h-[1px] bg-[#0000001F]" />
-        </div>
-
-        <div className="w-full rounded-2xl border border-[#E3EAF5] bg-white p-6 shadow-sm text-[13px] text-[#0B1739] flex flex-col gap-5">
-          <h1 className="text-base font-semibold text-[#0B1739]">Pricing Breakdown</h1>
-          {availability && availability.available === false && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">
-              Not available for these dates. Rates are shown for reference only.
-            </div>
-          )}
-          {quote && (
-            <div className="rounded-xl border border-[#E3EAF5] divide-y divide-[#E3EAF5] text-[13px]">
-              {[
-                [`Rental (${quote.rental_days} ${quote.rental_days === 1 ? "day" : "days"} × ${Number(quote.price_per_day).toFixed(2)})`, Number(quote.price_per_day) * Number(quote.rental_days)],
-                ...(Number(quote.addons_total) > 0 ? [["Extras", Number(quote.addons_total)]] : []),
-                ...(Number(quote.driver_fee_total) > 0 ? [["Driver fee", Number(quote.driver_fee_total)]] : []),
-                ["Subtotal", Number(quote.subtotal)],
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between px-4 py-2.5">
-                  <span className="text-[#5B6887]">{label}</span>
-                  <span className="font-medium">{value.toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
-                <span className="text-[#5B6887]">Refundable deposit</span>
-                <span className="font-medium">{Number(quote.deposit_amount).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between px-4 py-2.5 bg-[#F7FAFF]">
-                <span className="text-[#5B6887]">Advance payment</span>
-                <span className="font-medium">{Number(quote.advance_amount).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between px-4 py-3 bg-[#EEF5FF]">
-                <span className="font-semibold text-[#0955AC]">Total ({quote.currency || vehicle?.currency || "LKR"})</span>
-                <span className="font-semibold text-[#0955AC]">{Number(quote.total).toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-
-                  </div>
-
-        <form className="text-[13px] text-[#0B1739] space-y-1" onSubmit={(e) => e.preventDefault()}>
+      {/* Main Booking Card */}
+      <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-[0_10px_35px_-5px_rgba(15,23,42,0.08)] p-5 sm:p-7 space-y-6">
+        {/* Header Price Bar */}
+        <div className="flex items-start justify-between gap-3 pb-5 border-b border-slate-100">
           <div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {formatPrice(vehicle?.rental_price_per_day ?? 0, vehicle?.currency || "LKR")}
+              </span>
+              <span className="text-xs font-semibold text-slate-400">/day</span>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+              Best price guaranteed · All taxes included
+            </p>
+          </div>
+
+          <div className="shrink-0">
+            <LocaleSelector />
+          </div>
+        </div>
+
+        {/* Live Availability Warning */}
+        {availability && availability.available === false && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+            <div>{availability.message || "Vehicle is unavailable for these selected dates. Rates shown for reference."}</div>
+          </div>
+        )}
+
+        {/* Schedule & Location Inputs */}
+        <div className="space-y-3.5">
+          {/* Pick-up */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+              <span>Pick-up Location</span>
+            </label>
+            <input
+              type="text"
+              value={pickupLocation}
+              onChange={(e) => setPickupLocation(e.target.value)}
+              placeholder="e.g. Colombo International Airport (CMB)"
+              className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 focus:outline-none transition-all"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label htmlFor="pickupLocation" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">
-                Pick-up Location
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                Pick-up Date
               </label>
               <input
-                type="text"
-                id="pickupLocation"
-                value={pickupLocation}
-                onChange={(e) => setPickupLocation(e.target.value)}
-                placeholder="Hudson Rd, Colombo 03"
-                className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
+                type="date"
+                value={pickupDate}
+                onChange={(e) => setPickupDate(e.target.value)}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 focus:outline-none transition-all cursor-pointer"
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-3 mt-4 mb-4">
-              <div>
-                <label htmlFor="pickupDate" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Pick-up Date</label>
-                <input
-                  type="date"
-                  id="pickupDate"
-                  value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                  placeholder="2025-07-23"
-                  className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
-                />
-              </div>
-              <div className="relative">
-                <label htmlFor="pickupTime" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Pick-up Time</label>
-                <input
-                  type="time"
-                  id="pickupTime"
-                  value={pickupTime}
-                  onChange={(e) => setPickupTime(e.target.value)}
-                  placeholder="00:00"
-                  className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
             <div>
-              <label htmlFor="dropoffLocation" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Drop-off Location</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                Time
+              </label>
               <input
-                type="text"
-                id="dropoffLocation"
-                value={dropoffLocation}
-                onChange={(e) => setDropoffLocation(e.target.value)}
-                placeholder="Hudson Rd, Colombo 03"
-                className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
+                type="time"
+                value={pickupTime}
+                onChange={(e) => setPickupTime(e.target.value)}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 focus:outline-none transition-all cursor-pointer"
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-4 mb-4">
-              <div>
-                <label htmlFor="dropoffDate" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Drop-off Date</label>
-                <input
-                  type="date"
-                  id="dropoffDate"
-                  value={dropoffDate}
-                  onChange={(e) => setDropoffDate(e.target.value)}
-                  placeholder="2025-07-30"
-                  className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
-                />
-              </div>
-              <div className="relative">
-                <label htmlFor="dropoffTime" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Drop-off Time</label>
-                <input
-                  type="time"
-                  id="dropoffTime"
-                  value={dropoffTime}
-                  onChange={(e) => setDropoffTime(e.target.value)}
-                  placeholder="00:00"
-                  className="w-full h-[46px] rounded-[10px] border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#9AA5BA] focus:border-[#0955AC] focus:outline-none focus:ring-2 focus:ring-[#0955AC]/20 transition"
-                />
-              </div>
+          {/* Drop-off */}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Drop-off Location</span>
+            </label>
+            <input
+              type="text"
+              value={dropoffLocation}
+              onChange={(e) => setDropoffLocation(e.target.value)}
+              placeholder="e.g. Same as pickup location"
+              className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 focus:outline-none transition-all"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                Drop-off Date
+              </label>
+              <input
+                type="date"
+                value={dropoffDate}
+                onChange={(e) => setDropoffDate(e.target.value)}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 focus:outline-none transition-all cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                Time
+              </label>
+              <input
+                type="time"
+                value={dropoffTime}
+                onChange={(e) => setDropoffTime(e.target.value)}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 focus:outline-none transition-all cursor-pointer"
+              />
             </div>
           </div>
-        </form>
+        </div>
 
+        {/* Route Map Preview */}
         {pickupLocation.trim() && (
-          <div className="mb-6">
+          <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
             <VehicleLocationMap
               pickupLocation={pickupLocation}
               dropoffLocation={dropoffLocation}
-              className="h-[220px]"
+              className="h-[180px]"
             />
           </div>
         )}
 
-        <div className="w-full rounded-2xl border border-[#E3EAF5] bg-white p-6 shadow-sm text-[13px] text-[#0B1739] flex flex-col gap-5">
-<h2 className="text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Driver</h2>
-          <div className="grid grid-cols-2 gap-3">
+        {/* Chauffeur vs Self-Drive Option */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+            Drive Preference
+          </label>
+          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60">
             {[
               { value: false, label: "Self-Drive" },
-              { value: true, label: "With Driver" },
+              { value: true, label: "With Chauffeur" },
             ].map((opt) => (
               <button
                 type="button"
                 key={String(opt.value)}
                 onClick={() => setNeedsDriver(opt.value)}
-                className={`rounded-xl border px-4 py-3 text-[13px] font-semibold transition-colors ${
+                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   needsDriver === opt.value
-                    ? "bg-[#0955AC] border-[#0955AC] text-white"
-                    : "border-[#D6DEEB] bg-white text-[#5B6887] hover:border-[#0955AC]/50"
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 {opt.label}
@@ -566,42 +488,126 @@ const VehicleSearchInner = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) 
             ))}
           </div>
           {needsDriver && (
-            <p className="rounded-xl border border-[#0955AC]/20 bg-[#EEF5FF] px-3 py-2.5 text-[12px] font-medium text-[#0955AC]">
-              A driver adds {(DRIVER_FEE_RATE * 100).toFixed(0)}% of the daily rate for chauffeur service.
+            <p className="text-[11px] font-medium text-blue-600 bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span>Chauffeur service adds {(DRIVER_FEE_RATE * 100).toFixed(0)}% daily rate.</span>
             </p>
           )}
+        </div>
 
-          <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[#5B6887]">Add Extras</h2>
-
-          <div className="flex flex-col divide-y divide-[#E3EAF5] rounded-xl border border-[#E3EAF5] overflow-hidden">
-            {Object.keys(extras).length === 0 && (
-              <div className="px-4 py-4 text-[#5B6887]">No extras available.</div>
-            )}
-            {Object.keys(extras).map((name, i) => (
-              <div key={name} className="flex flex-row items-center justify-between w-full px-4 py-3 hover:bg-[#F7FAFF]">
-                <div className="flex flex-row justify-center items-center gap-4">
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-[#0955AC]"
-                    checked={!!extras[name]}
-                    onChange={() => toggleExtra(name)}
-                  />
-                  <span className="font-medium">{name}</span>
-                </div>
-                <span className="font-semibold text-[#0955AC]">{priceByName[name] !== undefined ? priceByName[name].toFixed(2) : "—"}</span>
-              </div>
-            ))}
-          </div>
-
-          
-          <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
-
-            <div
-              className="w-full sm:w-auto xl:w-[261px] h-auto xl:h-auto bg-[#0955AC] px-4 py-2.5 rounded-[5px] mt-0 sm:mt-10 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer hover:bg-[#074489] transition-colors"
-              onClick={continueToCheckout}
-            >
-              CONTINUE TO CHECKOUT
+        {/* Add-ons & Extras */}
+        {Object.keys(extras).length > 0 && (
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+              Trip Extras
+            </label>
+            <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden text-xs">
+              {Object.keys(extras).map((name) => (
+                <label
+                  key={name}
+                  className="flex items-center justify-between p-3 hover:bg-slate-50/80 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={!!extras[name]}
+                      onChange={() => toggleExtra(name)}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                    />
+                    <span className="font-semibold text-slate-800">{name}</span>
+                  </div>
+                  <span className="font-bold text-blue-600">
+                    +LKR {priceByName[name] !== undefined ? priceByName[name].toFixed(2) : "0.00"}
+                  </span>
+                </label>
+              ))}
             </div>
+          </div>
+        )}
+
+        {/* Live Quotation Summary */}
+        {quote && (
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/30 p-4 space-y-2.5 text-xs">
+            <h4 className="font-bold text-slate-900 flex items-center justify-between">
+              <span>Estimated Breakdown</span>
+              <span className="text-[11px] font-semibold text-blue-600">{quote.rental_days} {quote.rental_days === 1 ? "day" : "days"}</span>
+            </h4>
+
+            <div className="space-y-1.5 text-slate-600 pt-1">
+              <div className="flex justify-between">
+                <span>Base Vehicle Rental</span>
+                <span className="font-semibold text-slate-800">
+                  {quote.currency || "LKR"} {(Number(quote.price_per_day) * Number(quote.rental_days)).toFixed(2)}
+                </span>
+              </div>
+
+              {Number(quote.driver_fee_total) > 0 && (
+                <div className="flex justify-between">
+                  <span>Chauffeur Fee</span>
+                  <span className="font-semibold text-slate-800">
+                    {quote.currency || "LKR"} {Number(quote.driver_fee_total).toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              {Number(quote.addons_total) > 0 && (
+                <div className="flex justify-between">
+                  <span>Additional Extras</span>
+                  <span className="font-semibold text-slate-800">
+                    {quote.currency || "LKR"} {Number(quote.addons_total).toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              {Number(quote.deposit_amount) > 0 && (
+                <div className="flex justify-between text-slate-500">
+                  <span>Refundable Security Deposit</span>
+                  <span className="font-semibold">
+                    {quote.currency || "LKR"} {Number(quote.deposit_amount).toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between pt-2 border-t border-blue-200/60 font-bold text-slate-900 text-sm">
+                <span>Total Amount</span>
+                <span className="text-blue-600 font-black">
+                  {quote.currency || "LKR"} {Number(quote.total).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Primary Action Buttons */}
+        <div className="space-y-2.5 pt-2">
+          <button
+            type="button"
+            onClick={continueToCheckout}
+            className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-extrabold text-sm shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Proceed to Reservation</span>
+            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenQuoteModal}
+            className="w-full h-10 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200/80 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <FileText className="w-3.5 h-3.5 text-slate-500" />
+            <span>Generate Official Quotation</span>
+          </button>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            <span>Instant Confirmation</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Free Cancellation</span>
           </div>
         </div>
       </div>

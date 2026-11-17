@@ -80,6 +80,11 @@ const SHIPMENT_TYPE_OPTIONS = [
         description: "Personal belongings and effects.",
     },
     {
+        value: "medicine",
+        label: "Medicine",
+        description: "Medicines and pharmaceuticals. A valid prescription must be uploaded.",
+    },
+    {
         value: "gifts",
         label: "Gifts",
         description: "Gift parcels for friends and family.",
@@ -132,6 +137,8 @@ const ShipmentTypeField = ({
     lockedMessage = "",
     otherDescription = "",
     onOtherDescriptionChange = null,
+    prescription = null,
+    onPrescriptionChange = null,
     headerAction = null,
 }) => {
     const selectedOption = SHIPMENT_TYPE_OPTIONS_BY_VALUE[value] || null;
@@ -200,6 +207,62 @@ const ShipmentTypeField = ({
                     Shipments marked "Other" require vendor approval before you can proceed to payment.
                 </p>
             )}
+            {value === "medicine" && typeof onPrescriptionChange === "function" && (
+                <PrescriptionUpload prescription={prescription} onChange={onPrescriptionChange} />
+            )}
+        </div>
+    );
+};
+
+const PRESCRIPTION_MAX_BYTES = 2 * 1024 * 1024;
+const PRESCRIPTION_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+
+// Medicine shipments need a doctor's prescription. The file is read into a
+// data URL and travels with the package extras.
+const PrescriptionUpload = ({ prescription, onChange }) => {
+    const [error, setError] = useState("");
+
+    const handleFile = (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) return;
+        if (!PRESCRIPTION_MIME_TYPES.includes(file.type)) {
+            setError("Upload a PDF, JPG or PNG file.");
+            return;
+        }
+        if (file.size > PRESCRIPTION_MAX_BYTES) {
+            setError("The prescription must be 2 MB or smaller.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            setError("");
+            onChange({ name: file.name, mime: file.type, dataUrl: String(reader.result || "") });
+        };
+        reader.onerror = () => setError("Could not read that file. Please try again.");
+        reader.readAsDataURL(file);
+    };
+
+    return (
+        <div className="mt-2 rounded-md border border-[#D6DEEB] bg-[#F8FBFF] px-3 py-2.5">
+            <p className="text-xs font-semibold text-[#0B1739]">Prescription <span className="text-red-500">*</span></p>
+            <p className="text-[11px] text-[#5B6887]">Required for medicine shipments. PDF, JPG or PNG, up to 2 MB.</p>
+            {prescription?.name ? (
+                <div className="mt-2 flex items-center justify-between gap-2 text-xs text-[#0B1739]">
+                    <span className="truncate font-medium">{prescription.name}</span>
+                    <button type="button" onClick={() => onChange(null)} className="text-red-500 hover:text-red-600">
+                        Remove
+                    </button>
+                </div>
+            ) : (
+                <input
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png"
+                    onChange={handleFile}
+                    className="mt-2 block w-full text-xs text-[#5B6887] file:mr-3 file:rounded-md file:border-0 file:bg-[#0955AC] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+                />
+            )}
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
     );
 };
@@ -777,6 +840,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                             ...(item.extras || {}),
                             shipmentType: value,
                             otherDescription: value === "other" ? (item.extras?.otherDescription || "") : "",
+                            prescription: value === "medicine" ? (item.extras?.prescription || null) : null,
                         },
                     }
                     : item
@@ -788,6 +852,18 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 shipment: { ...previous.shipment, ...deriveShipmentTypeFields(nextPackages) },
             };
         });
+    };
+
+    const updatePackagePrescription = (index, prescription) => {
+        markUpstreamChange();
+        setData((previous) => ({
+            ...previous,
+            packages: previous.packages.map((item, idx) => (
+                idx === index
+                    ? { ...item, extras: { ...(item.extras || {}), prescription } }
+                    : item
+            )),
+        }));
     };
 
     const updatePackageOtherDescription = (index, text) => {
@@ -920,22 +996,38 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }));
     };
 
+    // Package weight follows the units: it is the sum of the unit weights, so the
+    // client doesn't have to add them up. If no unit has a weight yet, the
+    // manually entered package weight is left alone.
+    const setCommodities = (index, nextCommodities) => {
+        const unitWeight = nextCommodities.reduce((sum, row) => sum + (Number(row?.weightKg) || 0), 0);
+        const nextPackages = data.packages.map((item, idx) => {
+            if (idx !== index) return item;
+            const next = { ...item, extras: { ...(item.extras || {}), commodities: nextCommodities } };
+            if (unitWeight > 0) {
+                next.weightKg = Math.round(unitWeight * 100) / 100;
+            }
+            return next;
+        });
+        markUpstreamChange();
+        setData("packages", nextPackages);
+    };
+
     const updateCommodity = (index, rowIndex, field, value) => {
         const current = data.packages[index]?.extras?.commodities || [];
         // weight, quantity and unit price can never be negative
         if (["weightKg", "quantity", "unitPrice"].includes(field) && value !== "" && !(Number(value) >= 0)) {
             return;
         }
-        updatePackageExtra(
+        setCommodities(
             index,
-            "commodities",
             current.map((row, idx) => (idx === rowIndex ? { ...row, [field]: value } : row))
         );
     };
 
     const removeCommodity = (index, rowIndex) => {
         const current = data.packages[index]?.extras?.commodities || [];
-        updatePackageExtra(index, "commodities", current.filter((_, idx) => idx !== rowIndex));
+        setCommodities(index, current.filter((_, idx) => idx !== rowIndex));
     };
 
     const updateCommodityFields = (index, rowIndex, fields) => {
@@ -3144,6 +3236,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             pkg?.extras?.shipmentType !== "other"
             || Boolean(String(pkg?.extras?.otherDescription || "").trim())
         ));
+        const hasPrescriptionIfMedicine = data.packages.every((pkg) => (
+            pkg?.extras?.shipmentType !== "medicine"
+            || Boolean(pkg?.extras?.prescription?.dataUrl)
+        ));
 
         const packagesHaveNumbers = data.packages.every((pkg) => {
             const quantity = Number(pkg.quantity) || 0;
@@ -3164,6 +3260,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         return hasRouteLocations
             && hasShipmentType
             && hasShipmentDescription
+            && hasPrescriptionIfMedicine
             && packagesHaveNumbers
             && hasEstimatedValueIfRequired
             && (selectedRouteType !== "domestic" || hasPaymentOption);
@@ -3199,6 +3296,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             pkg?.extras?.shipmentType !== "other"
             || Boolean(String(pkg?.extras?.otherDescription || "").trim())
         ));
+        const hasPrescriptionIfMedicine = data.packages.every((pkg) => (
+            pkg?.extras?.shipmentType !== "medicine"
+            || Boolean(pkg?.extras?.prescription?.dataUrl)
+        ));
 
         const packagesHaveNumbers = data.packages.every((pkg) => {
             const quantity = Number(pkg.quantity) || 0;
@@ -3219,6 +3320,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         return hasRouteLocations
             && hasShipmentType
             && hasShipmentDescription
+            && hasPrescriptionIfMedicine
             && packagesHaveNumbers
             && hasEstimatedValueIfRequired;
     }, [
@@ -3864,15 +3966,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                         {packageSectionDescription}
                                     </p>
                                 </div>
-                                {selectedRouteType !== "international" && (
-                                    <button
-                                        type="button"
-                                        onClick={addPackage}
-                                        className="inline-flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white transition hover:border-[#04356d] hover:text-white"
-                                    >
-                                        + Add package
-                                    </button>
-                                )}
                             </div>
 
                             <div className="space-y-5">
@@ -3949,6 +4042,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                             <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
                                                                             <div className="relative">
                                                                                 <input
+ autoComplete="off"
                                                                                     value={locationSearch.senderCity}
                                                                                     onChange={(event) => {
                                                                                         setActiveLocationField(`sender-city-${index}`);
@@ -3991,6 +4085,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                             <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
                                                                             <div className="relative">
                                                                                 <input
+ autoComplete="off"
                                                                                     value={locationSearch.recipientCity}
                                                                                     onChange={(event) => {
                                                                                         setActiveLocationField(`recipient-city-${index}`);
@@ -4043,6 +4138,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup country*</label>
                                                                                     <div className="relative">
                                                                                         <input
+ autoComplete="off"
                                                                                             value={locationSearch.senderCountry}
                                                                                             onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
                                                                                             onFocus={() => setActiveLocationField(`sender-country-${index}`)}
@@ -4123,6 +4219,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup postal code*</label>
                                                                                     <div className="relative">
                                                                                         <input
+ autoComplete="off"
                                                                                             value={data.sender?.address?.postalCode || ""}
                                                                                             onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
                                                                                             disabled={!data.sender?.address?.country}
@@ -4182,6 +4279,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination country*</label>
                                                                                     <div className="relative">
                                                                                         <input
+ autoComplete="off"
                                                                                             value={locationSearch.recipientCountry}
                                                                                             onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
                                                                                             onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
@@ -4262,6 +4360,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination postal code*</label>
                                                                                     <div className="relative">
                                                                                         <input
+ autoComplete="off"
                                                                                             value={data.recipient?.address?.postalCode || ""}
                                                                                             onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
                                                                                             disabled={!data.recipient?.address?.country}
@@ -4417,6 +4516,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 lockedMessage="Type is locked once a package has more than two items."
                 otherDescription={item.extras?.otherDescription || ""}
                 onOtherDescriptionChange={(text) => updatePackageOtherDescription(index, text)}
+                prescription={item.extras?.prescription || null}
+                onPrescriptionChange={(file) => updatePackagePrescription(index, file)}
             />
 
             <div>
@@ -4830,6 +4931,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                 onChange={(value) => updatePackageType(index, value)}
                                 otherDescription={item.extras?.otherDescription || ""}
                                 onOtherDescriptionChange={(text) => updatePackageOtherDescription(index, text)}
+                                prescription={item.extras?.prescription || null}
+                                onPrescriptionChange={(file) => updatePackagePrescription(index, file)}
                             />
                         </div>
                     </div>

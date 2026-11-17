@@ -51,6 +51,11 @@ export const openVendorChat = ({ contextType, contextId, vendorId } = {}) => {
     );
 };
 
+/** Ask the client chat widget to open the thread with the platform support team. */
+export const openSupportChat = ({ contextLabel } = {}) => {
+    window.dispatchEvent(new CustomEvent("chat:open-support", { detail: { contextLabel } }));
+};
+
 // Fixed addresses of the chat routes (routes/web.php). If the page's Ziggy route list
 // does not know a chat route (stale route cache, or frontend deployed before the
 // backend), route() throws - and a throw during render or inside an effect blanks the
@@ -59,6 +64,7 @@ const CHAT_PATHS = {
     "chat.page": "/chat",
     "chat.conversations": "/chat/conversations",
     "chat.conversations.start": "/chat/conversations",
+    "chat.support.start": "/chat/support",
     "chat.unread": "/chat/unread-count",
     "chat.messages": "/chat/conversations/{conversation}/messages",
     "chat.send": "/chat/conversations/{conversation}/messages",

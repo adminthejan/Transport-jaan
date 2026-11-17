@@ -1,14 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { router, usePage } from "@inertiajs/react";
+import { router, usePage, Link } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import VendorLegalAgreement from "@/Components/legal/VendorLegalAgreement";
-import { Wallet as WalletIcon, AlertTriangle } from "lucide-react";
-import car from "../../assets/vehicleCheckout/car.svg";
-import icon1 from "../../assets/vehicleCheckout/icon1.svg";
-import icon2 from "../../assets/vehicleCheckout/icon2.svg";
-import icon3 from "../../assets/vehicleCheckout/icon3.svg";
-import icon4 from "../../assets/vehicleCheckout/icon4.svg";
+import {
+  Wallet as WalletIcon,
+  CreditCard,
+  AlertTriangle,
+  ShieldCheck,
+  CheckCircle2,
+  Calendar,
+  MapPin,
+  Clock,
+  ArrowRight,
+  Lock,
+  ChevronRight,
+  Info,
+  Sparkles,
+} from "lucide-react";
+import placeholderImg from "@/assets/placeholder.jpg";
 
 const n = (v) => {
   const x = Number(v);
@@ -16,43 +26,25 @@ const n = (v) => {
 };
 const money = (v) => n(v).toFixed(2);
 
-// ---- pretty date/time helpers (Asia/Colombo to match backend) ----
-const TZ = "Asia/Colombo";
-const ord = (d) => {
-  const s = ["th", "st", "nd", "rd"];
-  const v = d % 100;
-  return d + (s[(v - 20) % 10] || s[v] || s[0]);
-};
 const fmtDate = (iso) => {
   if (!iso) return "—";
   const d = new Date(iso);
-  const month = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: TZ }).format(d);
-  const day = Number(new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone: TZ }).format(d));
-  const year = new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: TZ }).format(d);
-  return `${month} ${ord(day)}, ${year}`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
+
 const fmtTime = (iso) => {
   if (!iso) return "—";
   const d = new Date(iso);
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: TZ,
-  })
-    .format(d)
-    .replace(":", " : ");
+  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 };
 
 const Payments = () => {
   const { props } = usePage();
 
-  // ✅ local booking state so totals can change after toggles
   const [booking, setBooking] = useState(props?.booking || {});
   const vehicle = booking?.vehicle || {};
   const schedule = booking?.schedule || {};
 
-  // Wallet balance (for the "Pay with Wallet" option)
   const wallet = props?.wallet || { balance: 0, currency: "LKR" };
   const walletBalance = Number(wallet.balance ?? 0);
 
@@ -63,31 +55,36 @@ const Payments = () => {
   const [paymentOption, setPaymentOption] = useState("full");
   const [agreed, setAgreed] = useState(false);
   const [walletError, setWalletError] = useState("");
-
-  // NEW: in-window popup instead of alert for T&C message
   const [showTermsPopup, setShowTermsPopup] = useState(false);
+
+  const payNow = paymentOption === "full" ? total : Math.min(advance, total);
+  const remaining = Math.max(total - payNow, 0);
+  const deposit = n(booking.deposit_amount);
+  const dueToday = payNow + deposit;
+
+  const C = booking?.currency || "LKR";
+  const dayTotal = n(booking?.price_per_day) * n(booking?.rental_days || 1);
 
   const handleConfirmBooking = () => {
     if (!booking?.id) {
-      alert("Missing booking. Please go back.");
+      alert("Missing booking reference. Please return to checkout.");
       return;
     }
 
-    // Wallet balance pre-check (server re-validates with a row lock regardless)
     if (selectedPayment === "Wallet") {
       const payNowAmount = (paymentOption === "full" ? total : Math.min(advance, total)) + n(booking.deposit_amount);
       if (walletBalance < payNowAmount) {
-        setWalletError("Insufficient wallet balance for this payment.");
+        setWalletError("Insufficient wallet balance for this booking.");
         return;
       }
     }
     setWalletError("");
 
     if (!agreed) {
-      // ⬇ show custom modal, no browser alert
       setShowTermsPopup(true);
       return;
     }
+
     router.post(
       route("client.bookings.confirm", booking.id),
       { payment_method: selectedPayment, payment_option: paymentOption },
@@ -108,36 +105,12 @@ const Payments = () => {
     });
   };
 
-  const handlePaymentBooking = () => {
-    router.visit(route("client.bookings.payments", booking?.id), {
-      method: "get",
-      preserveScroll: true,
-    });
-  };
-
-  const handleVehicleList = () => {
-    router.visit("/vehicleList", { method: "get", preserveScroll: true });
-  };
-
-  // amounts based on chosen option
-  const payNow = paymentOption === "full" ? total : Math.min(advance, total);
-  const remaining = Math.max(total - payNow, 0);
-  const deposit = n(booking.deposit_amount);
-  const dueToday = payNow + deposit;
-
-  // small helpers for UI
-  const C = booking?.currency || "$";
-  const dayTotal = n(booking?.price_per_day) * n(booking?.rental_days || 1);
-
-  /* ===================== RIGHT COLUMN: extras + live totals ===================== */
-
-  // 1) Load full extras catalog for this vehicle
+  /* Extras & Add-ons */
   const [catalog, setCatalog] = useState([]);
   const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     if (!vehicle?.id) return;
-    // GET /vehicles/{vehicle}/extras -> from your controller::extras()
     axios
       .get(route("client.vehicles.extras", vehicle.id))
       .then(({ data }) => {
@@ -154,451 +127,453 @@ const Payments = () => {
       .catch(() => setCatalog([]));
   }, [vehicle?.id]);
 
-  // 2) Which extras are currently selected (from DB booking->addons)
   const addons = Array.isArray(booking?.addons) ? booking.addons : [];
-  const selectedNames = useMemo(
-    () =>
-      new Set(
-        addons
-          .map((a) => (a?.name || "").toLowerCase())
-          .filter(Boolean)
-      ),
-    [addons]
-  );
-  const isSelected = (name) => selectedNames.has(String(name).toLowerCase());
+  const selectedNames = useMemo(() => new Set(addons.map((a) => a.name)), [addons]);
 
-  // 3) Toggle -> PATCH /bookings/{id}/addons (updates totals server-side; returns fresh booking)
-  const toggleAddon = async (name) => {
-    if (!booking?.id) return;
-    const lname = String(name).toLowerCase();
-    const next = new Set(selectedNames);
-    next.has(lname) ? next.delete(lname) : next.add(lname);
-
-    const payload = Array.from(next).map((nm) => ({ name: nm, qty: 1 }));
+  const toggleServerAddon = async (name) => {
+    if (!booking?.id || toggling) return;
+    const willAdd = !selectedNames.has(name);
+    const next = willAdd
+      ? [...addons.map((a) => ({ name: a.name, qty: a.qty ?? 1 })), { name, qty: 1 }]
+      : addons.filter((a) => a.name !== name).map((a) => ({ name: a.name, qty: a.qty ?? 1 }));
 
     try {
       setToggling(true);
       const { data } = await axios.patch(route("client.bookings.updateAddons", booking.id), {
-        addons: payload,
+        addons: next,
       });
-      if (data?.booking) setBooking(data.booking); // refresh everything on the card
+      if (data?.booking) setBooking(data.booking);
+    } catch (e) {
+      console.error(e);
     } finally {
       setToggling(false);
     }
   };
 
-  /* ============================================================================ */
+  const STEPS = [
+    { num: 1, label: "Select Vehicle", done: true, href: "/vehicleList" },
+    { num: 2, label: "Renter Info", done: true, onClick: handleBackBooking },
+    { num: 3, label: "Payment Method", current: true },
+    { num: 4, label: "Confirmation" },
+  ];
+
+  const vehicleImg = vehicle?.primary_image_url || vehicle?.primaryImage?.url || placeholderImg;
 
   return (
-    <div>
-      <div className="flex flex-col xl:flex-row justify-center items-center xl:items-start px-10 py-10 gap-10">
-        {/* ================= LEFT SIDE (UNCHANGED LAYOUT) ================= */}
-        <div className="flex flex-col gap-10">
-          {/* progress header */}
-          <div className="flex flex-row items-start justify-center pb-10">
-            <div className="md:flex flex-col hidden justify-center items-center gap-3 cursor-pointer" onClick={handleVehicleList}>
-              <div className="w-[18px] h-[18px] rounded-full bg-[#1565c0]" style={{ boxShadow: "0 0 10px 8px #1565c088" }} />
-              <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Select Car</h1>
-            </div>
-            <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
-            <div className="md:flex flex-col hidden justify-center items-center gap-3 cursor-pointer" onClick={handleBackBooking}>
-              <div className="w-[18px] h-[18px] rounded-full bg-[#1565c0]" style={{ boxShadow: "0 0 10px 8px #1565c088" }} />
-              <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Booking Info</h1>
-            </div>
-            <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
-            <div className="flex flex-col justify-center items-center gap-3 cursor-pointer" onClick={handlePaymentBooking}>
-              <div className="w-[18px] h-[18px] rounded-full bg-[#1565c0]" style={{ boxShadow: "0 0 10px 8px #1565c088" }} />
-              <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Payments</h1>
-            </div>
-            <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
-            <div className="md:flex flex-col justify-center hidden items-center cursor-pointer" onClick={handleConfirmBooking}>
-              <div className="w-[22px] h-[22px] rounded-full border-[2px] border-[#1565c0]" />
-              <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Booking Confirmation</h1>
-            </div>
-          </div>
-
-          {/* Payment Methods */}
-          <div
-            className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-auto bg-[#FFFFFF] px-10 py-10"
-            style={{ borderLeftWidth: "0.2px", borderTopWidth: "0.2px", boxShadow: "4px 4px 4px #0000001A" }}
-          >
-            <h1 className="text-[20px] font-[700]">Payment Methods</h1>
-
-            <div className="flex flex-row flex-wrap items-center gap-10 text-[10px] font-[600] text-[#00000080] py-2">
-              {/* Wallet only ever holds LKR — hide it for bookings priced in any other currency */}
-              {["Card", ...(String(booking?.currency || "LKR").toUpperCase() === "LKR" ? ["Wallet"] : [])].map((m) => (
-                <label key={m} className="flex flex-row justify-center items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value={m}
-                    checked={selectedPayment === m}
-                    onChange={() => {
-                      setSelectedPayment(m);
-                      setWalletError("");
-                    }}
-                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:outline-none focus:ring-transparent transition-colors cursor-pointer"
-                  />
-                  <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600] flex items-center gap-1.5">
-                    {m === "Wallet" && <WalletIcon size={14} className="text-[#0955AC]" />}
-                    {m}
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {selectedPayment === "Wallet" && (
-              <div className="mt-4 rounded-[10px] bg-[#F1F5F9] px-5 py-4 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-[600] text-[#00000099]">Wallet Balance</span>
-                  <span className="text-[16px] font-[700] text-[#0955AC]">
-                    {wallet.currency} {walletBalance.toFixed(2)}
-                  </span>
-                </div>
-                {walletError && (
-                  <div className="flex items-center gap-2 text-red-600 text-[12px] font-[600]">
-                    <AlertTriangle size={14} />
-                    <span>{walletError}</span>
-                    <a
-                      href={route("client.wallet.dashboard")}
-                      className="ml-1 underline text-[#0955AC]"
-                    >
-                      Top up now
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Payment option & computed amounts */}
-          <div
-            className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-[316px] bg-[#FFFFFF] px-10 py-10"
-            style={{ borderLeftWidth: "0.2px", borderTopWidth: "0.2px", boxShadow: "4px 4px 4px #0000001A" }}
-          >
-            <h1 className="text-[20px] font-[700]">Select Payment Option</h1>
-
-            <div className="flex flex-col gap-5 py-10">
-              <div className="flex flex-row items-start gap-4">
-                <input
-                  type="radio"
-                  name="paymentOption"
-                  checked={paymentOption === "full"}
-                  onChange={() => setPaymentOption("full")}
-                  className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent focus:outline-none transition-colors mt-[1.5px] cursor-pointer"
-                />
-                <div className="poppins text-[12px] flex flex-col justify-center items-start">
-                  <h1 className="font-[600]">Pay full amount now</h1>
-                  <h1 className="font-[500]">You will complete the entire payment before tour begins.</h1>
-                </div>
-              </div>
-              <div className="flex flex-row items-start gap-4">
-                <input
-                  type="radio"
-                  name="paymentOption"
-                  checked={paymentOption === "advance"}
-                  onChange={() => setPaymentOption("advance")}
-                  className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent focus:outline-none transition-colors mt-[1.5px] cursor-pointer"
-                />
-                <div className="poppins text-[12px] flex flex-col justify-center items-start">
-                  <h1 className="font-[600]">Pay advance now. Pay the balance after the tour.</h1>
-                </div>
-              </div>
-
-              <div className="w-full md:h-[74px] bg-[#E2F6DC] rounded-[7px] text-[12px] px-5 py-5">
-                <div className="flex flex-col md:flex-row md:gap-5">
-                  <h1 className="font-[500] text-[#000000B2] w-[150px]">Advance to pay now:</h1>
-                  <h1 className="font-[600]">
-                    {C}
-                    {money(payNow)}
-                  </h1>
-                </div>
-                {deposit > 0 && (
-                  <div className="flex flex-col md:flex-row md:gap-5">
-                    <h1 className="font-[500] text-[#000000B2] w-[150px]">Refundable deposit:</h1>
-                    <h1 className="font-[600]">
-                      {C}
-                      {money(deposit)} (held until return)
-                    </h1>
-                  </div>
-                )}
-                <div className="flex flex-col md:flex-row md:gap-5">
-                  <h1 className="font-[500] text-[#000000B2] w-[150px]">Due today:</h1>
-                  <h1 className="font-[700]">
-                    {C}
-                    {money(dueToday)}
-                  </h1>
-                </div>
-                <div className="flex flex-col md:flex-row md:gap-5">
-                  <h1 className="font-[500] text-[#000000B2] w-[150px]">Remaining Balance:</h1>
-                  <h1 className="font-[600]">
-                    {C}
-                    {money(remaining)} (due date —)
-                  </h1>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Terms + actions */}
-          <div
-            className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:min-h-[72px] bg-[#D8E4F2] px-5 py-5"
-            style={{ borderLeftWidth: "0.2px", borderTopWidth: "0.2px", boxShadow: "4px 4px 4px #0000001A" }}
-          >
-            <VendorLegalAgreement scope={{ vehicle_id: booking?.vehicle_id }} checked={agreed} onChange={setAgreed} />
-          </div>
-
-          <div>
-            <div
-              onClick={handleBackBooking}
-              className="rounded-[5px] flex justify-center items-center text-[#0955AC] font-[700] text-[12px] lg:w-[874px] h-[50px] border-[2px] border-[#0955AC] px-5 cursor-pointer transition-colors"
-            >
-              Back
-            </div>
-
-            <div
-              onClick={handleConfirmBooking}
-              className="rounded-[5px] flex mt-5 justify-center items-center text-[#FFFFFF] font-[700] text-[12px] lg:w-[874px] h-[50px] bg-[#0955AC] px-5 cursor-pointer hover:bg-[#074a8f] transition-colors"
-            >
-              CONFIRM BOOKING
-            </div>
-          </div>
-        </div>
-
-        {/* ================= RIGHT COLUMN (UPDATED) ================= */}
-        <div className="flex flex-col gap-10">
-          {/* Vehicle + schedule + editable extras */}
-          <div className="md:w-[459px] h-auto bg-[#F4F3F3] rounded-[10px] px-5" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-            <div className="flex flex-col md:flex-row gap-3 items-center border-b-[1px] pb-5 border-[#00000026]">
-              <img src={car} alt="" />
-              <div className="flex flex-col gap-3">
-                <h1 className="figtree text-[20px] font-[700] ">
-                  {vehicle?.manufacturer || ""} {vehicle?.model || ""}{" "}
-                  {vehicle?.manufacture_year ? `(${vehicle.manufacture_year})` : ""}
-                </h1>
-                <div className="poppins flex flex-row gap-5 text-[9px] text-[#000000B2] font-[500]">
-                  <div className="flex flex-col gap-2 justify-center items-center">
-                    <img src={icon1} className="size-[17px]" alt="" />
-                    <h1>{vehicle?.mileage_km ?? "—"}</h1>
-                  </div>
-                  <div className="flex flex-col gap-2 justify-center items-center">
-                    <img src={icon2} className="size-[17px]" alt="" />
-                    <h1>{vehicle?.landSpec?.transmission_type ?? vehicle?.transmission_type ?? "—"}</h1>
-                  </div>
-                  <div className="flex flex-col gap-2 justify-center items-center">
-                    <img src={icon3} className="size-[17px]" alt="" />
-                    <h1>{vehicle?.passenger_capacity ? `${vehicle.passenger_capacity} Person` : "—"}</h1>
-                  </div>
-                  <div className="flex flex-col gap-2 justify-center items-center">
-                    <img src={icon4} className="size-[17px]" alt="" />
-                    <h1>{vehicle?.landSpec?.fuel_type ?? vehicle?.fuel_type ?? "—"}</h1>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Pick & drop */}
-            <div className="py-10 px-20">
-              <div className="flex flex-row gap-5 justify-center items-start">
-                <div className="flex flex-col items-center mt-2">
-                  <div className="size-[17px] bg-[#0955AC] rounded-full"></div>
-                  <div className="h-[77px] w-[1.5px] bg-[#0955AC]"></div>
-                  <div className="size-[17px] bg-[#0955AC] rounded-full"></div>
-                </div>
-                <div className="figtree flex flex-col gap-10 text-[14px] font-[500] text-[#00000080]">
-                  <div>
-                    <h1 className="text-[16px] font-[700] text-[#000000]">Pick up: {schedule?.pickup_location || "—"}</h1>
-                    <h1>Pick-up Date : {fmtDate(schedule?.pickup_at)}</h1>
-                    <h1>Pick-up Time : {fmtTime(schedule?.pickup_at)}</h1>
-                  </div>
-                  <div>
-                    <h1 className="text-[16px] font-[700] text-[#000000]">Drop off: {schedule?.dropoff_location || "—"}</h1>
-                    <h1>Drop-off Date : {fmtDate(schedule?.dropoff_at)}</h1>
-                    <h1>Drop-off Time : {fmtTime(schedule?.dropoff_at)}</h1>
-                  </div>
-                </div>
-              </div>
-
-              {/* Selected Extras (editable; mirrors your checkout UX) */}
-              <div className="mt-6">
-                <h2 className="text-[14px] font-[700] text-[#0955AC]">
-                  Selected Extras {toggling ? "(updating…)" : ""}
-                </h2>
-                <div className="mt-2 space-y-2">
-                  {catalog.length === 0 && <div className="text-[12px] text-[#00000080]">No extras available.</div>}
-                  {catalog.map((ex) => (
-                    <label key={ex.name} className="flex items-center justify-between text-[12px]">
-                      <span className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          className="size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
-                          checked={isSelected(ex.name)}
-                          onChange={() => toggleAddon(ex.name)}
-                          disabled={toggling}
-                        />
-                        <span>• {ex.name}</span>
-                      </span>
-                      <span className="text-[#00000080]">
-                        {C}
-                        {money(ex.price)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Details (driven by LIVE booking) */}
-          <div className="order-first poppins md:w-[459px] h-auto bg-[#F4F3F3] rounded-[10px] px-10 py-10" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-            <h1 className="font-[600] text-[20px]">Payment Details</h1>
-
-            <div className="md:px-10 py-5">
-              <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
-                <h1 className="font-[600] mb-5 text-[#000000D9]">Pricing Breakdown</h1>
-                <div className="w-full h-[1px] bg-[#CDD0D4]" />
-
-                {/* Rental line */}
-                <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-                  <div>
-                    <h1 className="text-[#000000CC]">Rental Price</h1>
-                    <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                      <h1>
-                        {C}
-                        {money(booking?.price_per_day)}/day
-                      </h1>
-                      <h1 className="text-[#0955AC]">(x{booking?.rental_days || 1} days)</h1>
-                    </div>
-                  </div>
-                  <div className="text-[#000000CC]">
-                    {C}
-                    {money(dayTotal)}
-                  </div>
-                </div>
-
-                {/* Addons total line */}
-                <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
-                  <div>
-                    <h1 className="text-[#000000CC]">Addons</h1>
-                    <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                      <h1>Selected extras</h1>
-                    </div>
-                  </div>
-                  <div className="text-[#000000CC]">
-                    +{C}
-                    {money(booking?.addons_total)}
-                  </div>
-                </div>
-
-                {/* Itemized Extras */}
-                {addons.length > 0 && (
-                  <>
-                    <h1 className="font-[600] mt-5 text-[#000000D9]">Add Extras</h1>
-                    <div className="flex flex-col justify-center text-[12px] font-[500] mt-5">
-                      {addons.map((a, i) => (
-                        <div key={i} className="flex flex-col md:flex-row justify-between w-full px-5 py-1">
-                          <div className="flex flex-row md:justify-center items-center gap-4">
-                            <h1>
-                              {a.name}
-                              {n(a.qty) > 1 ? ` × ${a.qty}` : ""}
-                            </h1>
-                          </div>
-                          <h1>
-                            {C}
-                            {money(a.line_total)}
-                          </h1>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="w-full h-[1px] bg-[#CDD0D4] mt-5" />
-                  </>
-                )}
-
-                {/* Deposit (negative) */}
-                {n(booking?.deposit_amount) > 0 && (
-                  <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-                    <div>
-                      <h1 className="text-[#000000CC]">Refundable deposit</h1>
-                      <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                        <h1>Refunded after return</h1>
-                      </div>
-                    </div>
-                    <div className="text-[#000000CC]">
-                      -{C}
-                      {money(booking?.deposit_amount)}
-                    </div>
-                  </div>
-                )}
-
-                <div className="w-full h-[1px] bg-[#CDD0D4]" />
-
-                {/* Advance (shows what user pays now depending on radio) */}
-                {n(advance) > 0 && (
-                  <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-                    <div>
-                      <h1 className="text-[#000000CC]">Advance Payment</h1>
-                      <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                        <h1>First payment</h1>
-                        <h1 className="text-[#0955AC]">(option based)</h1>
-                      </div>
-                    </div>
-                    <div className="text-[#000000CC] text-[12px] font-[500]">
-                      {C}
-                      {money(paymentOption === "full" ? total : Math.min(advance, total))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Grand total */}
-                <div className="flex flex-col md:flex-row justify-between w-full px-5 pb-5 font-[500]">
-                  <div>
-                    <h1 className="text-[#000000CC]">Total Price Due</h1>
-                    <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                      <h1>After deposit & addons</h1>
-                    </div>
-                  </div>
-                  <div className="text-[#000000CC] text-[16px] font-[700]">
-                    {C}
-                    {money(total)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* /Payment Details */}
-        </div>
-      </div>
-
-      {/* ========= In-window popup for T&C agreement ========= */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      {/* Terms Popup Modal */}
       {showTermsPopup && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="w-[90%] max-w-md rounded-[10px] bg-white shadow-2xl"
-          >
-            <div className="px-6 py-5">
-              <h3 className="text-[16px] font-[700] text-[#111827] mb-2">
-                Action required
-              </h3>
-              <p className="text-[14px] text-[#374151]">
-                Please agree to the <span className="text-[#0955AC] font-semibold">Terms &amp; Conditions</span> and{" "}
-                <span className="text-[#0955AC] font-semibold">Privacy Policy</span> before confirming your booking.
-              </p>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
             </div>
-            <div className="flex justify-end gap-3 px-6 pb-5">
+            <h3 className="text-lg font-bold text-slate-900">Agreement Confirmation</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Please review and agree to the Jaan Transport Rental Terms & Cancellation Policy before finalizing your booking.
+            </p>
+            <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setShowTermsPopup(false)}
-                className="inline-flex items-center justify-center h-[40px] px-5 rounded-[6px] bg-[#0955AC] text-white text-[12px] font-[700] hover:opacity-90"
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
               >
-                OK
+                Go Back
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAgreed(true);
+                  setShowTermsPopup(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-600/20"
+              >
+                I Agree & Accept
               </button>
             </div>
           </div>
         </div>
       )}
-      {/* ========= /popup ========= */}
+
+      {/* Step Indicator */}
+      <div className="mb-10">
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
+          {STEPS.map((s, idx) => (
+            <React.Fragment key={s.num}>
+              <div
+                className={`flex flex-col items-center text-center ${s.onClick ? "cursor-pointer" : ""}`}
+                onClick={s.onClick}
+              >
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+                    s.done
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                      : s.current
+                      ? "bg-blue-600 text-white ring-4 ring-blue-600/20 shadow-lg shadow-blue-600/30"
+                      : "bg-slate-100 text-slate-400 border border-slate-200"
+                  }`}
+                >
+                  {s.done ? <CheckCircle2 className="w-5 h-5 stroke-[2.5]" /> : s.num}
+                </div>
+                <span
+                  className={`text-xs font-bold mt-2 ${
+                    s.current ? "text-blue-600" : s.done ? "text-slate-800" : "text-slate-400"
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </div>
+              {idx < STEPS.length - 1 && (
+                <div
+                  className={`flex-1 h-0.5 mx-2 sm:mx-4 mt-[-20px] transition-colors ${
+                    s.done ? "bg-emerald-500" : "bg-slate-200"
+                  }`}
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* Main 2-Column Payment Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+        {/* Left Column: Payment Configuration */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+          {/* Payment Method Selector */}
+          <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-[0_4px_25px_-5px_rgba(15,23,42,0.06)] p-6 sm:p-8 space-y-6">
+            <div>
+              <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">Select Payment Method</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Choose how you want to settle this rental</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Credit / Debit Card (PayHere) */}
+              <label
+                className={`relative flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                  selectedPayment === "Card"
+                    ? "border-blue-600 bg-blue-50/30 shadow-sm"
+                    : "border-slate-200 hover:border-slate-300 bg-white"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="Card"
+                  checked={selectedPayment === "Card"}
+                  onChange={() => {
+                    setSelectedPayment("Card");
+                    setWalletError("");
+                  }}
+                  className="sr-only"
+                />
+                <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-600/20">
+                  <CreditCard className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-sm font-bold text-slate-900 block">Credit / Debit Card</span>
+                  <span className="text-[11px] text-slate-500">Visa, Mastercard, AMEX via PayHere</span>
+                </div>
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    selectedPayment === "Card" ? "border-blue-600 bg-blue-600" : "border-slate-300"
+                  }`}
+                >
+                  {selectedPayment === "Card" && <div className="w-2 h-2 rounded-full bg-white" />}
+                </div>
+              </label>
+
+              {/* Jaan Wallet */}
+              {String(booking?.currency || "LKR").toUpperCase() === "LKR" && (
+                <label
+                  className={`relative flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    selectedPayment === "Wallet"
+                      ? "border-blue-600 bg-blue-50/30 shadow-sm"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="Wallet"
+                    checked={selectedPayment === "Wallet"}
+                    onChange={() => {
+                      setSelectedPayment("Wallet");
+                      setWalletError("");
+                    }}
+                    className="sr-only"
+                  />
+                  <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20">
+                    <WalletIcon className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-bold text-slate-900 block">Jaan Wallet</span>
+                    <span className="text-[11px] text-slate-500 font-semibold text-emerald-700">
+                      Balance: {wallet.currency} {walletBalance.toFixed(2)}
+                    </span>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      selectedPayment === "Wallet" ? "border-blue-600 bg-blue-600" : "border-slate-300"
+                    }`}
+                  >
+                    {selectedPayment === "Wallet" && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </div>
+                </label>
+              )}
+            </div>
+
+            {/* Wallet Balance Warning */}
+            {selectedPayment === "Wallet" && walletError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-semibold flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{walletError}</span>
+                </div>
+                <a
+                  href={route("client.wallet.dashboard")}
+                  className="px-3 py-1 bg-rose-600 text-white rounded-lg text-[11px] hover:bg-rose-700 font-bold"
+                >
+                  Top Up Wallet
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Payment Split Options */}
+          <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-[0_4px_25px_-5px_rgba(15,23,42,0.06)] p-6 sm:p-8 space-y-6">
+            <div>
+              <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">Payment Schedule</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Choose to pay in full today or secure with an advance</p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Pay Full */}
+              <label
+                className={`flex items-start justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                  paymentOption === "full"
+                    ? "border-blue-600 bg-blue-50/30"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="radio"
+                    name="paymentOption"
+                    checked={paymentOption === "full"}
+                    onChange={() => setPaymentOption("full")}
+                    className="mt-1 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="text-sm font-bold text-slate-900 block">Pay Full Rental Now</span>
+                    <span className="text-xs text-slate-500">
+                      Zero balance due on pickup day. Fastest key handover experience.
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-base font-black text-slate-900">
+                    {C} {money(total + deposit)}
+                  </span>
+                </div>
+              </label>
+
+              {/* Pay Advance */}
+              {advance > 0 && advance < total && (
+                <label
+                  className={`flex items-start justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    paymentOption === "advance"
+                      ? "border-blue-600 bg-blue-50/30"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentOption"
+                      checked={paymentOption === "advance"}
+                      onChange={() => setPaymentOption("advance")}
+                      className="mt-1 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="text-sm font-bold text-slate-900 block">Pay Advance to Reserve</span>
+                      <span className="text-xs text-slate-500">
+                        Pay advance now ({C} {money(advance)}). Remaining {C} {money(remaining)} paid at pickup.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-base font-black text-blue-600">
+                      {C} {money(advance + deposit)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">Due today</span>
+                  </div>
+                </label>
+              )}
+            </div>
+
+            {/* Terms & Conditions Checkbox */}
+            <div className="pt-4 border-t border-slate-100">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                />
+                <span className="text-xs text-slate-600 leading-relaxed font-medium">
+                  I have read and agree to the{" "}
+                  <span className="text-blue-600 font-bold underline">Standard Rental Agreement</span>, Cancellation Policy, and Driver Requirements.
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Action CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={handleBackBooking}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+            >
+              ← Back to Renter Information
+            </button>
+
+            <button
+              type="button"
+              onClick={handleConfirmBooking}
+              className="w-full sm:w-auto px-8 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-extrabold text-sm shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Lock className="w-4 h-4 stroke-[2.5]" />
+              <span>Confirm & Pay {C} {money(dueToday)}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Right Column: Sticky Summary */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-8">
+          <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-[0_10px_35px_-5px_rgba(15,23,42,0.08)] p-5 sm:p-6 space-y-5">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-3">
+              Order Breakdown
+            </h3>
+
+            {/* Vehicle Card */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-20 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                <img src={vehicleImg} alt="Vehicle" className="w-full h-full object-cover" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">
+                  {vehicle?.manufacturer}
+                </span>
+                <h4 className="text-sm font-bold text-slate-900 truncate">
+                  {vehicle?.manufacturer} {vehicle?.model}
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {booking.rental_days} {booking.rental_days === 1 ? "day" : "days"} rental
+                </p>
+              </div>
+            </div>
+
+            {/* Schedule details */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-3 text-xs">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Pick-up</span>
+                <p className="font-bold text-slate-800">{schedule?.pickup_location || "Standard Service Hub"}</p>
+                <p className="text-slate-500 text-[11px]">{fmtDate(schedule?.pickup_at)} at {fmtTime(schedule?.pickup_at)}</p>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Drop-off</span>
+                <p className="font-bold text-slate-800">{schedule?.dropoff_location || "Standard Service Hub"}</p>
+                <p className="text-slate-500 text-[11px]">{fmtDate(schedule?.dropoff_at)} at {fmtTime(schedule?.dropoff_at)}</p>
+              </div>
+            </div>
+
+            {/* Live Add-ons list if catalog exists */}
+            {catalog.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Trip Extras
+                </span>
+                <div className="divide-y divide-slate-100 text-xs">
+                  {catalog.map((c) => {
+                    const active = selectedNames.has(c.name);
+                    return (
+                      <label key={c.name} className="flex items-center justify-between py-2 cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={active}
+                            disabled={toggling}
+                            onChange={() => toggleServerAddon(c.name)}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                          />
+                          <span className="text-slate-700 font-medium">{c.name}</span>
+                        </div>
+                        <span className="font-bold text-slate-800">
+                          +{C} {money(c.price)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Pricing Ledger */}
+            <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-600">
+                <span>Vehicle Rental ({booking.rental_days} days)</span>
+                <span className="font-semibold text-slate-800">{C} {money(dayTotal)}</span>
+              </div>
+
+              {booking.needs_driver && Number(booking.driver_fee_per_day) > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <span>Chauffeur Service</span>
+                  <span className="font-semibold text-slate-800">
+                    {C} {money(Number(booking.driver_fee_per_day) * Number(booking.rental_days))}
+                  </span>
+                </div>
+              )}
+
+              {n(booking.addons_total) > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <span>Included Extras</span>
+                  <span className="font-semibold text-slate-800">{C} {money(booking.addons_total)}</span>
+                </div>
+              )}
+
+              {deposit > 0 && (
+                <div className="flex justify-between text-slate-500">
+                  <span>Refundable Security Deposit</span>
+                  <span className="font-semibold">{C} {money(deposit)}</span>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-slate-200 flex justify-between items-baseline font-bold text-sm">
+                <span className="text-slate-900">Total Booking Value</span>
+                <span className="text-base font-black text-slate-900">{C} {money(total + deposit)}</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 flex justify-between items-baseline font-bold text-xs">
+                <span className="text-blue-900">Amount Charged Today</span>
+                <span className="text-base font-black text-blue-600">{C} {money(dueToday)}</span>
+              </div>
+
+              {paymentOption === "advance" && remaining > 0 && (
+                <div className="flex justify-between text-[11px] text-slate-400 pt-1">
+                  <span>Due upon vehicle delivery</span>
+                  <span className="font-bold text-slate-600">{C} {money(remaining)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-[11px] font-semibold text-slate-500">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Verified Payment with Bank-Grade Security</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

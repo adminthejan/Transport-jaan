@@ -247,17 +247,17 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
   };
 
   return (
-    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-3">
+    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-1.5">
       {/* Search Form */}
       <form onSubmit={handleSearch}>
-        <div className="figtree bg-white p-4 sm:p-5 lg:p-6 rounded-[20px] border border-black/5 shadow-[0_12px_32px_rgba(9,85,172,0.10)] w-full text-[#286BB6] text-[13px] font-[400]">
+        <div className="figtree bg-white p-3 sm:p-3.5 rounded-[16px] border border-black/5 shadow-[0_12px_32px_rgba(9,85,172,0.10)] w-full text-[#286BB6] text-[13px] font-[400]">
           {/* Combined Inputs and Button */}
-          <div className="flex flex-col sm:flex-row items-end gap-3.5 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-end gap-2.5">
             {/* Input Fields Container */}
-            <div className="flex flex-col sm:flex-row flex-grow gap-3.5 sm:gap-4 w-full">
+            <div className="flex flex-col sm:flex-row flex-grow gap-2.5 w-full">
               {/* Warehouse Location */}
               <div className="w-full sm:flex-1 relative" ref={locationRef}>
-                <label htmlFor="warehouseLocation" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
+                <label htmlFor="warehouseLocation" className="block mb-1 text-[#0F0F0F] font-[600] text-[12px]">
                   Warehouse Location
                 </label>
                 <div className="flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors bg-white relative">
@@ -273,7 +273,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                     }}
                     onFocus={() => setLocationOpen(true)}
                     autoComplete="off"
-                    className="appearance-none w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px] pr-[78px]"
+                    className="appearance-none w-full py-[8px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px] pr-[78px]"
                   />
                   <button
                     type="button"
@@ -322,7 +322,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
 
               {/* Rate Type (price by sq ft, CBM or a flat rate) */}
               <div className="w-full sm:flex-[0.8]">
-                <label htmlFor="rateType" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
+                <label htmlFor="rateType" className="block mb-1 text-[#0F0F0F] font-[600] text-[12px]">
                   Rate Type
                 </label>
                 <div className="relative flex items-center border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors bg-white">
@@ -331,7 +331,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                     id="rateType"
                     value={rateType}
                     onChange={(e) => setRateType(e.target.value)}
-                    className="appearance-none w-full py-[12px] sm:py-[13px] pl-2 pr-6 leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent text-[13px] text-[#0F0F0F] cursor-pointer"
+                    className="appearance-none w-full py-[8px] pl-2 pr-6 leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent text-[13px] text-[#0F0F0F] cursor-pointer"
                   >
                     {RATE_TYPES.map((rate) => (
                       <option key={rate.value} value={rate.value}>
@@ -345,7 +345,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
 
               {/* Required Space */}
               <div className="w-full sm:flex-1">
-                <label htmlFor="requiredSpace" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
+                <label htmlFor="requiredSpace" className="block mb-1 text-[#0F0F0F] font-[600] text-[12px]">
                   Required Space{activeRateType.unit ? ` (${activeRateType.unit})` : ""}
                 </label>
                 <div className={`flex items-center gap-2 border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors relative ${isFlatRate ? "bg-[#F4F7FB]" : "bg-white"}`}>
@@ -358,18 +358,18 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                     placeholder={activeRateType.placeholder}
                     value={isFlatRate ? "" : formData.requiredSpace}
                     onChange={handleInputChange}
-                    className="appearance-none w-full py-[12px] sm:py-[13px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px] disabled:cursor-not-allowed"
+                    className="appearance-none w-full py-[8px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px] disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
 
               {/* Storage Dates: opens popover */}
               <div className="w-full sm:flex-[1.2] relative" ref={popoverRef}>
-                <label className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">Storage Dates</label>
+                <label className="block mb-1 text-[#0F0F0F] font-[600] text-[12px]">Storage Dates</label>
                 <button
                   type="button"
                   onClick={() => setDatePopoverOpen((v) => !v)}
-                  className={`w-full flex items-center justify-between border-[1px] rounded-[10px] px-3 py-[12px] sm:py-[13px] leading-tight text-left transition-colors bg-white cursor-pointer ${
+                  className={`w-full flex items-center justify-between border-[1px] rounded-[10px] px-3 py-[8px] leading-tight text-left transition-colors bg-white cursor-pointer ${
                     datePopoverOpen ? "border-[#0955AC]" : "border-[#0000001A]"
                   }`}
                 >
@@ -397,7 +397,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
             {/* Find a Warehouse Button */}
             <button
               type="submit"
-              className="bg-[#0955AC] text-white font-bold h-[52px] w-full sm:w-[52px] flex items-center justify-center rounded-[10px] focus:outline-none cursor-pointer mt-2 sm:mt-0 hover:bg-[#074494] transition-colors shadow-[0_8px_18px_rgba(9,85,172,0.25)] shrink-0"
+              className="bg-[#0955AC] text-white font-bold h-[40px] w-full sm:w-[40px] flex items-center justify-center rounded-[10px] focus:outline-none cursor-pointer mt-2 sm:mt-0 hover:bg-[#074494] transition-colors shadow-[0_8px_18px_rgba(9,85,172,0.25)] shrink-0"
               title="Search Warehouses"
               aria-label="Search Warehouses"
             >
@@ -406,10 +406,10 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
           </div>
 
           {/* More filters: storage temperature, required services and budget range */}
-          <div className="mt-4 pt-4 border-t border-[#0000000F] grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+          <div className="mt-2.5 pt-2.5 border-t border-[#0000000F] grid grid-cols-1 md:grid-cols-3 gap-2.5">
             {/* Storage Temperature */}
             <div>
-              <label htmlFor="storageTemperature" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
+              <label htmlFor="storageTemperature" className="block mb-1 text-[#0F0F0F] font-[600] text-[12px]">
                 Storage Temperature
               </label>
               <div className="relative flex items-center border-[1px] border-[#0000001A] rounded-[10px] px-3 focus-within:border-[#0955AC] transition-colors bg-white">
@@ -418,7 +418,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                   id="storageTemperature"
                   value={temperatureMode}
                   onChange={(e) => handleTemperatureSelect(e.target.value)}
-                  className="appearance-none w-full py-[12px] sm:py-[13px] pl-2 pr-6 leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent text-[13px] text-[#0F0F0F] cursor-pointer"
+                  className="appearance-none w-full py-[8px] pl-2 pr-6 leading-tight border-0 focus:outline-none focus:ring-0 bg-transparent text-[13px] text-[#0F0F0F] cursor-pointer"
                 >
                   {TEMPERATURE_PRESETS.map((preset) => (
                     <option key={preset.value || "any"} value={preset.value}>
@@ -439,7 +439,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                     value={temperatureValue}
                     onChange={(e) => onFormChange({ ...formData, temperature: e.target.value })}
                     placeholder="Required temperature"
-                    className="appearance-none w-full py-[10px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
+                    className="appearance-none w-full py-[7px] leading-tight border-0 focus:outline-none focus:ring-0 placeholder:text-[#286BB6]/70 bg-transparent text-[13px]"
                   />
                   <span className="text-[12px] text-[#64748B] shrink-0">&deg;C</span>
                 </div>
@@ -448,11 +448,11 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
 
             {/* Required Services (multi-select dropdown) */}
             <div className="relative" ref={servicesRef}>
-              <label className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">Required Services</label>
+              <label className="block mb-1 text-[#0F0F0F] font-[600] text-[12px]">Required Services</label>
               <button
                 type="button"
                 onClick={() => setServicesOpen((v) => !v)}
-                className={`w-full flex items-center justify-between gap-2 border-[1px] rounded-[10px] px-3 py-[12px] sm:py-[13px] leading-tight text-left transition-colors bg-white cursor-pointer ${
+                className={`w-full flex items-center justify-between gap-2 border-[1px] rounded-[10px] px-3 py-[8px] leading-tight text-left transition-colors bg-white cursor-pointer ${
                   servicesOpen ? "border-[#0955AC]" : "border-[#0000001A]"
                 }`}
               >
@@ -484,7 +484,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
 
             {/* Budget Range */}
             <div>
-              <label htmlFor="budgetMin" className="block mb-1.5 text-[#0F0F0F] font-[600] text-[12px]">
+              <label htmlFor="budgetMin" className="block mb-1 text-[#0F0F0F] font-[600] text-[12px]">
                 Budget Range <span className="font-[400] text-[#64748B]">(LKR / month)</span>
               </label>
               <div className="flex items-center gap-2">
@@ -495,7 +495,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                   placeholder="Min"
                   value={formData.budgetMin ?? ""}
                   onChange={handleInputChange}
-                  className="w-full border-[1px] border-[#0000001A] rounded-[10px] px-3 py-[12px] sm:py-[13px] leading-tight focus:outline-none focus:border-[#0955AC] placeholder:text-[#286BB6]/70 bg-white text-[13px] text-[#0F0F0F]"
+                  className="w-full border-[1px] border-[#0000001A] rounded-[10px] px-3 py-[8px] leading-tight focus:outline-none focus:border-[#0955AC] placeholder:text-[#286BB6]/70 bg-white text-[13px] text-[#0F0F0F]"
                 />
                 <span className="text-[#64748B]">-</span>
                 <input
@@ -505,7 +505,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                   placeholder="Max"
                   value={formData.budgetMax ?? ""}
                   onChange={handleInputChange}
-                  className="w-full border-[1px] border-[#0000001A] rounded-[10px] px-3 py-[12px] sm:py-[13px] leading-tight focus:outline-none focus:border-[#0955AC] placeholder:text-[#286BB6]/70 bg-white text-[13px] text-[#0F0F0F]"
+                  className="w-full border-[1px] border-[#0000001A] rounded-[10px] px-3 py-[8px] leading-tight focus:outline-none focus:border-[#0955AC] placeholder:text-[#286BB6]/70 bg-white text-[13px] text-[#0F0F0F]"
                 />
               </div>
             </div>

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ChatConversation extends Model
 {
     protected $fillable = [
+        'type',
         'client_id',
         'vendor_id',
         'context_type',

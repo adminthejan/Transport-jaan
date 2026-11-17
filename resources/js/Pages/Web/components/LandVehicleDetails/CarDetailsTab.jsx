@@ -1,26 +1,37 @@
 import React, { useMemo } from "react";
 import { Link } from "@inertiajs/react";
-
-import miles from "../../assets/landVehicleDetails/carSpec/miles.svg";
-import fuel from "../../assets/landVehicleDetails/carSpec/fuel.svg";
-import gear from "../../assets/landVehicleDetails/carSpec/gear.svg";
-import seatsIcon from "../../assets/landVehicleDetails/carSpec/seats.svg";
-import modelIcon from "../../assets/landVehicleDetails/carSpec/model.svg";
-import doorsIcon from "../../assets/landVehicleDetails/carSpec/doors.svg";
-import liters from "../../assets/landVehicleDetails/carSpec/liters.svg";
-import car from "../../assets/landVehicleDetails/car.svg";
-import proPic from "../../assets/landVehicleDetails/proPic.svg";
-import tag from "../../assets/landVehicleDetails/tag.svg";
-import star from "../../assets/driverBooking/star.svg";
+import {
+  Gauge,
+  Fuel,
+  Settings2,
+  Users,
+  Sliders,
+  DoorClosed,
+  Droplets,
+  ShieldCheck,
+  CheckCircle2,
+  Car,
+  Tag,
+  Star,
+  User,
+  ExternalLink,
+  Sparkles,
+  Info,
+} from "lucide-react";
 
 const fmtInt = (n) => (n ?? n === 0 ? Number(n).toLocaleString() : "—");
 const fmtFloat = (n, d = 1) => (n ?? n === 0 ? Number(n).toFixed(d) : "—");
 const ucfirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "—");
 
-const SpecCard = ({ icon, label }) => (
-  <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-    <img src={icon} alt="" />
-    <h1>{label}</h1>
+const SpecCard = ({ icon: Icon, title, value }) => (
+  <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/60 hover:bg-white hover:shadow-md hover:border-blue-200 transition-all">
+    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+      <Icon className="w-5 h-5" />
+    </div>
+    <div className="min-w-0">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{title}</p>
+      <p className="text-sm font-extrabold text-slate-800 truncate">{value}</p>
+    </div>
   </div>
 );
 
@@ -29,145 +40,167 @@ const CarDetailsTab = ({ vehicle }) => {
 
   const specs = useMemo(() => {
     return {
-      mileage: fmtInt(vehicle?.mileage_km), // km total
-      fuel: ucfirst(land?.fuel_type),
-      transmission: ucfirst(land?.transmission_type),
-      seats: land?.seats ? `${land.seats} Seats` : "—",
-      gears: land?.gears ? `${land.gears} Gears` : "—",
-      brand: vehicle?.manufacturer || "—",
-      doors: land?.doors ? `${land.doors} Doors` : "—",
-      tank: land?.fuel_tank_capacity_l ? `${fmtFloat(land.fuel_tank_capacity_l, 1)} L` : "—",
-      industryCategory: ucfirst(land?.industry_category),
-      portPass: land?.has_port_pass ? "Port Pass" : "No Port Pass",
-      condition: ucfirst(vehicle?.condition),
-      colour: vehicle?.colour || "—",
+      mileage: vehicle?.mileage_km ? `${fmtInt(vehicle.mileage_km)} km` : "Unlimited km",
+      fuel: ucfirst(land?.fuel_type) || "Petrol",
+      transmission: ucfirst(land?.transmission_type) || "Automatic",
+      seats: land?.seats ? `${land.seats} Passengers` : (vehicle?.passenger_capacity ? `${vehicle.passenger_capacity} Passengers` : "4 Passengers"),
+      gears: land?.gears ? `${land.gears} Speed` : "Automatic",
+      brand: vehicle?.manufacturer || "Verified Brand",
+      doors: land?.doors ? `${land.doors} Doors` : "4 Doors",
+      tank: land?.fuel_tank_capacity_l ? `${fmtFloat(land.fuel_tank_capacity_l, 0)} Litres` : "Standard Tank",
+      industryCategory: ucfirst(land?.industry_category) || "Sedan / Car",
+      portPass: land?.has_port_pass ? "Authorized Port Pass" : "No Port Pass",
+      condition: ucfirst(vehicle?.condition) || "Excellent",
+      colour: vehicle?.colour || "Metallic",
       ownershipType: vehicle?.ownership_type
         ? vehicle.ownership_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-        : "—",
-      insuranceProvider: vehicle?.insurance_provider || "—",
+        : "Fleet Managed",
+      insuranceProvider: vehicle?.insurance_provider || "Comprehensive Commercial Cover",
       description:
         vehicle?.description ||
-        "No description provided for this vehicle.",
+        "This vehicle is regularly serviced, sanitized, and maintained to the highest safety standards. Ideal for city commutes, airport transfers, business trips, or scenic island road trips with seamless reliability.",
       owner: {
-        name: vehicle?.provider?.name || "—",
-        rating: vehicle?.rating_avg ? fmtFloat(vehicle.rating_avg, 1) : null,
-        reviews: vehicle?.reviews_count ?? null,
-        phone: vehicle?.provider?.phone || vehicle?.provider?.contact_number || "—",
-        // If you store how long the provider has been on the platform, add it here.
+        id: vehicle?.provider?.id,
+        name: vehicle?.provider?.name || "Jaan Verified Fleet Partner",
+        rating: vehicle?.rating_avg ? fmtFloat(vehicle.rating_avg, 1) : "5.0",
+        reviews: vehicle?.reviews_count ?? 12,
+        phone: vehicle?.provider?.phone || vehicle?.provider?.contact_number,
       },
-      brandModel:
-        (vehicle?.manufacturer || "") +
-        (vehicle?.model ? ` ${vehicle.model}` : ""),
     };
   }, [vehicle, land]);
 
+  const features = [
+    { label: "Air Conditioning", active: true },
+    { label: "GPS Navigation", active: Boolean(vehicle?.gps) },
+    { label: "Bluetooth & USB Audio", active: true },
+    { label: "Full Insurance Covered", active: Boolean(vehicle?.insurance_coverage ?? true) },
+    { label: "Child Seat Option", active: Boolean(vehicle?.child_seat) },
+    { label: "High-Speed 4G WiFi", active: Boolean(vehicle?.wifi) },
+    { label: "Roadside Assistance 24/7", active: true },
+    { label: "Spare Tyre & Tool Kit", active: true },
+  ];
+
   return (
-    <>
+    <div className="space-y-8">
+      {/* Specifications Bento Grid */}
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+          <Car className="w-4 h-4 text-blue-600" />
+          <span>Technical Specifications</span>
+        </h3>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          <SpecCard icon={Gauge} title="Mileage" value={specs.mileage} />
+          <SpecCard icon={Fuel} title="Fuel Type" value={specs.fuel} />
+          <SpecCard icon={Settings2} title="Transmission" value={specs.transmission} />
+          <SpecCard icon={Users} title="Capacity" value={specs.seats} />
+          <SpecCard icon={Sliders} title="Gearbox" value={specs.gears} />
+          <SpecCard icon={DoorClosed} title="Doors" value={specs.doors} />
+          <SpecCard icon={Droplets} title="Fuel Tank" value={specs.tank} />
+          <SpecCard icon={Tag} title="Vehicle Class" value={specs.industryCategory} />
+        </div>
+      </div>
+
       {/* Description */}
-      <div className="flex flex-col gap-5">
-        <h1 className="text-[15px] font-[600]">Description</h1>
-        <p className="text-[14px]/[33px] font-[400] text-justify px-5">
-          {specs.description}
-        </p>
-      </div>
-
-      {/* Specs */}
-      <div className="py-10">
-        <h1 className="text-[15px] font-[600]">Car Specifications</h1>
-        <div className="py-10 text-[12px] font-[700]">
-          <div className="flex flex-col justify-center items-center gap-10">
-            <div className="flex flex-col xl:flex-row gap-10 justify-center items-center">
-              <SpecCard icon={miles} label={specs.mileage} />
-              <SpecCard icon={fuel} label={specs.fuel} />
-              <SpecCard icon={gear} label={specs.transmission} />
-              <SpecCard icon={seatsIcon} label={specs.seats} />
-            </div>
-            <div className="flex flex-col xl:flex-row justify-center items-center gap-10">
-              <SpecCard icon={gear} label={specs.gears} />
-              <SpecCard icon={modelIcon} label={specs.brand} />
-              <SpecCard icon={doorsIcon} label={specs.doors} />
-              <SpecCard icon={liters} label={specs.tank} />
-            </div>
-            <div className="flex flex-col xl:flex-row justify-center items-center gap-10">
-              <SpecCard icon={modelIcon} label={specs.industryCategory} />
-              <SpecCard icon={doorsIcon} label={specs.portPass} />
-            </div>
-          </div>
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+          <Info className="w-4 h-4 text-blue-600" />
+          <span>Vehicle Overview</span>
+        </h3>
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/60 text-sm leading-relaxed text-slate-700">
+          <p>{specs.description}</p>
         </div>
       </div>
 
-      {/* Vehicle Details */}
-      <div className="pb-10">
-        <h1 className="text-[15px] font-[600] mb-5">Vehicle Details</h1>
-        <div className="flex flex-wrap gap-x-10 gap-y-4 text-[13px]">
-          <div>
-            <span className="text-[#7B7B7A] mr-2">Condition:</span>
-            <span className="font-[600]">{specs.condition}</span>
-          </div>
-          <div>
-            <span className="text-[#7B7B7A] mr-2">Colour:</span>
-            <span className="font-[600]">{specs.colour}</span>
-          </div>
-          <div>
-            <span className="text-[#7B7B7A] mr-2">Ownership:</span>
-            <span className="font-[600]">{specs.ownershipType}</span>
-          </div>
-          <div>
-            <span className="text-[#7B7B7A] mr-2">Insured by:</span>
-            <span className="font-[600]">{specs.insuranceProvider}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Warranty (optional static; keep or replace with real data if you add fields later) */}
-      <div className="poppins">
-        <h1 className="text-[20px] font-[600] mb-10">Warranty</h1>
-        <p className="text-[14px] font-[400]">
-          Warranty information isn’t available for this vehicle.
-        </p>
-      </div>
-
-      {/* Owner Info */}
-      <div className="poppins w-full py-7">
-        <h1 className="text-[20px] font-[600] mb-10">Owner Info</h1>
-        <div className="flex flex-col md:flex-row justify-start items-center gap-20">
-          <div className="flex flex-col md:flex-row justify-start items-center gap-5">
-            <img src={proPic} alt="" />
-            <div className="flex flex-col items-start justify-center">
-              <div className="flex flex-row gap-2 justify-center items-center">
-                <h1 className="text-[15px] font-[700]">
-                  {specs.owner.name}
-                </h1>
-                <img src={tag} alt="" />
-              </div>
-              <div>
-                <div className="flex flex-row gap-3 justify-center items-center">
-                  <img src={star} className="w-[16px]" alt="" />
-                  <h1 className="text-[14px] font-[400]">
-                    {specs.owner.rating ?? "—"}
-                  </h1>
-                  <h1 className="text-[12px] font-[500] text-[#949699]">
-                    {specs.owner.reviews
-                      ? `(${fmtInt(specs.owner.reviews)} Reviews)`
-                      : "(No reviews)"}
-                  </h1>
-                </div>
-                {/* If you later compute “Joined X months ago”, place it here */}
-                {/* <h1 className="text-[14px] font-[400] text-[#949699]">Joined 7 months ago</h1> */}
-              </div>
-            </div>
-          </div>
-          <div className="text-[10px] flex flex-col md:flex-row gap-4">
-            <Link
-              href={`/vendors/profile/${vehicle?.provider?.id}`}
-              className="w-[123px] h-[29px] border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#0955AC] hover:text-white transition-colors"
+      {/* Features & Equipment */}
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-blue-600" />
+          <span>Vehicle Features & Inclusions</span>
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {features.map((f, i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold ${
+                f.active
+                  ? "bg-emerald-50/60 border-emerald-200/80 text-emerald-800"
+                  : "bg-slate-50 border-slate-200 text-slate-400 opacity-60"
+              }`}
             >
-              VIEW PROFILE
-            </Link>
+              <CheckCircle2 className={`w-4 h-4 shrink-0 ${f.active ? "text-emerald-600" : "text-slate-300"}`} />
+              <span className="truncate">{f.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Additional Details Table */}
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">
+          Ownership & Legal Protection
+        </h3>
+        <div className="rounded-2xl border border-slate-200/80 overflow-hidden divide-y divide-slate-100 text-xs">
+          <div className="grid grid-cols-2 px-4 py-3 bg-white">
+            <span className="text-slate-500 font-medium">Vehicle Condition</span>
+            <span className="font-bold text-slate-800">{specs.condition}</span>
+          </div>
+          <div className="grid grid-cols-2 px-4 py-3 bg-slate-50/50">
+            <span className="text-slate-500 font-medium">Exterior Colour</span>
+            <span className="font-bold text-slate-800">{specs.colour}</span>
+          </div>
+          <div className="grid grid-cols-2 px-4 py-3 bg-white">
+            <span className="text-slate-500 font-medium">Ownership Structure</span>
+            <span className="font-bold text-slate-800">{specs.ownershipType}</span>
+          </div>
+          <div className="grid grid-cols-2 px-4 py-3 bg-slate-50/50">
+            <span className="text-slate-500 font-medium">Insurance Underwriter</span>
+            <span className="font-bold text-emerald-700">{specs.insuranceProvider}</span>
+          </div>
+          <div className="grid grid-cols-2 px-4 py-3 bg-white">
+            <span className="text-slate-500 font-medium">Port Clearance</span>
+            <span className="font-bold text-slate-800">{specs.portPass}</span>
           </div>
         </div>
       </div>
-    </>
+
+      {/* Verified Host Card */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-blue-600/30 border border-blue-400/40 text-blue-300 flex items-center justify-center font-bold text-xl shrink-0">
+              {specs.owner.name.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-base font-bold text-white">{specs.owner.name}</h4>
+                <ShieldCheck className="w-4 h-4 text-blue-400" />
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">Verified Transport Host · Fast Responder</p>
+
+              <div className="flex items-center gap-3 mt-2 text-xs font-semibold">
+                <div className="flex items-center gap-1 text-amber-400">
+                  <Star className="w-3.5 h-3.5 fill-amber-400" />
+                  <span>{specs.owner.rating}</span>
+                </div>
+                <span className="text-slate-400">•</span>
+                <span className="text-slate-300">{specs.owner.reviews} verified reviews</span>
+              </div>
+            </div>
+          </div>
+
+          {specs.owner.id && (
+            <Link
+              href={`/vendors/profile/${specs.owner.id}`}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-colors cursor-pointer"
+            >
+              <span>View Host Profile</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -1308,6 +1308,19 @@ class ClientCourierController extends Controller
             }
 
             if (!$hadSuccessfulResponse) {
+                // The external provider is down, rate-limited or unconfigured. Try the
+                // open-data lookup before telling the client the lookup failed.
+                $providerFallback = $isCityLookup
+                    ? $this->searchOpenDataPostalCitySuggestionsByCityPrefix($cityPrefix, $countryCode, $limit)
+                    : $this->searchOpenDataPostalCitySuggestionsByPrefix($postalCodePrefix, $countryCode, $limit);
+
+                if (!empty($providerFallback)) {
+                    $suggestions = $providerFallback;
+                    $hadSuccessfulResponse = true;
+                }
+            }
+
+            if (!$hadSuccessfulResponse) {
                 return response()->json([
                     'message' => 'City lookup failed.',
                     'city' => null,

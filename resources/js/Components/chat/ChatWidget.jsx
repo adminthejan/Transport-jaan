@@ -23,6 +23,7 @@ const ChatWidget = () => {
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(null);
     const [conversations, setConversations] = useState([]);
+    const [support, setSupport] = useState(null);
     const [loadingList, setLoadingList] = useState(false);
     const [notice, setNotice] = useState("");
     const unread = useChatUnread(enabled);
@@ -30,7 +31,10 @@ const ChatWidget = () => {
     const loadList = useCallback(() => {
         axios
             .get(chatRoute("chat.conversations"))
-            .then(({ data }) => setConversations(data.conversations))
+            .then(({ data }) => {
+                setConversations(data.conversations);
+                setSupport(data.support || null);
+            })
             .catch(() => {})
             .finally(() => setLoadingList(false));
     }, []);
@@ -45,6 +49,28 @@ const ChatWidget = () => {
         }, POLL_LIST_MS);
         return () => window.clearInterval(timer);
     }, [enabled, open, active, loadList]);
+
+    const openSupport = useCallback(async (contextLabel) => {
+        setOpen(true);
+        setNotice("");
+        try {
+            const { data } = await axios.post(chatRoute("chat.support.start"), {
+                context_label: contextLabel || null,
+            });
+            setActive(data.conversation);
+        } catch (err) {
+            setActive(null);
+            setNotice(errorMessage(err, "Could not open support chat."));
+        }
+    }, []);
+
+    // Page-level "Contact support" links
+    useEffect(() => {
+        if (!enabled) return undefined;
+        const onOpenSupport = (e) => openSupport(e.detail?.contextLabel);
+        window.addEventListener("chat:open-support", onOpenSupport);
+        return () => window.removeEventListener("chat:open-support", onOpenSupport);
+    }, [enabled, openSupport]);
 
     // Page-level "Chat with vendor" buttons
     useEffect(() => {
@@ -82,7 +108,7 @@ const ChatWidget = () => {
             {open && (
                 <div
                     role="dialog"
-                    aria-label="Chat with vendors"
+                    aria-label="Chat with vendors and support"
                     className="w-[calc(100vw-2.5rem)] sm:w-[380px] h-[min(560px,calc(100vh-7rem))] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
                 >
                     {active ? (
@@ -120,6 +146,9 @@ const ChatWidget = () => {
                                     activeId={null}
                                     loading={loadingList}
                                     onSelect={setActive}
+                                    showSupport
+                                    support={support}
+                                    onOpenSupport={() => openSupport()}
                                     emptyText="No conversations yet. Use “Chat with vendor” on a vehicle or warehouse to start one."
                                 />
                             </div>

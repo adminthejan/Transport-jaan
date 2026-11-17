@@ -28,16 +28,18 @@ const SeaTicketBooking = () => {
     const authUser = props.auth?.user;
     const flash = props.flash || {};
     const today = new Date().toISOString().split("T")[0];
+    // Quick-booking on the dashboard passes the search through the query string.
+    const query = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
 
     const { data, setData, post, processing, errors, reset } = useForm({
         category: "",
         sub_category: "",
         trip_type: "oneway",
-        departure_port: "",
-        arrival_port: "",
-        travel_date: "",
+        departure_port: query.get("departure_port") || "",
+        arrival_port: query.get("arrival_port") || "",
+        travel_date: query.get("travel_date") || "",
         return_date: "",
-        adults: 1,
+        adults: Math.max(1, Number(query.get("adults")) || 1),
         children: 0,
         name: authUser?.name || "",
         email: authUser?.email || "",

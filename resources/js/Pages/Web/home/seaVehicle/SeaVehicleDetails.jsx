@@ -1,58 +1,103 @@
 import React, { useMemo } from "react";
-import { usePage } from "@inertiajs/react";
+import { usePage, Link } from "@inertiajs/react";
 import Header from "../client/ClientHeader";
+import Footer from "../../layouts/Footer";
 import ChatWithVendorButton from "@/Components/chat/ChatWithVendorButton";
 import BackButton from "../../components/BackBtn";
 import SeaVehicleImages from "../../components/SeaVehicleDetails/SeaVehicleImages";
 import SeaVehicleSearch from "../../components/SeaVehicleDetails/SeaVehicleSearch";
 import SeaVehicleInfo from "../../components/SeaVehicleDetails/SeaVehicleInfo";
-import Suggestions from "../../components/SeaVehicleDetails/Suggestions";
-import bg from "../../assets/rentAVehicle/bg/bg.png";
+import Suggestions from "../../components/LandVehicleDetails/Suggestions";
+import { ChevronRight, ShieldCheck, AlertCircle } from "lucide-react";
 
 const SeaVehicleDetails = () => {
-    const { props } = usePage();
-    const { vehicle } = props;
+  const { props } = usePage();
+  const { vehicle, similarVehicles } = props;
 
-    const memoizedVehicle = useMemo(() => {
-        if (!vehicle) return null;
-        return {
-            ...vehicle,
-            name: vehicle.model || vehicle.name,
-            price: vehicle.price,
-            image: vehicle.image,
-        };
-    }, [vehicle]);
+  const memoizedVehicle = useMemo(() => {
+    if (!vehicle) return null;
+    return {
+      ...vehicle,
+      name: vehicle.model || vehicle.name,
+      price: vehicle.price ?? vehicle.rental_price_per_day,
+      image: vehicle.image ?? vehicle.primary_image_url,
+    };
+  }, [vehicle]);
 
-    if (!memoizedVehicle) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <p className="text-xl">No vehicle selected</p>
-            </div>
-        );
-    }
-
+  if (!memoizedVehicle) {
     return (
-        <div>
-            <Header />
-            <div className="pt-6 px-5 md:px-10 max-w-[1800px] mx-auto flex items-center justify-between gap-3">
-                <BackButton />
-                <ChatWithVendorButton contextType="vehicle" contextId={memoizedVehicle.id} />
-            </div>
-            <div className="main-content flex justify-center items-center">
-                <div className="py-10 md:px-10 flex flex-col xl:flex-row justify-between w-full gap-10">
-                    <div className="flex flex-col gap-10 justify-start items-center w-full">
-                        <SeaVehicleImages />
-                        <SeaVehicleInfo />
-                    </div>
-                    <div className="flex flex-col justify-start items-center gap-10">
-                        {" "}
-                        <SeaVehicleSearch />
-                        <Suggestions />
-                    </div>
-                </div>
-            </div>
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+        <Header />
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Vessel Not Found</h2>
+          <p className="text-sm text-slate-500 max-w-md mt-1 mb-6">
+            The marine vessel you requested is currently unlisted or reserved.
+          </p>
+          <Link
+            href="/seaVehicleList"
+            className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-md"
+          >
+            Browse All Marine Vessels
+          </Link>
         </div>
+        <Footer />
+      </div>
     );
+  }
+
+  const manufacturer = memoizedVehicle.manufacturer || "Maritime";
+  const model = memoizedVehicle.model || "";
+
+  return (
+    <div className="vehicle-details-page bg-slate-50 min-h-screen text-slate-800 antialiased flex flex-col justify-between">
+      <Header />
+
+      {/* Topbar */}
+      <div className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 overflow-x-auto text-xs font-medium text-slate-500 whitespace-nowrap">
+            <BackButton />
+            <span className="text-slate-300">/</span>
+            <Link href="/seaVehicleList" className="hover:text-blue-600 transition-colors">
+              Marine Fleet
+            </Link>
+            <span className="text-slate-300">/</span>
+            <span className="text-slate-400">{manufacturer}</span>
+            <span className="text-slate-300">/</span>
+            <span className="font-bold text-slate-800 truncate max-w-[200px]">{model}</span>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <ChatWithVendorButton contextType="vehicle" contextId={memoizedVehicle.id} />
+          </div>
+        </div>
+      </div>
+
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+          <div className="lg:col-span-7 xl:col-span-8 space-y-8 min-w-0">
+            <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-[0_4px_25px_-5px_rgba(15,23,42,0.06)] p-3 sm:p-4 overflow-hidden">
+              <SeaVehicleImages />
+            </div>
+
+            <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-[0_4px_25px_-5px_rgba(15,23,42,0.06)] p-6 sm:p-8">
+              <SeaVehicleInfo />
+            </div>
+          </div>
+
+          <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-16">
+            <SeaVehicleSearch />
+            <Suggestions similarVehicles={similarVehicles} />
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
 };
 
 export default SeaVehicleDetails;

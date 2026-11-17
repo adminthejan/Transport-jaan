@@ -61,6 +61,8 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
   const [seniorsCount, setSeniorsCount] = useState(0);
   const [student, setStudent] = useState(false);
   const [wheelchair, setWheelchair] = useState(false);
+  // Which individual passengers travel with a wheelchair (ids like "adult-1").
+  const [wheelchairPassengers, setWheelchairPassengers] = useState([]);
   const [showTravellersModal, setShowTravellersModal] = useState(false);
   const [modalAnchor, setModalAnchor] = useState("search"); // 'top' or 'search'
 
@@ -128,11 +130,32 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
     );
   });
 
+  const passengerList = [
+    ...Array.from({ length: adults }, (_, i) => ({ id: `adult-${i + 1}`, label: `Adult ${i + 1}` })),
+    ...Array.from({ length: youthCount }, (_, i) => ({ id: `youth-${i + 1}`, label: `Youth ${i + 1}` })),
+    ...Array.from({ length: seniorsCount }, (_, i) => ({ id: `senior-${i + 1}`, label: `Senior ${i + 1}` })),
+  ];
+  // Drop wheelchair picks for passengers that were removed.
+  const validWheelchairIds = new Set(passengerList.map((p) => p.id));
+  const activeWheelchairPassengers = wheelchair
+    ? wheelchairPassengers.filter((id) => validWheelchairIds.has(id))
+    : [];
+  const toggleWheelchair = (on) => {
+    setWheelchair(on);
+    setWheelchairPassengers(on && passengerList.length ? [passengerList[0].id] : []);
+  };
+  const toggleWheelchairPassenger = (id) => {
+    const next = activeWheelchairPassengers.includes(id)
+      ? activeWheelchairPassengers.filter((x) => x !== id)
+      : [...activeWheelchairPassengers, id];
+    setWheelchairPassengers(next);
+  };
+
   const travellersSummary = `${adults} Adult${adults > 1 ? "s" : ""}${
     youthCount > 0 ? `, ${youthCount} Youth` : ""
   }${
     seniorsCount > 0 ? `, ${seniorsCount} Senior${seniorsCount > 1 ? "s" : ""}` : ""
-  }${student ? ", Student" : ""}${wheelchair ? ", Wheelchair" : ""}`;
+  }${student ? ", Student" : ""}${wheelchair ? `, Wheelchair${activeWheelchairPassengers.length > 1 ? ` ×${activeWheelchairPassengers.length}` : ""}` : ""}`;
 
   const renderTravellersPopover = (alignClass = "right-0") => {
     const tiers = [
@@ -199,8 +222,26 @@ const SkyscannerFlightHero = ({ onSelectTab }) => {
               <div className="text-[13px] font-[700] text-[#0F172A]">Wheelchair</div>
               <div className="text-[11px] text-gray-500">Passengers travelling with a wheelchair.</div>
             </div>
-            <Toggle checked={wheelchair} onChange={setWheelchair} />
+            <Toggle checked={wheelchair} onChange={toggleWheelchair} />
           </div>
+          {wheelchair && passengerList.length > 1 && (
+            <div className="pl-1 space-y-2">
+              {passengerList.map((p) => {
+                const on = activeWheelchairPassengers.includes(p.id);
+                return (
+                  <label key={p.id} className="flex items-center justify-between text-[13px] text-[#0F172A] cursor-pointer">
+                    <span>{p.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => toggleWheelchairPassenger(p.id)}
+                      className="w-4 h-4 accent-[#0955AC] cursor-pointer"
+                    />
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <button

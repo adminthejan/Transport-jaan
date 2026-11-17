@@ -1,6 +1,7 @@
 import React from "react";
 import { router, usePage, useForm } from "@inertiajs/react";
-import { ArrowLeft, TrainFront, Clock, User, Mail, Phone, ShieldCheck } from "lucide-react";
+import { ArrowLeft, TrainFront, Clock } from "lucide-react";
+import PassengerDetailsFields from "../../components/ticketBooking/shared/PassengerDetailsFields";
 import Header from "../client/ClientHeader";
 import Footer from "../../layouts/Footer";
 import TripRouteMap from "../../components/ticketBooking/TripRouteMap";
@@ -78,7 +79,6 @@ const TrainTicketBookingPreviewInner = () => {
         payment_method: 'Card',
     });
 
-    const nicError = data.passenger_nic ? validateNic(data.passenger_nic) : null;
 
     const clearAllFields = () =>
         setData((prev) => ({
@@ -134,79 +134,16 @@ const TrainTicketBookingPreviewInner = () => {
                                 <h2 className="text-[15px] font-[800] text-[#0F172A]">{t("passenger_details", "Passenger Details")}</h2>
                             </div>
                             <form onSubmit={handleSubmit} className="p-5 space-y-4">
-                                <div>
-                                    <label htmlFor="passenger_name" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
-                                        {t("full_name", "FULL NAME")} *
-                                    </label>
-                                    <div className="relative">
-                                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC]" />
-                                        <input
-                                            type="text"
-                                            id="passenger_name"
-                                            value={data.passenger_name}
-                                            onChange={(e) => setData('passenger_name', e.target.value)}
-                                            className={inputClass(errors.passenger_name)}
-                                            required
-                                        />
-                                    </div>
-                                    {errors.passenger_name && <p className="text-red-500 text-xs mt-1">{errors.passenger_name}</p>}
-                                </div>
-
-                                <div>
-                                    <label htmlFor="passenger_nic" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
-                                        NIC NUMBER *
-                                    </label>
-                                    <div className="relative">
-                                        <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC]" />
-                                        <input
-                                            type="text"
-                                            id="passenger_nic"
-                                            value={data.passenger_nic}
-                                            onChange={(e) => setData('passenger_nic', e.target.value.toUpperCase().replace(/\s/g, ''))}
-                                            maxLength={12}
-                                            placeholder="199012345678"
-                                            className={inputClass(errors.passenger_nic || nicError)}
-                                            required
-                                        />
-                                    </div>
-                                    {(errors.passenger_nic || nicError) && <p className="text-red-500 text-xs mt-1">{errors.passenger_nic || nicError}</p>}
-                                </div>
-
-                                <div>
-                                    <label htmlFor="passenger_email" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
-                                        {t("email_address", "EMAIL ADDRESS")} *
-                                    </label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC]" />
-                                        <input
-                                            type="email"
-                                            id="passenger_email"
-                                            value={data.passenger_email}
-                                            onChange={(e) => setData('passenger_email', e.target.value)}
-                                            className={inputClass(errors.passenger_email)}
-                                            required
-                                        />
-                                    </div>
-                                    {errors.passenger_email && <p className="text-red-500 text-xs mt-1">{errors.passenger_email}</p>}
-                                </div>
-
-                                <div>
-                                    <label htmlFor="passenger_phone" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">
-                                        {t("phone_number", "PHONE NUMBER")} *
-                                    </label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#0955AC]" />
-                                        <input
-                                            type="tel"
-                                            id="passenger_phone"
-                                            value={data.passenger_phone}
-                                            onChange={(e) => setData('passenger_phone', e.target.value)}
-                                            className={inputClass(errors.passenger_phone)}
-                                            required
-                                        />
-                                    </div>
-                                    {errors.passenger_phone && <p className="text-red-500 text-xs mt-1">{errors.passenger_phone}</p>}
-                                </div>
+                                <PassengerDetailsFields
+                                    values={{
+                                        name: data.passenger_name,
+                                        nic: data.passenger_nic,
+                                        phone: data.passenger_phone,
+                                        email: data.passenger_email,
+                                    }}
+                                    onChange={(field, value) => setData(`passenger_${field}`, value)}
+                                    errors={errors}
+                                />
 
                                 <div>
                                     <label htmlFor="luggage" className="block text-[11px] font-[700] text-[#64748B] tracking-widest mb-1.5">

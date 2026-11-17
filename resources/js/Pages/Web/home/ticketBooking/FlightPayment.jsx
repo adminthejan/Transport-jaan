@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { Head, usePage, router, Link } from "@inertiajs/react";
-import { CreditCard, User, Lock, AlertTriangle, ShieldCheck } from "lucide-react";
+import { CreditCard, User, Lock, AlertTriangle, ShieldCheck, Plane } from "lucide-react";
 import Header from "../client/ClientHeader";
 import Footer from "../../layouts/Footer";
 import { ModuleTabs, TicketSubTabs } from "../../components/ModuleTabs";
 import CardHeader from "../../components/ticketBooking/shared/CardHeader";
 import { TextField, SubmitButton } from "../../components/ticketBooking/shared/FormElements";
-import FlightResultCard from "../../components/ticketBooking/flightResults/FlightResultCard";
-import { findFlight } from "../../components/ticketBooking/flightResults/generateDummyFlights";
+import { findFlight, formatDuration } from "../../components/ticketBooking/flightResults/generateDummyFlights";
 
 const TAXES_AND_FEES = 25;
 
@@ -16,6 +15,77 @@ const formatExpiry = (v) => {
   const digits = v.replace(/\D/g, "").slice(0, 4);
   return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
 };
+
+const formatDate = (iso) => {
+  const d = iso ? new Date(`${iso}T00:00:00`) : null;
+  return d && !Number.isNaN(d.getTime())
+    ? d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+    : "";
+};
+
+// Vertical flight schedule for the order summary column (the results-row card
+// is a wide horizontal layout and gets clipped at this width).
+const FlightSchedule = ({ flight, date, returnDate, travellers }) => (
+  <div className="bg-white rounded-[18px] border border-black/5 shadow-[0_2px_10px_rgba(11,27,52,0.05)] p-5">
+    <h3 className="text-[12px] font-[700] text-[#64748B] tracking-widest mb-3">FLIGHT SCHEDULE</h3>
+    <div className="flex items-center gap-3 mb-4">
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center font-[800] text-white text-[13px] shrink-0"
+        style={{ backgroundColor: flight.logoBg || "#0955AC" }}
+      >
+        {flight.airlineCode}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[14px] font-[800] text-[#0B1B34] truncate">{flight.airline}</p>
+        <p className="text-[11.5px] font-[600] text-[#94A3B8]">
+          {flight.flightNumber}
+          {flight.aircraft ? ` · ${flight.aircraft}` : ""}
+        </p>
+      </div>
+    </div>
+
+    <div className="relative pl-5 space-y-4">
+      <span className="absolute left-[5px] top-2 bottom-2 w-[2px] bg-[#E2E8F0]" />
+      <div className="relative">
+        <span className="absolute -left-5 top-1 w-3 h-3 rounded-full bg-[#0955AC]" />
+        <p className="text-[18px] font-[800] text-[#0B1B34] leading-none">{flight.departTime}</p>
+        <p className="text-[12px] font-[700] text-[#334155] mt-1">{flight.departAirport}</p>
+        <p className="text-[11px] text-[#94A3B8]">
+          {[formatDate(date), flight.departTerminal].filter(Boolean).join(" · ")}
+        </p>
+      </div>
+      <div className="text-[11.5px] font-[700] text-[#64748B] flex items-center gap-1.5">
+        <Plane className="w-3.5 h-3.5 text-[#0955AC]" />
+        {formatDuration(flight.durationMinutes)} ·{" "}
+        {flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}${flight.layoverCity ? ` · ${flight.layoverCity}` : ""}`}
+      </div>
+      <div className="relative">
+        <span className="absolute -left-5 top-1 w-3 h-3 rounded-full border-2 border-[#0955AC] bg-white" />
+        <p className="text-[18px] font-[800] text-[#0B1B34] leading-none">
+          {flight.arriveTime}
+          {flight.nextDayArrival && <sup className="text-[10.5px] font-[800] text-[#EF3826] ml-0.5">+1</sup>}
+        </p>
+        <p className="text-[12px] font-[700] text-[#334155] mt-1">{flight.arriveAirport}</p>
+        {flight.arriveTerminal && <p className="text-[11px] text-[#94A3B8]">{flight.arriveTerminal}</p>}
+      </div>
+    </div>
+
+    {(returnDate || travellers) && (
+      <div className="mt-4 pt-3 border-t border-black/[0.06] text-[12px] text-[#475569] space-y-1">
+        {returnDate && (
+          <p>
+            <span className="font-[700]">Return:</span> {formatDate(returnDate)}
+          </p>
+        )}
+        {travellers && (
+          <p>
+            <span className="font-[700]">Travellers:</span> {travellers}
+          </p>
+        )}
+      </div>
+    )}
+  </div>
+);
 
 const FlightPayment = () => {
   const { url } = usePage();
@@ -159,7 +229,7 @@ const FlightPayment = () => {
 
             {/* Order summary */}
             <div className="space-y-4">
-              <FlightResultCard flight={flight} compact />
+              <FlightSchedule flight={flight} date={search.date} returnDate={search.returnDate} travellers={search.travellers} />
               <div className="bg-white rounded-[18px] border border-black/5 shadow-sm p-5">
                 <h3 className="text-[12px] font-[700] text-[#64748B] tracking-widest mb-3">ORDER SUMMARY</h3>
                 <div className="flex items-center justify-between text-[13px] text-[#334155] mb-2">

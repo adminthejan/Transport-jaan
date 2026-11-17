@@ -1,9 +1,19 @@
 import React, { useMemo, useState } from "react";
 import { usePage, router } from "@inertiajs/react";
-
-import shareIcon from "../../assets/landVehicleDetails/share.svg";
-import starIcon from "../../assets/driverBooking/star.svg";
-import heartWhite from "../../assets/landVehicleDetails/heartB2.svg";
+import axios from "axios";
+import {
+  Share2,
+  Heart,
+  Star,
+  CheckCircle2,
+  ShieldCheck,
+  FileText,
+  MessageSquare,
+  Images,
+  Car,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 
 import CarDetailsTab from "./CarDetailsTab";
 import PoliciesTab from "./PoliciesTab";
@@ -14,7 +24,6 @@ const VehicleInfo = () => {
   const { props } = usePage();
   const vehicle = props?.vehicle;
 
-  // ✅ Active if the vehicle exists in vehicle_likes (through shared likedVehicleIds) or server-injected is_liked
   const initialIsLiked = useMemo(() => {
     if (!vehicle) return false;
     if (typeof vehicle.is_liked === "boolean") return vehicle.is_liked;
@@ -25,9 +34,10 @@ const VehicleInfo = () => {
   const [selectedTab, setSelectedTab] = useState("car-details");
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const titleBrand = vehicle?.manufacturer || "—";
-  const titleModel = vehicle?.model || vehicle?.name || "—";
+  const titleBrand = vehicle?.manufacturer || "Vehicle";
+  const titleModel = vehicle?.model || vehicle?.name || "";
   const titleYear = vehicle?.manufacture_year || vehicle?.registration_year || "";
   const isAvailable = (vehicle?.status || "").toLowerCase() === "active";
   const rating = vehicle?.rating_avg ? Number(vehicle.rating_avg).toFixed(1) : null;
@@ -38,138 +48,163 @@ const VehicleInfo = () => {
       if (navigator.share) {
         await navigator.share({
           title: `${titleBrand} ${titleModel}`,
-          text: "Check out this vehicle",
+          text: `Check out this ${titleBrand} ${titleModel} on Jaan Transport`,
           url: window.location.href,
         });
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        alert("Link copied to clipboard");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       }
-    } catch(_) {}
+    } catch (_) {}
   };
 
-const onToggleWishlist = async () => {
-  if (!vehicle?.id) return;
+  const onToggleWishlist = async () => {
+    if (!vehicle?.id) return;
+    if (!props?.auth?.user) {
+      router.visit(route?.("signin") ?? "/signin");
+      return;
+    }
 
-  if (!props?.auth?.user) {
-    router.visit(route?.("signin") ?? "/signin");
-    return;
-  }
+    const next = !isLiked;
+    setIsLiked(next);
+    setBusy(true);
 
-  const next = !isLiked;
-  setIsLiked(next);
-  setBusy(true);
-
-  try {
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-    await axios.post(
-      route("client.vehicle.like.toggle"),
-      { vehicle_id: vehicle.id },
-      { headers: { "X-CSRF-TOKEN": token } }
-    );
-
-    // No need for setLikedMap
-  } catch (err) {
-    setIsLiked(!next); // revert if error
-    console.error(err);
-    alert("Something went wrong");
-  } finally {
-    setBusy(false);
-  }
-};
-
-
+    try {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+      await axios.post(
+        route("client.vehicle.like.toggle"),
+        { vehicle_id: vehicle.id },
+        { headers: { "X-CSRF-TOKEN": token } }
+      );
+    } catch (err) {
+      setIsLiked(!next);
+      console.error(err);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (!vehicle) {
     return (
-      <div className="poppins w-full h-auto">
-        <p className="text-sm text-gray-500">No vehicle data.</p>
+      <div className="w-full py-8 text-center text-slate-400">
+        <p className="text-sm">No vehicle information available.</p>
       </div>
     );
   }
 
+  const TABS = [
+    { key: "car-details", label: "Overview & Specs", icon: Car },
+    { key: "policies", label: "Rental Policies", icon: FileText },
+    { key: "reviews", label: `Reviews (${reviewsCount})`, icon: MessageSquare },
+    { key: "gallery", label: "Photo Gallery", icon: Images },
+  ];
+
   return (
-    <div className="poppins w-full h-auto">
-      {/* Brand crumb */}
-      <h1 className="text-[12px] font-[600] text-[#00000080]">{titleBrand}</h1>
-
-      {/* Title row */}
-      <div className="flex flex-col md:flex-row justify-between">
-        <div className="flex flex-col md:flex-row gap-5">
-          <h1 className="bebas-neue text-[30px]">
-            {titleBrand} <span className="text-[#0955AC]">{titleModel}</span>{" "}
-            {titleYear ? `(${titleYear})` : ""}
-          </h1>
-
-          <div className="flex flex-row items-center gap-2">
-            <div className={`w-[10px] h-[10px] rounded-full ${isAvailable ? "bg-[#3C9A34]" : "bg-[#d14343]"}`} />
-            <h1 className={`${isAvailable ? "text-[#3C9A34]" : "text-[#d14343]"} text-[10px]`}>
-              {isAvailable ? "Available" : "Unavailable"}
-            </h1>
-          </div>
+    <div className="w-full">
+      {/* Brand & Category pill */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
+            {titleBrand}
+          </span>
+          {vehicle.category?.name && (
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
+              {vehicle.category.name}
+            </span>
+          )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center gap-5">
+        {/* Action Buttons: Share & Wishlist */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onShare}
-            className="w-[81px] h-[30px] rounded-[4px] border-[1px] border-[#00000030] bg-[#EAE9E8] flex flex-row justify-center items-center gap-3"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
           >
-            <img src={shareIcon} alt="share" />
-            <span>Share</span>
+            <Share2 className="w-3.5 h-3.5" />
+            <span>{copied ? "Copied Link!" : "Share"}</span>
           </button>
 
           <button
             type="button"
             onClick={onToggleWishlist}
             disabled={busy}
-            className={`w-[110px] h-[30px] rounded-[4px] border-[1px] flex flex-row justify-center items-center gap-3 ${
-              isLiked ? "border-[#0955AC] bg-[#0955AC] text-white" : "border-[#00000030] bg-white text-[#0955AC]"
-            } ${busy ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              isLiked
+                ? "bg-rose-50 border border-rose-200 text-rose-600 shadow-sm"
+                : "border border-slate-200 bg-slate-50/80 hover:bg-slate-100 text-slate-700"
+            }`}
           >
-            <img src={heartWhite} alt="wishlist" />
-            <span>{isLiked ? "Wishlisted" : "Wishlist"}</span>
+            <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
+            <span>{isLiked ? "Saved" : "Save"}</span>
           </button>
         </div>
       </div>
 
-      {/* Rating row */}
-      <div className="flex flex-row gap-5 text-[12px] font-[600] items-center">
-        <img src={starIcon} alt="rating" />
-        <h1>{rating ?? "—"}</h1>
-        <h1 className="underline">
-          {reviewsCount ? `${reviewsCount} Reviews` : "No Reviews"}
-        </h1>
-      </div>
+      {/* Title & Status Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            {titleBrand} <span className="text-blue-600">{titleModel}</span>{" "}
+            {titleYear ? <span className="text-slate-400 font-normal">({titleYear})</span> : null}
+          </h1>
 
-      {/* Tabs */}
-      <div className="py-10">
-        <div className="flex flex-col md:flex-row md:gap-20 px-20 text-[12px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
-          {[
-            { key: "car-details", label: "Car Details" },
-            { key: "policies", label: "Policies" },
-            { key: "reviews", label: "Reviews" },
-            { key: "gallery", label: "Image Gallery" },
-          ].map((tab) => (
-            <h1
-              key={tab.key}
-              className={`border-b-[2px] pb-5 w-[120px] flex justify-center items-center cursor-pointer ${
-                selectedTab === tab.key ? "border-[#0955AC] text-[#0955AC]" : ""
-              }`}
-              onClick={() => setSelectedTab(tab.key)}
-            >
-              {tab.label}
-            </h1>
-          ))}
+          {/* Ratings & Trust Badges */}
+          <div className="flex flex-wrap items-center gap-4 mt-2 text-xs font-semibold text-slate-600">
+            <div className="flex items-center gap-1.5 bg-amber-50 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200/60">
+              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+              <span className="font-bold">{rating ?? "5.0"}</span>
+              <span className="text-amber-700/80 font-normal">
+                ({reviewsCount} {reviewsCount === 1 ? "review" : "reviews"})
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{isAvailable ? "Ready for Instant Booking" : "Currently Reserved"}</span>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-1 text-slate-500">
+              <ShieldCheck className="w-4 h-4 text-blue-600" />
+              <span>Verified Host & Inspected</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Tab content */}
-      {selectedTab === "car-details" && <CarDetailsTab vehicle={vehicle} />}
-      {selectedTab === "policies" && <PoliciesTab vehicle={vehicle} />}
-      {selectedTab === "reviews" && <ReviewsTab vehicle={vehicle} />}
-      {selectedTab === "gallery" && <GalleryTab vehicle={vehicle} />}
+      {/* Segmented Tab Navigation */}
+      <div className="mt-8 mb-6 border-b border-slate-200">
+        <div className="flex gap-2 overflow-x-auto pb-px scrollbar-hide">
+          {TABS.map((tab) => {
+            const active = selectedTab === tab.key;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setSelectedTab(tab.key)}
+                className={`group inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                  active
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300"
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${active ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tab Panels */}
+      <div className="pt-2">
+        {selectedTab === "car-details" && <CarDetailsTab vehicle={vehicle} />}
+        {selectedTab === "policies" && <PoliciesTab vehicle={vehicle} />}
+        {selectedTab === "reviews" && <ReviewsTab vehicle={vehicle} />}
+        {selectedTab === "gallery" && <GalleryTab vehicle={vehicle} />}
+      </div>
     </div>
   );
 };

@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
-import { Check, ChevronDown, PackageSearch, SlidersHorizontal, Thermometer, Wallet, Warehouse, X } from "lucide-react";
-import { SERVICES, asArray } from "./warehouseFilters";
+import { Check, ChevronDown, SlidersHorizontal, Thermometer, Wallet, Warehouse, X } from "lucide-react";
+import { asArray } from "./warehouseFilters";
 
-// Warehouse Type describes the facility itself; Services describes what a
-// client can book on top of storage. Kept as two separate filter groups to
-// match how vendors configure their listings (see WarehouseUnitController).
+// Services are chosen via "Required Services" in the search bar, so the
+// sidebar only carries the facility-level filters.
 const WAREHOUSE_TYPES = [
   { id: "cold_storage", label: "Cold Storage" },
   { id: "dry_storage", label: "Dry Storage" },
@@ -84,7 +83,6 @@ const FilterSection = ({ icon, title, count = 0, defaultOpen = true, children })
 
 const WarehouseFilterSidebar = ({ searchParams }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
@@ -92,7 +90,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
 
   useEffect(() => {
     setSelectedTypes(asArray(searchParams?.warehouseType));
-    setSelectedServices(asArray(searchParams?.services));
     setBudgetMin(searchParams?.budgetMin ?? "");
     setBudgetMax(searchParams?.budgetMax ?? "");
     setTemperature(searchParams?.temperature ?? "");
@@ -113,12 +110,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
     const next = toggleInList(selectedTypes, typeId);
     setSelectedTypes(next);
     runSearch({ ...searchParams, warehouseType: next });
-  };
-
-  const handleServiceChange = (serviceId) => {
-    const next = toggleInList(selectedServices, serviceId);
-    setSelectedServices(next);
-    runSearch({ ...searchParams, services: next });
   };
 
   const budgetInvalid =
@@ -142,15 +133,14 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
 
   const budgetActive = Boolean(searchParams?.budgetMin || searchParams?.budgetMax);
   const activeCount =
-    selectedTypes.length + selectedServices.length + (budgetActive ? 1 : 0) + (temperature ? 1 : 0);
+    selectedTypes.length + (budgetActive ? 1 : 0) + (temperature ? 1 : 0);
 
   const clearAll = () => {
     setSelectedTypes([]);
-    setSelectedServices([]);
     setBudgetMin("");
     setBudgetMax("");
     setTemperature("");
-    runSearch({ ...searchParams, warehouseType: [], services: [], budgetMin: "", budgetMax: "", temperature: "" });
+    runSearch({ ...searchParams, warehouseType: [], budgetMin: "", budgetMax: "", temperature: "" });
   };
 
   return (
@@ -225,21 +215,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
               label={type.label}
               active={selectedTypes.includes(type.id)}
               onClick={() => handleTypeChange(type.id)}
-            />
-          ))}
-        </FilterSection>
-
-        <FilterSection
-          icon={<PackageSearch className="w-4 h-4 text-[#0955AC]" />}
-          title="SERVICES"
-          count={selectedServices.length}
-        >
-          {SERVICES.map((service) => (
-            <FilterOption
-              key={service.id}
-              label={service.label}
-              active={selectedServices.includes(service.id)}
-              onClick={() => handleServiceChange(service.id)}
             />
           ))}
         </FilterSection>

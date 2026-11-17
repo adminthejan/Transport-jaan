@@ -7,6 +7,7 @@ import {
   Plane,
   TrainFront,
   Bus,
+  Ship,
   Calendar,
   Search,
   Filter,
@@ -183,7 +184,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
   const [cancelling, setCancelling] = useState(false);
   const [policyDetails, setPolicyDetails] = useState(null);
 
-  const [searchMode, setSearchMode] = useState("flight");
+  const [searchMode, setSearchMode] = useState("land");
   const [searchFrom, setSearchFrom] = useState("");
   const [searchTo, setSearchTo] = useState("");
   const [searchDate, setSearchDate] = useState("");
@@ -194,21 +195,19 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
 
-    if (searchMode === "bus") {
-      router.get("/busTicketBookingDetails", {
+    if (searchMode === "land") {
+      // Land searches compare buses and trains together.
+      router.get("/landTicketBooking", {
         from: searchFrom,
         to: searchTo,
         date: searchDate,
-        tripType: "oneway",
-        passengers: searchPassengers,
         adults: searchPassengers,
       });
-    } else if (searchMode === "train") {
-      router.get("/trainTicketBookingDetails", {
-        from: searchFrom,
-        to: searchTo,
-        departureDate: searchDate,
-        tripType: "oneway",
+    } else if (searchMode === "sea") {
+      router.get("/seaTicketBooking", {
+        departure_port: searchFrom,
+        arrival_port: searchTo,
+        travel_date: searchDate,
         adults: searchPassengers,
       });
     } else {
@@ -594,9 +593,9 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
           <h3 className="text-[15px] font-[700] text-slate-800 mb-3.5">Quick Booking</h3>
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {[
-              { val: "flight", label: "Flight", icon: Plane },
-              { val: "train", label: "Train", icon: TrainFront },
-              { val: "bus", label: "Bus", icon: Bus },
+              { val: "land", label: "Land", icon: Bus },
+              { val: "air", label: "Air", icon: Plane },
+              { val: "sea", label: "Sea", icon: Ship },
             ].map(({ val, label, icon: Icon }) => (
               <button
                 key={val}

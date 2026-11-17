@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
-import { ShieldCheck, Wallet, Clock } from "lucide-react";
+import { ShieldCheck, Wallet, Clock, Sparkles, ChevronRight, SlidersHorizontal, Plane } from "lucide-react";
 import Header from "./client/ClientHeader";
 import { ModuleTabs, RentalSubTabs } from "../components/ModuleTabs";
 import FilterSidebar from "../components/airVehicleList/FilterSidebar";
@@ -15,13 +15,15 @@ import Footer from "../layouts/Footer";
 import heroImg from "../assets/rentAVehicle/hero/land-sea-air.jpg";
 
 const HERO_FEATURES = [
-  { icon: ShieldCheck, label: "Verified Vendors" },
-  { icon: Wallet, label: "All-Inclusive Pricing" },
-  { icon: Clock, label: "24/7 Support" },
+  { icon: ShieldCheck, label: "ICAO Certified Operators" },
+  { icon: Wallet, label: "Transparent Flight Hours" },
+  { icon: Clock, label: "24/7 Dispatch Control" },
+  { icon: Sparkles, label: "Private Terminal Access" },
 ];
 
-const airVehicleList = () => {
+const AirVehicleList = () => {
   const { props } = usePage();
+
   const [formData, setFormData] = useState({
     pickupLocation: "",
     pickupDate: "",
@@ -30,6 +32,8 @@ const airVehicleList = () => {
     brand: "",
     bodyType: "",
   });
+
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   useEffect(() => {
     if (props.filters) {
@@ -45,96 +49,118 @@ const airVehicleList = () => {
   };
 
   return (
-    <div className="vehicle-list-page bg-[#F6F7F9] min-h-screen">
+    <div className="vehicle-list-page bg-slate-50 min-h-screen text-slate-800 antialiased">
       <Header />
 
-      {/* Full-bleed hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={heroImg} alt="" aria-hidden="true" className="w-full h-full object-cover object-[65%_45%] opacity-75" />
-          {/* Gentle protective gradient ensuring text readability while keeping image ~75% visible */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.05) 55%, transparent 75%)",
-            }}
+      {/* Hero Showcase */}
+      <section className="relative overflow-hidden bg-slate-900 text-white">
+        <div className="absolute inset-0 pointer-events-none">
+          <img
+            src={heroImg}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover object-[65%_45%] opacity-35 filter brightness-90"
           />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(0deg, #F6F7F9 0%, rgba(246,247,249,0.20) 10%, transparent 25%)",
-            }}
-          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-slate-900/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
         </div>
 
-        <div className="relative z-10 max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 sm:pt-8 md:pt-10 pb-14 sm:pb-16 md:pb-20">
-          <p className="poppins text-[11px] font-[700] tracking-[0.14em] text-[#0955AC] uppercase mb-2">
-            Vehicle Rental · Air
-          </p>
-          <h1 className="bebas-neue text-[28px] sm:text-[36px] md:text-[44px] leading-none text-[#0B1B34] mb-4">
-            CHARTER YOUR <span className="text-[#0955AC]">NEXT FLIGHT</span>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-20 md:pb-28">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-semibold tracking-wide uppercase mb-4 backdrop-blur-md">
+            <span>Vehicle Rental</span>
+            <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="text-white">Air Charter Fleet</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-4 leading-tight">
+            Charter Helicopters & Jets with <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-sky-300">Ease</span>
           </h1>
 
-          <div className="flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-2.5 mb-6 max-w-[620px]">
+          <p className="text-slate-300 text-sm sm:text-base md:text-lg max-w-2xl mb-8 leading-relaxed font-normal">
+            Private aviation charters, scenic helicopter transfers, and medical evacuation aircraft with licensed aviation crew and seamless VIP handling.
+          </p>
+
+          <div className="flex flex-wrap gap-3 sm:gap-4 mb-8">
             {HERO_FEATURES.map((f) => (
-              <div key={f.label} className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[#EAF1FE] flex items-center justify-center flex-shrink-0">
-                  <f.icon className="w-3.5 h-3.5 text-[#0955AC]" />
-                </div>
-                <span className="poppins text-[12.5px] font-[600] text-[#0B1B34]">{f.label}</span>
+              <div
+                key={f.label}
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-xs sm:text-sm font-medium text-slate-200"
+              >
+                <f.icon className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>{f.label}</span>
               </div>
             ))}
           </div>
 
-          <div className="flex flex-col items-center mt-3 sm:mt-4">
+          <div className="flex flex-col items-center pt-2">
             <ModuleTabs active="rental" />
-            <div className="mt-2.5 sm:mt-3">
+            <div className="mt-3">
               <RentalSubTabs active="air" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Floats smoothly over the hero bottom edge */}
-      <div className="relative z-50 -mt-6 sm:-mt-8 md:-mt-10">
+      {/* Floating Search Form */}
+      <div className="relative z-30 -mt-10 sm:-mt-14 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SearchForm formData={formData} onFormChange={handleFormChange} />
-
-        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-2 pb-12 sm:pb-14">
-          <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-6 items-start">
-            {/* Filters */}
-            <div className="order-2 xl:order-1">
-              <FilterSidebar searchParams={formData} />
-            </div>
-
-            {/* Results */}
-            <div className="order-1 xl:order-2 min-w-0">
-              <AirVehicleListContent
-                vehicles={props.vehicles}
-                authUser={props.auth.user}
-                likedVehicleIds={props.likedVehicleIds}
-                searchParams={{
-                  dropoffDate: formData.dropoffDate,
-                  dropoffLocation: formData.dropoffLocation,
-                  pickupDate: formData.pickupDate,
-                  pickupLocation: formData.pickupLocation
-                }}
-              />
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Explore categories right after the aircraft results */}
-      <Categories basePath="/airVehicleList" />
-      <WhyChooseUs />
-      <HowItWorks />
-      <Testimonials />
-      <ContactStrip />
+      {/* Results Area */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16">
+        <div className="xl:hidden flex items-center justify-between mb-6 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <span>Filter Aircraft</span>
+            {props.vehicles?.total && (
+              <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold">
+                {props.vehicles.total} aircraft
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-600/20 active:scale-95 transition-transform"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>{mobileFilterOpen ? "Hide Filters" : "Filters & Sort"}</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-8 items-start">
+          <aside className={`xl:block ${mobileFilterOpen ? "block" : "hidden"} order-2 xl:order-1`}>
+            <div className="sticky top-24">
+              <FilterSidebar searchParams={formData} onCloseMobile={() => setMobileFilterOpen(false)} />
+            </div>
+          </aside>
+
+          <section className="order-1 xl:order-2 min-w-0">
+            <AirVehicleListContent
+              vehicles={props.vehicles}
+              authUser={props.auth?.user}
+              likedVehicleIds={props.likedVehicleIds}
+              searchParams={{
+                dropoffDate: formData.dropoffDate,
+                dropoffLocation: formData.dropoffLocation,
+                pickupDate: formData.pickupDate,
+                pickupLocation: formData.pickupLocation,
+              }}
+            />
+          </section>
+        </div>
+      </main>
+
+      <div className="bg-white border-t border-slate-200/60">
+        <Categories basePath="/airVehicleList" />
+        <WhyChooseUs />
+        <HowItWorks />
+        <Testimonials />
+        <ContactStrip />
+      </div>
+
       <Footer />
     </div>
   );
 };
 
-export default airVehicleList;
+export default AirVehicleList;

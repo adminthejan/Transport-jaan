@@ -32,6 +32,11 @@ class ChatController extends Controller
     {
         [$side] = $this->actor($request);
 
+        // Platform staff answer support threads from their own inbox.
+        if ($side === 'admin') {
+            return redirect('/superadmin/support');
+        }
+
         return Inertia::render('Web/home/chat/MessagesPage', [
             'side' => $side,
             'conversationId' => $request->integer('conversation') ?: null,
@@ -41,12 +46,24 @@ class ChatController extends Controller
     public function index(Request $request): JsonResponse
     {
         [$side, $ownerId] = $this->actor($request);
-        $col = $side === 'client' ? 'client_id' : 'vendor_id';
 
-        $conversations = ChatConversation::query()
-            ->where($col, $ownerId)
-            ->whereNotNull('last_message_at')
-            ->with($side === 'client' ? ['vendor.vendorProfile'] : ['client'])
+        // Support threads: the platform team sees every one; a client/vendor only
+        // sees their own, which is returned separately so the UI can pin it.
+        if ($side === 'admin') {
+            $query = ChatConversation::query()
+                ->where('type', 'support')
+                ->whereNotNull('last_message_at')
+                ->with('client');
+        } else {
+            $col = $side === 'client' ? 'client_id' : 'vendor_id';
+            $query = ChatConversation::query()
+                ->where('type', 'vendor')
+                ->where($col, $ownerId)
+                ->whereNotNull('last_message_at')
+                ->with($side === 'client' ? ['vendor.vendorProfile'] : ['client']);
+        }
+
+        $conversations = $query
             ->withCount(['messages as unread_count' => fn ($q) => $q
                 ->where('sender_side', '!=', $side)
                 ->whereNull('read_at')])
@@ -54,8 +71,19 @@ class ChatController extends Controller
             ->limit(100)
             ->get();
 
+        $support = null;
+        if ($side !== 'admin') {
+            $support = ChatConversation::query()
+                ->where('type', 'support')
+                ->where('client_id', $ownerId)
+                ->withCount(['messages as unread_count' => fn ($q) => $q
+                    ->where('sender_side', '!=', $side)
+                    ->whereNull('read_at')])
+                ->first();
+        }
+
         $lastIds = ChatMessage::query()
-            ->whereIn('conversation_id', $conversations->pluck('id'))
+            ->whereIn('conversation_id', $conversations->pluck('id')->merge($support ? [$support->id] : []))
             ->selectRaw('MAX(id) as id')
             ->groupBy('conversation_id')
             ->pluck('id');
@@ -67,6 +95,9 @@ class ChatController extends Controller
                 $side,
                 $lastByConversation->get($c->id)
             ))->values(),
+            'support' => $support
+                ? $this->transformConversation($support, $side, $lastByConversation->get($support->id))
+                : null,
         ]);
     }
 
@@ -77,10 +108,48 @@ class ChatController extends Controller
         $count = ChatMessage::query()
             ->where('sender_side', '!=', $side)
             ->whereNull('read_at')
-            ->whereHas('conversation', fn ($q) => $q->where($side === 'client' ? 'client_id' : 'vendor_id', $ownerId))
+            ->whereHas('conversation', function ($q) use ($side, $ownerId) {
+                if ($side === 'admin') {
+                    $q->where('type', 'support');
+
+                    return;
+                }
+                $q->where(function ($q) use ($side, $ownerId) {
+                    $q->where(fn ($q) => $q->where('type', 'vendor')
+                        ->where($side === 'client' ? 'client_id' : 'vendor_id', $ownerId))
+                        ->orWhere(fn ($q) => $q->where('type', 'support')->where('client_id', $ownerId));
+                });
+            })
             ->count();
 
         return response()->json(['count' => $count]);
+    }
+
+    /**
+     * Client or vendor opens (or re-opens) their single thread with the platform
+     * team. Vendor team members share the vendor owner's support thread.
+     */
+    public function startSupport(Request $request): JsonResponse
+    {
+        [$side, $ownerId] = $this->actor($request);
+        abort_if($side === 'admin', 403, 'Support staff reply from the support inbox.');
+
+        $data = $request->validate([
+            'context_label' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $conversation = ChatConversation::firstOrCreate(
+            ['type' => 'support', 'client_id' => $ownerId],
+            ['vendor_id' => null]
+        );
+
+        if (! empty($data['context_label'])) {
+            $conversation->update(['context_label' => mb_substr($data['context_label'], 0, 255)]);
+        }
+
+        return response()->json([
+            'conversation' => $this->transformConversation($conversation, $side, null),
+        ]);
     }
 
     /**
@@ -150,6 +219,7 @@ class ChatController extends Controller
         abort_if(in_array($vendor->status, ['suspended', 'blocked'], true), 422, 'This vendor is not available for chat.');
 
         $conversation = ChatConversation::firstOrCreate([
+            'type' => 'vendor',
             'client_id' => $clientId,
             'vendor_id' => $vendor->id,
         ]);
@@ -252,6 +322,11 @@ class ChatController extends Controller
             return ['vendor', (int) $user->id];
         }
 
+        // Platform staff (the application owner's team).
+        if ($user->role === 'SuperAdmin') {
+            return ['admin', (int) $user->id];
+        }
+
         // Vendor team members are created with role "client", so membership must be
         // checked before the role or they would be mistaken for customers.
         $membership = VendorUserMembership::query()
@@ -263,7 +338,7 @@ class ChatController extends Controller
             return ['vendor', (int) $membership->vendor_user_id];
         }
 
-        abort_unless($user->role === 'client', 403, 'Chat is only available to clients and vendors.');
+        abort_unless($user->role === 'client', 403, 'Chat is only available to clients, vendors and support staff.');
 
         return ['client', (int) $user->id];
     }
@@ -271,6 +346,15 @@ class ChatController extends Controller
     private function authorizeConversation(Request $request, ChatConversation $conversation): array
     {
         [$side, $ownerId] = $this->actor($request);
+
+        if ($conversation->type === 'support') {
+            // Staff may open any support thread; the requester only their own.
+            abort_unless($side === 'admin' || (int) $conversation->client_id === $ownerId, 404);
+
+            return [$side, $ownerId];
+        }
+
+        abort_if($side === 'admin', 404);
         $participantId = $side === 'client' ? $conversation->client_id : $conversation->vendor_id;
         abort_unless((int) $participantId === $ownerId, 404);
 
@@ -279,6 +363,29 @@ class ChatController extends Controller
 
     private function transformConversation(ChatConversation $c, string $side, ?ChatMessage $last): array
     {
+        if ($c->type === 'support') {
+            // Requesters see "Support"; staff see who is asking (and whether they are a vendor).
+            $requester = $c->client ?? User::find($c->client_id);
+            $isStaff = $side === 'admin';
+            $name = $isStaff
+                ? trim(($requester?->name ?: 'User') . ($requester?->role === 'vendor' ? ' (Vendor)' : ''))
+                : 'Support';
+
+            return [
+                'id' => $c->id,
+                'type' => 'support',
+                'other_party' => ['id' => $isStaff ? $requester?->id : null, 'name' => $name, 'image' => null],
+                'context_label' => $c->context_label,
+                'last_message' => $last ? [
+                    'body' => mb_strimwidth($last->body, 0, 120, '…'),
+                    'mine' => $last->sender_side === $side,
+                    'created_at' => $last->created_at?->toIso8601String(),
+                ] : null,
+                'last_message_at' => $c->last_message_at?->toIso8601String(),
+                'unread_count' => (int) ($c->unread_count ?? 0),
+            ];
+        }
+
         $party = $side === 'client' ? $c->vendor : $c->client;
         $name = $side === 'client'
             ? ($c->vendor?->vendorProfile?->company_name ?: $c->vendor?->name)

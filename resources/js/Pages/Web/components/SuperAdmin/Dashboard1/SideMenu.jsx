@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Headset, Search } from "lucide-react";
+import useChatUnread from "@/Components/chat/useChatUnread";
 import { AnimatePresence } from "framer-motion";
 import CompanyLogo from "../../CompanyLogo";
 import ActionModalTemplate from "../Common/ActionModalTemplate";
@@ -26,6 +27,7 @@ import { Link, router, usePage } from "@inertiajs/react";
 
 const SideMenu = () => {
     const { url, props } = usePage();
+    const supportUnread = useChatUnread(true);
     const initialSidebarState = getSidebarStateFromPath(url);
     const [activeSubsection, setActiveSubsection] = useState(initialSidebarState.activeSubsection);
     const [isDashboardOpen, setIsDashboardOpen] = useState(initialSidebarState.isDashboardOpen);
@@ -229,6 +231,8 @@ const SideMenu = () => {
         } else if (normalizedPath === "/superadmin/account-settings") {
             nextState.activeSubsection = "AccountSettings";
             nextState.isAccountOpen = true;
+        } else if (normalizedPath === "/superadmin/support") {
+            nextState.activeSubsection = "Support";
         } else if (normalizedPath === "/superadmin/profile") {
             nextState.activeSubsection = "Profile";
             nextState.isAccountOpen = true;
@@ -1239,6 +1243,37 @@ const SideMenu = () => {
             {/* Bottom Section */}
             <div className="h-[1px] w-full bg-white/20"></div>
             <div className="px-[28px] sm:px-4 md:px-[28px] lg:px-[28px]">
+                {/* Support Inbox: client and vendor threads addressed to the platform team */}
+                <Link
+                    href="/superadmin/support"
+                    className={`w-full h-[42px] flex flex-row justify-between items-center px-4 mt-[15px] cursor-pointer rounded-md ${
+                        activeSubsection === "Support" ? "bg-[#181A2A]" : "hover:bg-[#181A2A]"
+                    }`}
+                    onClick={() => setActiveSubsection("Support")}
+                    onMouseEnter={() => setHoveredSection("Support")}
+                    onMouseLeave={() => setHoveredSection(null)}
+                >
+                    <div className="flex flex-row items-center gap-2">
+                        <Headset
+                            className={`size-[16px] ${
+                                activeSubsection === "Support" || hoveredSection === "Support" ? "text-white" : "text-[#AEB9E1]"
+                            }`}
+                        />
+                        <h1
+                            className={`font-[500] text-[18px] ${
+                                activeSubsection === "Support" || hoveredSection === "Support" ? "text-white" : "text-[#AEB9E1]"
+                            }`}
+                        >
+                            Support Inbox
+                        </h1>
+                    </div>
+                    {supportUnread > 0 && (
+                        <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#0E43FB] text-white text-[11px] font-[700] flex items-center justify-center">
+                            {supportUnread > 99 ? "99+" : supportUnread}
+                        </span>
+                    )}
+                </Link>
+
                 {/* Settings */}
                 <div
                     className={`w-full h-[42px] flex flex-row justify-between items-center px-4 my-[15px] cursor-pointer rounded-md ${activeSubsection === "Settings"

@@ -382,7 +382,7 @@ class BusBookingController extends Controller
             $rules = [
                 'schedule_id' => 'required|exists:bus_schedules,id',
                 'passenger_name' => 'required|string|max:255',
-                'passenger_email' => 'nullable|email|max:255',
+                'passenger_email' => 'required|email|max:255',
                 'passenger_phone' => 'required|string|max:20',
                 'passenger_nic' => ['required', 'regex:/^(\d{9}[VvXx]|\d{12})$/'],
                 'seat_numbers' => 'required',

@@ -769,7 +769,26 @@ class WebController extends Controller
             }
         }
         if (isset($searchParams['warehouseLocation']) && !empty($searchParams['warehouseLocation'])) {
-            $query->where('address', 'LIKE', '%' . $searchParams['warehouseLocation'] . '%');
+            // Addresses rarely contain the province name, so a province search
+            // (e.g. "Western" or "Western Province") also matches its districts.
+            $term = trim(preg_replace('/\s+province$/i', '', (string) $searchParams['warehouseLocation']));
+            $provinceDistricts = [
+                'western' => ['Colombo', 'Gampaha', 'Kalutara'],
+                'central' => ['Kandy', 'Matale', 'Nuwara Eliya'],
+                'southern' => ['Galle', 'Matara', 'Hambantota'],
+                'northern' => ['Jaffna', 'Kilinochchi', 'Mannar', 'Vavuniya', 'Mullaitivu'],
+                'eastern' => ['Trincomalee', 'Batticaloa', 'Ampara'],
+                'north western' => ['Kurunegala', 'Puttalam'],
+                'north central' => ['Anuradhapura', 'Polonnaruwa'],
+                'uva' => ['Badulla', 'Monaragala'],
+                'sabaragamuwa' => ['Ratnapura', 'Kegalle'],
+            ];
+            $needles = array_merge([$term], $provinceDistricts[strtolower($term)] ?? []);
+            $query->where(function ($q) use ($needles) {
+                foreach ($needles as $needle) {
+                    $q->orWhere('address', 'LIKE', '%' . $needle . '%');
+                }
+            });
         }
 
         // Warehouse type filter (multi-select: the facility itself)

@@ -1,14 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
-import { Briefcase, Car, Check, ChevronDown, Cog, Fuel, Gauge, LayoutGrid, ShieldCheck, SlidersHorizontal, Tag, Users, Wifi, X } from "lucide-react";
+import {
+  Briefcase,
+  Car,
+  Check,
+  ChevronDown,
+  Cog,
+  Fuel,
+  Gauge,
+  LayoutGrid,
+  ShieldCheck,
+  SlidersHorizontal,
+  Tag,
+  Users,
+  Wifi,
+  X,
+  RotateCcw,
+} from "lucide-react";
 
 const INDUSTRY_CATEGORIES = [
   { id: "cars_suvs", label: "Cars & SUVs" },
   { id: "vans_minibuses", label: "Vans & Minibuses" },
-  { id: "buses", label: "Buses" },
-  { id: "trucks", label: "Trucks" },
+  { id: "buses", label: "Buses & Coaches" },
+  { id: "trucks", label: "Trucks & Commercial" },
   { id: "prime_movers_trailers", label: "Prime Movers & Trailers" },
-  { id: "construction_equipment", label: "Construction & Equipment" },
+  { id: "construction_equipment", label: "Equipment & Heavy" },
 ];
 
 const BODY_TYPES = [
@@ -16,14 +32,14 @@ const BODY_TYPES = [
   { id: "hatchback", label: "Hatchback" },
   { id: "suv", label: "SUV" },
   { id: "crossover", label: "Crossover" },
-  { id: "wagon", label: "Wagon" },
+  { id: "wagon", label: "Station Wagon" },
   { id: "mpv", label: "MPV / Minivan" },
   { id: "van", label: "Van" },
-  { id: "pickup", label: "Pickup / Truck" },
+  { id: "pickup", label: "Pickup Truck" },
   { id: "bus", label: "Bus / Coach" },
   { id: "motorcycle", label: "Motorcycle" },
   { id: "three_wheeler", label: "Three-Wheeler" },
-  { id: "special_purpose", label: "Special Purpose Vehicle" },
+  { id: "special_purpose", label: "Special Purpose" },
   { id: "family", label: "Family MBP" },
   { id: "sportcoupe", label: "Sport Coupe" },
   { id: "compact", label: "Compact" },
@@ -32,10 +48,10 @@ const BODY_TYPES = [
 ];
 
 const EXTRAS = [
-  { id: "gps", label: "GPS", icon: Gauge },
+  { id: "gps", label: "GPS Navigation", icon: Gauge },
   { id: "child_seat", label: "Child Seat", icon: Users },
-  { id: "wifi", label: "WiFi", icon: Wifi },
-  { id: "insurance_coverage", label: "Insurance Coverage", icon: ShieldCheck },
+  { id: "wifi", label: "Onboard 4G WiFi", icon: Wifi },
+  { id: "insurance_coverage", label: "Full Insurance Cover", icon: ShieldCheck },
 ];
 
 const BRANDS = [
@@ -45,6 +61,10 @@ const BRANDS = [
   { id: "bmw", label: "BMW" },
   { id: "mercedes", label: "Mercedes-Benz" },
   { id: "audi", label: "Audi" },
+  { id: "nissan", label: "Nissan" },
+  { id: "mitsubishi", label: "Mitsubishi" },
+  { id: "hyundai", label: "Hyundai" },
+  { id: "suzuki", label: "Suzuki" },
   { id: "other", label: "Other" },
 ];
 
@@ -61,27 +81,21 @@ const LUGGAGE_CAPACITIES = [
   { id: "5plus", label: "5+ Bags" },
 ];
 
-const MILEAGES = [
-  { id: "limited", label: "Limited" },
-  { id: "unlimited", label: "Unlimited" },
-];
-
 const TRANSMISSIONS = [
   { id: "automatic", label: "Automatic" },
   { id: "manual", label: "Manual" },
-  { id: "amt", label: "AMT" },
+  { id: "amt", label: "Automated Manual (AMT)" },
   { id: "cvt", label: "CVT" },
-  { id: "dct", label: "DCT" },
+  { id: "dct", label: "Dual-Clutch (DCT)" },
 ];
 
 const FUELS = [
   { id: "petrol", label: "Petrol" },
   { id: "diesel", label: "Diesel" },
   { id: "hybrid", label: "Hybrid" },
-  { id: "electric", label: "Electric" },
+  { id: "electric", label: "Electric (EV)" },
   { id: "cng", label: "CNG" },
   { id: "lpg", label: "LPG" },
-  { id: "other", label: "Other" },
 ];
 
 const FilterOption = ({ label, active, onClick }) => (
@@ -90,14 +104,20 @@ const FilterOption = ({ label, active, onClick }) => (
     role="checkbox"
     aria-checked={active}
     onClick={onClick}
-    className={`flex items-center justify-between w-full px-3 py-2 rounded-[8px] text-[12px] font-[500] mb-1.5 border transition-colors cursor-pointer ${
+    className={`group flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-semibold mb-1.5 transition-all duration-200 cursor-pointer ${
       active
-        ? "bg-[#0955AC] border-[#0955AC] text-white"
-        : "bg-white border-[#0000001A] text-[#4B5563] hover:border-[#0955AC] hover:text-[#0955AC]"
+        ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
+        : "bg-slate-50/80 hover:bg-slate-100 text-slate-700 border border-slate-200/60 hover:border-slate-300"
     }`}
   >
-    <span>{label}</span>
-    {active && <Check className="w-3.5 h-3.5 shrink-0" />}
+    <span className="truncate">{label}</span>
+    <span
+      className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+        active ? "bg-white text-blue-600" : "border border-slate-300 group-hover:border-slate-400"
+      }`}
+    >
+      {active && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+    </span>
   </button>
 );
 
@@ -109,42 +129,40 @@ const FilterSection = ({ icon, title, count = 0, defaultOpen = false, children }
   }, [count]);
 
   return (
-    <div className="filter-section mb-4 pb-4 border-b border-[#00000014] last:border-b-0 last:mb-0 last:pb-0">
+    <div className="filter-section mb-4 pb-4 border-b border-slate-100 last:border-b-0 last:mb-0 last:pb-0">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between w-full text-left py-1 group cursor-pointer focus:outline-none"
       >
         <div className="flex items-center gap-2">
-          {icon}
-          <h3 className="bebas-neue text-[17px] text-[#0F0F0F] tracking-wide group-hover:text-[#0955AC] transition-colors">
+          <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+            {icon}
+          </div>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-800 group-hover:text-blue-600 transition-colors">
             {title}
-          </h3>
+          </span>
           {count > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0955AC1A] text-[#0955AC] text-[10px] font-[700]">
+            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-blue-600 text-white text-[10px] font-bold">
               {count}
             </span>
           )}
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-gray-400 transition-transform duration-200 group-hover:text-[#0955AC] ${
-            isOpen ? "rotate-180 text-[#0955AC]" : ""
+          className={`w-4 h-4 text-slate-400 transition-transform duration-200 group-hover:text-blue-600 ${
+            isOpen ? "rotate-180 text-blue-600" : ""
           }`}
         />
       </button>
-      {isOpen && <div className="pt-2">{children}</div>}
+      {isOpen && <div className="pt-2.5 space-y-1">{children}</div>}
     </div>
   );
 };
 
 const THUMB_STYLES =
-  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#0955AC] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer " +
-  "[&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#0955AC] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer";
+  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer " +
+  "[&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer";
 
-// Dual-handle price range slider. Drag updates the visual position and the
-// "LKR X - LKR Y" readout instantly (local state), but only actually
-// triggers a search (a full round trip) once you release the handle —
-// otherwise every pixel of drag would fire a request.
 const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
   const [localMin, setLocalMin] = useState(valueMin);
   const [localMax, setLocalMax] = useState(valueMax);
@@ -156,15 +174,13 @@ const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
 
   const minPct = ((localMin - min) / (max - min)) * 100;
   const maxPct = ((localMax - min) / (max - min)) * 100;
-  // Keep whichever handle is closer to the max end on top, so the two
-  // thumbs stay independently grabbable even when they're near each other.
   const minOnTop = localMin > min + (max - min) * 0.6;
 
   return (
     <div className="px-1 pt-1">
-      <div className="relative h-1.5 rounded-full bg-[#E2E8F0] mt-3 mb-4">
+      <div className="relative h-2 rounded-full bg-slate-100 mt-3 mb-4">
         <div
-          className="absolute h-1.5 rounded-full bg-[#0955AC]"
+          className="absolute h-2 rounded-full bg-blue-600"
           style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
         />
         <input
@@ -178,8 +194,8 @@ const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
           onTouchEnd={commit}
           onKeyUp={commit}
           aria-label="Minimum price per day"
-          style={{ zIndex: minOnTop ? 5 : 3 }}
-          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent pointer-events-none ${THUMB_STYLES}`}
+          style={{ zIndex: minOnTop ? 20 : 10 }}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-2 appearance-none bg-transparent pointer-events-none cursor-pointer ${THUMB_STYLES}`}
         />
         <input
           type="range"
@@ -192,61 +208,56 @@ const PriceRangeSlider = ({ min, max, step, valueMin, valueMax, onCommit }) => {
           onTouchEnd={commit}
           onKeyUp={commit}
           aria-label="Maximum price per day"
-          style={{ zIndex: minOnTop ? 3 : 5 }}
-          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent pointer-events-none ${THUMB_STYLES}`}
+          style={{ zIndex: minOnTop ? 10 : 20 }}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-2 appearance-none bg-transparent pointer-events-none cursor-pointer ${THUMB_STYLES}`}
         />
       </div>
-      <div className="flex items-center justify-between text-[12px] font-[700] text-[#334155]">
-        <span>LKR {localMin.toLocaleString()}</span>
-        <span>LKR {localMax.toLocaleString()}{localMax >= max ? "+" : ""}</span>
+      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+        <span>LKR {Number(localMin).toLocaleString()}</span>
+        <span>{localMax >= max ? "Any Price" : `LKR ${Number(localMax).toLocaleString()}`}</span>
       </div>
     </div>
   );
 };
 
-// Single-handle linear slider — "at least N seats" reads more naturally as
-// a magnitude you drag up, rather than a min/max range like price does.
-const MinValueSlider = ({ min, max, value, suffix, onCommit }) => {
+const LinearStepSlider = ({ min, max, step = 1, value, onCommit, suffix = "Seats" }) => {
   const [local, setLocal] = useState(value);
-
   useEffect(() => setLocal(value), [value]);
 
+  const commit = () => onCommit(local);
   const pct = ((local - min) / (max - min)) * 100;
 
   return (
     <div className="px-1 pt-1">
-      <div className="relative h-1.5 rounded-full bg-[#E2E8F0] mt-3 mb-4">
-        <div className="absolute h-1.5 rounded-full bg-[#0955AC]" style={{ width: `${pct}%` }} />
+      <div className="relative h-2 rounded-full bg-slate-100 mt-3 mb-4">
+        <div className="absolute h-2 rounded-full bg-blue-600" style={{ left: 0, width: `${pct}%` }} />
         <input
           type="range"
           min={min}
           max={max}
-          step={1}
+          step={step}
           value={local}
           onChange={(e) => setLocal(Number(e.target.value))}
-          onMouseUp={() => onCommit(local)}
-          onTouchEnd={() => onCommit(local)}
-          onKeyUp={() => onCommit(local)}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          onKeyUp={commit}
           aria-label={`Minimum ${suffix}`}
-          className={`absolute w-full top-1/2 -translate-y-1/2 h-1.5 appearance-none bg-transparent cursor-pointer ${THUMB_STYLES}`}
+          className={`absolute w-full top-1/2 -translate-y-1/2 h-2 appearance-none bg-transparent cursor-pointer ${THUMB_STYLES}`}
         />
       </div>
-      <div className="text-[12px] font-[700] text-[#334155]">
+      <div className="text-xs font-bold text-slate-700">
         At least {local} {suffix}{local >= max ? "+" : ""}
       </div>
     </div>
   );
 };
 
-// Splits a comma-separated query param into a lowercase array — every
-// multi-select filter section below uses this same shape.
-const toList = (val) => (val ? String(val).toLowerCase().split(',').filter(Boolean) : []);
+const toList = (val) => (val ? String(val).toLowerCase().split(",").filter(Boolean) : []);
 
-const FilterSidebar = ({ searchParams, onSearch }) => {
+const FilterSidebar = ({ searchParams, onSearch, onCloseMobile }) => {
   const [selectedBodyType, setSelectedBodyType] = useState(() => toList(searchParams?.bodyType));
   const [selectedIndustryCategory, setSelectedIndustryCategory] = useState(() => toList(searchParams?.industryCategory));
   const [selectedBrand, setSelectedBrand] = useState(() => toList(searchParams?.brand));
-  const [isOpen, setIsOpen] = useState(false);
   const [selectedExtras, setSelectedExtras] = useState(() => toList(searchParams?.extras));
   const [minSeats, setMinSeats] = useState(
     searchParams?.minSeats !== undefined && searchParams?.minSeats !== "" ? Number(searchParams.minSeats) : SEATS_FLOOR
@@ -258,7 +269,6 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
   const [priceMax, setPriceMax] = useState(
     searchParams?.maxPrice !== undefined && searchParams?.maxPrice !== "" ? Number(searchParams.maxPrice) : PRICE_CEILING
   );
-  const [selectedMileage, setSelectedMileage] = useState(() => toList(searchParams?.mileage));
   const [selectedTransmission, setSelectedTransmission] = useState(() => toList(searchParams?.transmission));
   const [selectedFuel, setSelectedFuel] = useState(() => toList(searchParams?.fuel));
   const [showAllBodyTypes, setShowAllBodyTypes] = useState(false);
@@ -270,7 +280,6 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
     setSelectedIndustryCategory(toList(searchParams?.industryCategory));
     setSelectedExtras(toList(searchParams?.extras));
     setSelectedLuggage(toList(searchParams?.luggage));
-    setSelectedMileage(toList(searchParams?.mileage));
     setSelectedTransmission(toList(searchParams?.transmission));
     setSelectedFuel(toList(searchParams?.fuel));
     setPriceMin(searchParams?.minPrice !== undefined && searchParams?.minPrice !== "" ? Number(searchParams.minPrice) : PRICE_FLOOR);
@@ -279,33 +288,28 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
   }, [searchParams]);
 
   const runSearch = (nextParams) => {
-    // Inside the multimodal Journey Planner this is rendered inline, and a
-    // hard navigation here used to boot the user out to the standalone
-    // /vehicleList page — losing the Land/Sea/Air tabs entirely.
     if (onSearch) {
       onSearch(nextParams);
       return;
     }
-    router.get('/vehicleList', nextParams, {
+    router.get("/vehicleList", nextParams, {
       preserveState: true,
       preserveScroll: true,
       replace: true,
     });
   };
 
-  // Every filter section below is a checkbox group, not radio buttons — more
-  // than one option per section (and across sections) can be active at once.
   const toggleInList = (list, setList, paramKey) => (value) => {
     const newVal = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
     setList(newVal);
-    runSearch({ ...searchParams, [paramKey]: newVal.join(',') });
+    runSearch({ ...searchParams, [paramKey]: newVal.join(",") });
   };
 
-  const handleBodyTypeChange = toggleInList(selectedBodyType, setSelectedBodyType, 'bodyType');
-  const handleBrandChange = toggleInList(selectedBrand, setSelectedBrand, 'brand');
-  const handleIndustryCategoryChange = toggleInList(selectedIndustryCategory, setSelectedIndustryCategory, 'industryCategory');
-  const handleExtraToggle = toggleInList(selectedExtras, setSelectedExtras, 'extras');
-  const handleLuggageChange = toggleInList(selectedLuggage, setSelectedLuggage, 'luggage');
+  const handleBodyTypeChange = toggleInList(selectedBodyType, setSelectedBodyType, "bodyType");
+  const handleBrandChange = toggleInList(selectedBrand, setSelectedBrand, "brand");
+  const handleIndustryCategoryChange = toggleInList(selectedIndustryCategory, setSelectedIndustryCategory, "industryCategory");
+  const handleExtraToggle = toggleInList(selectedExtras, setSelectedExtras, "extras");
+  const handleLuggageChange = toggleInList(selectedLuggage, setSelectedLuggage, "luggage");
 
   const handleSeatsCommit = (val) => {
     setMinSeats(val);
@@ -318,18 +322,12 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
     runSearch({
       ...searchParams,
       minPrice: min > PRICE_FLOOR ? min : "",
-      // At the ceiling it means "no upper bound" — omit it entirely instead
-      // of sending 300, so anything priced above the slider's own max still
-      // matches (see ClientVehicleController's minPrice/maxPrice handling).
       maxPrice: max < PRICE_CEILING ? max : "",
     });
   };
 
-  const handleMileageChange = toggleInList(selectedMileage, setSelectedMileage, 'mileage');
-  const handleTransmissionChange = toggleInList(selectedTransmission, setSelectedTransmission, 'transmission');
-  const handleFuelChange = toggleInList(selectedFuel, setSelectedFuel, 'fuel');
-
-  const toggleSidebar = () => setIsOpen(!isOpen);
+  const handleTransmissionChange = toggleInList(selectedTransmission, setSelectedTransmission, "transmission");
+  const handleFuelChange = toggleInList(selectedFuel, setSelectedFuel, "fuel");
 
   const activeCount =
     selectedBodyType.length +
@@ -339,7 +337,6 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
     selectedLuggage.length +
     (priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0) +
     selectedExtras.length +
-    selectedMileage.length +
     selectedTransmission.length +
     selectedFuel.length;
 
@@ -352,7 +349,6 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
     setPriceMin(PRICE_FLOOR);
     setPriceMax(PRICE_CEILING);
     setSelectedExtras([]);
-    setSelectedMileage([]);
     setSelectedTransmission([]);
     setSelectedFuel([]);
     runSearch({
@@ -365,107 +361,42 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
       minPrice: "",
       maxPrice: "",
       extras: "",
-      mileage: "",
       transmission: "",
       fuel: "",
     });
   };
 
   return (
-    <>
-      {/* Mobile Filter Button */}
-      <button
-        onClick={toggleSidebar}
-        className="xl:hidden fixed bottom-4 right-4 z-40 bg-[#0955AC] text-white pl-4 pr-5 py-3 rounded-full shadow-lg flex items-center gap-2 text-[13px] font-[600]"
-      >
-        <SlidersHorizontal className="w-4 h-4" />
-        {isOpen ? "Close Filters" : "Show Filters"}
-        {!isOpen && activeCount > 0 && (
-          <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#0955AC] text-[10px] font-[700]">
-            {activeCount}
-          </span>
-        )}
-      </button>
-
-      {/* Backdrop for mobile */}
-      {isOpen && (
-        <div
-          className="xl:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={toggleSidebar}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={`poppins text-[#0F0F0F80] text-[12px] font-[400] filter-sidebar bg-white rounded-[20px] shadow-[0_8px_24px_rgba(11,27,52,0.08)] border border-black/5 p-4 sm:p-5
-          fixed xl:sticky xl:top-4
-          top-0 left-0
-          h-full xl:h-auto
-          xl:max-h-[calc(100vh-2rem)]
-          overflow-y-auto
-          w-[283px] xl:w-[260px] xl:shrink-0
-          transform transition-transform duration-300 ease-in-out
-          z-40
-          ${isOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}
-      >
-        {/* Close button for mobile */}
-        <button
-          onClick={toggleSidebar}
-          className="xl:hidden absolute top-4 right-4 text-gray-600 hover:text-gray-800"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#00000014]">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-4 h-4 text-[#0955AC]" />
-            <h2 className="bebas-neue text-[20px] text-[#0F0F0F] tracking-wide">FILTERS</h2>
+    <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-5 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <SlidersHorizontal className="w-4 h-4" />
           </div>
-          {activeCount > 0 && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="text-[11px] font-[600] text-[#0955AC] hover:underline cursor-pointer"
-            >
-              Clear All ({activeCount})
-            </button>
-          )}
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 leading-none">Filters</h2>
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">Refine your search</p>
+          </div>
         </div>
 
-        <FilterSection icon={<LayoutGrid className="w-4 h-4 text-[#0955AC]" />} title="USE / CATEGORY" count={selectedIndustryCategory.length} defaultOpen={true}>
-          {INDUSTRY_CATEGORIES.map((cat) => (
-            <FilterOption
-              key={cat.id}
-              label={cat.label}
-              active={selectedIndustryCategory.includes(cat.id)}
-              onClick={() => handleIndustryCategoryChange(cat.id)}
-            />
-          ))}
-        </FilterSection>
+        {activeCount > 0 && (
+          <button
+            type="button"
+            onClick={clearAll}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors cursor-pointer"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Reset ({activeCount})</span>
+          </button>
+        )}
+      </div>
 
-        <FilterSection icon={<Car className="w-4 h-4 text-[#0955AC]" />} title="VEHICLE TYPE" count={selectedBodyType.length} defaultOpen={true}>
-          {(showAllBodyTypes ? BODY_TYPES : BODY_TYPES.slice(0, 6)).map((type) => (
-            <FilterOption
-              key={type.id}
-              label={type.label}
-              active={selectedBodyType.includes(type.id)}
-              onClick={() => handleBodyTypeChange(type.id)}
-            />
-          ))}
-          {BODY_TYPES.length > 6 && (
-            <button
-              type="button"
-              onClick={() => setShowAllBodyTypes(!showAllBodyTypes)}
-              className="text-[11px] font-[600] text-[#0955AC] hover:underline mt-1 pt-1 block cursor-pointer"
-            >
-              {showAllBodyTypes ? "Show Less" : `+ Show All (${BODY_TYPES.length})`}
-            </button>
-          )}
-        </FilterSection>
-
+      <div className="space-y-1">
+        {/* Price Slider */}
         <FilterSection
-          icon={<Gauge className="w-4 h-4 text-[#0955AC]" />}
-          title="PRICE PER DAY"
+          icon={<Tag className="w-3.5 h-3.5" />}
+          title="Daily Rate (LKR)"
           count={priceMin > PRICE_FLOOR || priceMax < PRICE_CEILING ? 1 : 0}
           defaultOpen={true}
         >
@@ -479,7 +410,119 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
           />
         </FilterSection>
 
-        <FilterSection icon={<Tag className="w-4 h-4 text-[#0955AC]" />} title="BRANDS" count={selectedBrand.length} defaultOpen={selectedBrand.length > 0}>
+        {/* Categories */}
+        <FilterSection
+          icon={<LayoutGrid className="w-3.5 h-3.5" />}
+          title="Category"
+          count={selectedIndustryCategory.length}
+          defaultOpen={true}
+        >
+          {INDUSTRY_CATEGORIES.map((cat) => (
+            <FilterOption
+              key={cat.id}
+              label={cat.label}
+              active={selectedIndustryCategory.includes(cat.id)}
+              onClick={() => handleIndustryCategoryChange(cat.id)}
+            />
+          ))}
+        </FilterSection>
+
+        {/* Vehicle Body Type */}
+        <FilterSection
+          icon={<Car className="w-3.5 h-3.5" />}
+          title="Body Style"
+          count={selectedBodyType.length}
+          defaultOpen={true}
+        >
+          {(showAllBodyTypes ? BODY_TYPES : BODY_TYPES.slice(0, 5)).map((type) => (
+            <FilterOption
+              key={type.id}
+              label={type.label}
+              active={selectedBodyType.includes(type.id)}
+              onClick={() => handleBodyTypeChange(type.id)}
+            />
+          ))}
+          {BODY_TYPES.length > 5 && (
+            <button
+              type="button"
+              onClick={() => setShowAllBodyTypes(!showAllBodyTypes)}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 pt-1 cursor-pointer"
+            >
+              {showAllBodyTypes ? "Show Less" : `+${BODY_TYPES.length - 5} More Body Types`}
+            </button>
+          )}
+        </FilterSection>
+
+        {/* Transmission */}
+        <FilterSection
+          icon={<Cog className="w-3.5 h-3.5" />}
+          title="Transmission"
+          count={selectedTransmission.length}
+          defaultOpen={true}
+        >
+          {TRANSMISSIONS.map((t) => (
+            <FilterOption
+              key={t.id}
+              label={t.label}
+              active={selectedTransmission.includes(t.id)}
+              onClick={() => handleTransmissionChange(t.id)}
+            />
+          ))}
+        </FilterSection>
+
+        {/* Fuel Type */}
+        <FilterSection
+          icon={<Fuel className="w-3.5 h-3.5" />}
+          title="Fuel Engine"
+          count={selectedFuel.length}
+        >
+          {FUELS.map((f) => (
+            <FilterOption
+              key={f.id}
+              label={f.label}
+              active={selectedFuel.includes(f.id)}
+              onClick={() => handleFuelChange(f.id)}
+            />
+          ))}
+        </FilterSection>
+
+        {/* Passenger Seats Slider */}
+        <FilterSection
+          icon={<Users className="w-3.5 h-3.5" />}
+          title="Passenger Seats"
+          count={minSeats > SEATS_FLOOR ? 1 : 0}
+        >
+          <LinearStepSlider
+            min={SEATS_FLOOR}
+            max={SEATS_CEILING}
+            value={minSeats}
+            onCommit={handleSeatsCommit}
+            suffix="Seats"
+          />
+        </FilterSection>
+
+        {/* Luggage Capacity */}
+        <FilterSection
+          icon={<Briefcase className="w-3.5 h-3.5" />}
+          title="Luggage Bags"
+          count={selectedLuggage.length}
+        >
+          {LUGGAGE_CAPACITIES.map((lug) => (
+            <FilterOption
+              key={lug.id}
+              label={lug.label}
+              active={selectedLuggage.includes(lug.id)}
+              onClick={() => handleLuggageChange(lug.id)}
+            />
+          ))}
+        </FilterSection>
+
+        {/* Brand */}
+        <FilterSection
+          icon={<Tag className="w-3.5 h-3.5" />}
+          title="Manufacturer"
+          count={selectedBrand.length}
+        >
           {(showAllBrands ? BRANDS : BRANDS.slice(0, 5)).map((brand) => (
             <FilterOption
               key={brand.id}
@@ -492,35 +535,19 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
             <button
               type="button"
               onClick={() => setShowAllBrands(!showAllBrands)}
-              className="text-[11px] font-[600] text-[#0955AC] hover:underline mt-1 pt-1 block cursor-pointer"
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 pt-1 cursor-pointer"
             >
-              {showAllBrands ? "Show Less" : `+ Show All (${BRANDS.length})`}
+              {showAllBrands ? "Show Less" : `+${BRANDS.length - 5} More Brands`}
             </button>
           )}
         </FilterSection>
 
-        <FilterSection icon={<Users className="w-4 h-4 text-[#0955AC]" />} title="CAPACITY" count={minSeats > SEATS_FLOOR ? 1 : 0} defaultOpen={minSeats > SEATS_FLOOR}>
-          <MinValueSlider
-            min={SEATS_FLOOR}
-            max={SEATS_CEILING}
-            value={minSeats}
-            suffix="Seats"
-            onCommit={handleSeatsCommit}
-          />
-        </FilterSection>
-
-        <FilterSection icon={<Briefcase className="w-4 h-4 text-[#0955AC]" />} title="LUGGAGE CAPACITY" count={selectedLuggage.length} defaultOpen={selectedLuggage.length > 0}>
-          {LUGGAGE_CAPACITIES.map((l) => (
-            <FilterOption
-              key={l.id}
-              label={l.label}
-              active={selectedLuggage.includes(l.id)}
-              onClick={() => handleLuggageChange(l.id)}
-            />
-          ))}
-        </FilterSection>
-
-        <FilterSection icon={<ShieldCheck className="w-4 h-4 text-[#0955AC]" />} title="EXTRAS" count={selectedExtras.length} defaultOpen={selectedExtras.length > 0}>
+        {/* Extras & Features */}
+        <FilterSection
+          icon={<ShieldCheck className="w-3.5 h-3.5" />}
+          title="Included Features"
+          count={selectedExtras.length}
+        >
           {EXTRAS.map((extra) => (
             <FilterOption
               key={extra.id}
@@ -530,41 +557,8 @@ const FilterSidebar = ({ searchParams, onSearch }) => {
             />
           ))}
         </FilterSection>
-
-        <FilterSection icon={<Gauge className="w-4 h-4 text-[#0955AC]" />} title="MILEAGE" count={selectedMileage.length} defaultOpen={selectedMileage.length > 0}>
-          {MILEAGES.map((m) => (
-            <FilterOption
-              key={m.id}
-              label={m.label}
-              active={selectedMileage.includes(m.id)}
-              onClick={() => handleMileageChange(m.id)}
-            />
-          ))}
-        </FilterSection>
-
-        <FilterSection icon={<Cog className="w-4 h-4 text-[#0955AC]" />} title="TRANSMISSION" count={selectedTransmission.length} defaultOpen={selectedTransmission.length > 0}>
-          {TRANSMISSIONS.map((t) => (
-            <FilterOption
-              key={t.id}
-              label={t.label}
-              active={selectedTransmission.includes(t.id)}
-              onClick={() => handleTransmissionChange(t.id)}
-            />
-          ))}
-        </FilterSection>
-
-        <FilterSection icon={<Fuel className="w-4 h-4 text-[#0955AC]" />} title="FUEL TYPE" count={selectedFuel.length} defaultOpen={selectedFuel.length > 0}>
-          {FUELS.map((f) => (
-            <FilterOption
-              key={f.id}
-              label={f.label}
-              active={selectedFuel.includes(f.id)}
-              onClick={() => handleFuelChange(f.id)}
-            />
-          ))}
-        </FilterSection>
       </div>
-    </>
+    </div>
   );
 };
 

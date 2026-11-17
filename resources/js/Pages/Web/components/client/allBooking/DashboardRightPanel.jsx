@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, usePage } from "@inertiajs/react";
-import { chatRoute } from "@/Components/chat/chatUtils";
+import { openSupportChat } from "@/Components/chat/chatUtils";
 import { route } from "ziggy-js";
 import {
     Car,
@@ -117,12 +117,13 @@ const DashboardRightPanel = ({ notifications = [] }) => {
                             <Mail className="w-3.5 h-3.5" /> {email}
                         </a>
                     )}
-                    <Link
-                        href={chatRoute("chat.page")}
-                        className="flex items-center gap-2 text-[12.5px] font-[600] bg-white text-[#0955AC] hover:bg-white/90 rounded-lg px-3 py-2 transition-colors"
+                    <button
+                        type="button"
+                        onClick={() => openSupportChat()}
+                        className="w-full flex items-center gap-2 text-[12.5px] font-[600] bg-white text-[#0955AC] hover:bg-white/90 rounded-lg px-3 py-2 transition-colors"
                     >
-                        <MessageCircle className="w-3.5 h-3.5" /> Start Live Chat
-                    </Link>
+                        <MessageCircle className="w-3.5 h-3.5" /> Chat with Support
+                    </button>
                 </div>
             </div>
         </div>

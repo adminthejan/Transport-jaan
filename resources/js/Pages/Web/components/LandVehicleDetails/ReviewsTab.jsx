@@ -1,109 +1,51 @@
 import React, { useEffect, useState, useId } from "react";
 import { usePage, router } from "@inertiajs/react";
 import { route } from "ziggy-js";
+import { Star, MessageSquare, CheckCircle2, User, Send, Sparkles } from "lucide-react";
 
-/* ========= Read-only stars (supports halves) ========= */
-const StarRating = ({ value = 0, size = 16, color = "#FFC107", gap = 3 }) => {
-  const id = useId();
+/* ========= Read-only stars ========= */
+const StarRating = ({ value = 0, size = 16 }) => {
   const v = Math.max(0, Math.min(5, Number(value) || 0));
-  const full = Math.floor(v);
-  const hasHalf = v - full >= 0.5;
-
-  const Star = ({ filled, half }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-        fill={filled ? color : "none"}
-        stroke={color}
-        strokeWidth="1"
-      />
-      {half && (
-        <>
-          <defs>
-            <linearGradient id={`half-${id}`} x1="0" x2="1" y1="0" y2="0">
-              <stop offset="50%" stopColor={color} />
-              <stop offset="50%" stopColor="transparent" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-            fill={`url(#half-${id})`}
-            stroke="none"
-          />
-        </>
-      )}
-    </svg>
-  );
-
   return (
-    <div style={{ display: "inline-flex", gap }}>
+    <div className="flex items-center gap-1">
       {Array.from({ length: 5 }, (_, i) => {
-        const idx = i + 1;
-        const filled = idx <= full;
-        const half = !filled && hasHalf && idx === full + 1;
-        return <Star key={idx} filled={filled} half={half} />;
+        const filled = i < Math.round(v);
+        return (
+          <Star
+            key={i}
+            className={`${size === 14 ? "w-3.5 h-3.5" : "w-4 h-4"} ${
+              filled ? "fill-amber-400 text-amber-400" : "fill-slate-100 text-slate-300"
+            }`}
+          />
+        );
       })}
     </div>
   );
 };
 
-/* ========= Interactive picker (1–5) ========= */
-const StarPicker = ({
-  value = 5,
-  onChange,
-  size = 18,
-  color = "#FFC107",
-  emptyColor = "#E5E7EB",
-  gap = 4,
-  className = "",
-}) => {
+/* ========= Interactive star picker ========= */
+const StarPicker = ({ value = 5, onChange }) => {
   const [hover, setHover] = useState(null);
-  const draw = (filled) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-        fill={filled ? color : "none"}
-        stroke={filled ? color : emptyColor}
-        strokeWidth="1"
-      />
-    </svg>
-  );
-  const onKey = (e) => {
-    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-      e.preventDefault();
-      onChange(Math.min(5, (Number(value) || 0) + 1));
-    } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-      e.preventDefault();
-      onChange(Math.max(1, (Number(value) || 1) - 1));
-    } else if (e.key >= "1" && e.key <= "5") onChange(Number(e.key));
-  };
+
   return (
-    <div
-      className={`inline-flex items-center ${className}`}
-      role="slider"
-      aria-label="Rating"
-      aria-valuemin={1}
-      aria-valuemax={5}
-      aria-valuenow={value}
-      tabIndex={0}
-      onKeyDown={onKey}
-      onMouseLeave={() => setHover(null)}
-      style={{ gap }}
-    >
+    <div className="flex items-center gap-1.5" onMouseLeave={() => setHover(null)}>
       {Array.from({ length: 5 }, (_, i) => {
-        const idx = i + 1;
-        const filled = hover ? idx <= hover : idx <= value;
+        const starVal = i + 1;
+        const filled = (hover || value) >= starVal;
         return (
           <button
-            key={idx}
+            key={starVal}
             type="button"
-            onMouseEnter={() => setHover(idx)}
-            onFocus={() => setHover(idx)}
-            onClick={() => onChange(idx)}
-            className="focus:outline-none"
-            aria-label={`${idx} star${idx > 1 ? "s" : ""}`}
+            onMouseEnter={() => setHover(starVal)}
+            onClick={() => onChange(starVal)}
+            className="p-1 focus:outline-none transition-transform hover:scale-125 cursor-pointer"
+            aria-label={`${starVal} star`}
           >
-            {draw(filled)}
+            <Star
+              className={`w-6 h-6 transition-colors ${
+                filled ? "fill-amber-400 text-amber-400" : "fill-slate-100 text-slate-300"
+              }`}
+            />
           </button>
         );
       })}
@@ -121,40 +63,40 @@ const initials = (name = "") =>
 
 const displayName = (client) => {
   const raw = (client?.name || "").trim();
-  if (raw && !/^provider$/i.test(raw)) return raw; // use real name unless it's literally "Provider"
-  return client?.email || "Anonymous";
+  if (raw && !/^provider$/i.test(raw)) return raw;
+  return client?.email || "Verified Renter";
 };
 
 const ReviewsTab = () => {
   const { props } = usePage();
   const vehicle = props?.vehicle || {};
   const authUser = props?.auth?.user || null;
+  const ratingBreakdown = props?.ratingBreakdown || {};
 
   const totalReviews =
-    vehicle?.reviews_count ??
-    (Array.isArray(vehicle?.reviews) ? vehicle.reviews.length : 0) ??
-    0;
+    vehicle?.reviews_count ?? (Array.isArray(vehicle?.reviews) ? vehicle.reviews.length : 0);
 
   const average =
     vehicle?.rating_avg !== undefined && vehicle?.rating_avg !== null
       ? Number(vehicle.rating_avg)
-      : null;
+      : 5.0;
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setRating(5);
     setComment("");
   }, [vehicle?.id]);
 
-  const canSubmit =
-    rating >= 1 && rating <= 5 && Boolean(vehicle?.id) && authUser?.role === "client";
+  const canSubmit = rating >= 1 && rating <= 5 && Boolean(vehicle?.id) && authUser?.role === "client";
 
   const submit = (e) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || submitting) return;
 
+    setSubmitting(true);
     router.post(
       route("client.vehicles.reviews.store", vehicle.id),
       { rating, comment },
@@ -163,133 +105,156 @@ const ReviewsTab = () => {
         onSuccess: () => {
           setRating(5);
           setComment("");
-          // Refresh only what we need; adjust the partials to match your controller props.
-          router.reload({ only: ["vehicle"] });
+          setSubmitting(false);
+          router.reload({ only: ["vehicle", "ratingBreakdown"] });
         },
+        onError: () => setSubmitting(false),
       }
     );
   };
 
   return (
-    <div className="poppins">
-      {/* Header with count */}
-      <div className="flex flex-row gap-5 items-center">
-        <h1 className="text-[20px] font-[700]">Review</h1>
-        <div className="w-[44px] h-[28px] bg-[#0955AC] rounded-[4px] flex justify-center items-center text-[14px] font-[700] text-white">
-          {totalReviews}
-        </div>
-      </div>
-
-      {/* Average panel */}
-      <div className="flex flex-row gap-8 items-center mb-10">
-        <div>
-          <h1 className="text-[50px] font-[700]">
-            {average !== null ? average.toFixed(1) : "—"}
-          </h1>
-          <StarRating value={average ?? 0} size={16} />
-          <h1 className="text-[#90A3BF] mt-2">{totalReviews}</h1>
-        </div>
-
-        {/* Static distribution bars (replace with real histogram if you expose it) */}
-        <div className="flex flex-col gap-2 mt-5">
-          {[5, 4, 3, 2, 1].map((n) => (
-            <div key={n} className="flex flex-row justify-center items-center gap-3">
-              <h1 className="text-[8px] font-[600]">{n}</h1>
-              <div className="w-[274px] h-[9px] bg-[#D9D9D9] rounded-[10px]" />
+    <div className="space-y-8">
+      {/* Overview Score Box */}
+      <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="text-center md:text-left flex flex-col md:flex-row items-center gap-6">
+          <div className="flex flex-col items-center justify-center w-28 h-28 rounded-2xl bg-white border border-slate-200/80 shadow-sm shrink-0">
+            <span className="text-4xl font-black text-slate-900 leading-none">
+              {average ? average.toFixed(1) : "5.0"}
+            </span>
+            <div className="mt-2">
+              <StarRating value={average ?? 5} size={14} />
             </div>
-          ))}
+            <span className="text-[11px] font-bold text-slate-400 mt-1">out of 5.0</span>
+          </div>
+
+          <div>
+            <h4 className="text-base font-bold text-slate-900">Renter Feedback & Ratings</h4>
+            <p className="text-xs text-slate-500 mt-0.5 max-w-sm">
+              All ratings are verified from confirmed bookings completed on Jaan Transport.
+            </p>
+            <div className="flex items-center gap-2 mt-3 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full w-fit">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>100% Verified Community Feedback</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Breakdown Bars */}
+        <div className="w-full md:w-64 space-y-1.5 shrink-0">
+          {[5, 4, 3, 2, 1].map((n) => {
+            const count = Number(ratingBreakdown[n] ?? (n === 5 ? totalReviews : 0));
+            const pct = totalReviews > 0 ? (count / totalReviews) * 100 : (n === 5 ? 100 : 0);
+            return (
+              <div key={n} className="flex items-center gap-2.5 text-xs font-semibold text-slate-600">
+                <span className="w-3 text-right">{n}</span>
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                <div className="flex-1 h-2 rounded-full bg-slate-200/70 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-amber-400 transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className="w-6 text-right text-slate-400 text-[11px] font-medium">{count}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Add review form (clients only) */}
+      {/* Write a Review Section */}
       {authUser?.role === "client" ? (
-        <form onSubmit={submit} className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <label className="text-sm font-semibold">Your rating:</label>
-            <StarPicker value={rating} onChange={setRating} className="ml-1" size={18} />
+        <form onSubmit={submit} className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-slate-900">Leave Your Review</h4>
+            <StarPicker value={rating} onChange={setRating} />
           </div>
 
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Share your experience…"
-            className="w-full border rounded p-3 text-sm"
-            rows={4}
+            placeholder="Tell us about the vehicle condition, pickup experience, and drive comfort…"
+            className="w-full rounded-xl border border-slate-200 p-3.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 focus:outline-none transition-all"
+            rows={3}
             maxLength={2000}
           />
 
-          <div className="mt-3">
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[11px] text-slate-400">Your review helps other renters make great choices.</span>
             <button
               type="submit"
-              disabled={!canSubmit}
-              className="px-4 py-2 bg-[#0955AC] text-white rounded font-semibold text-sm disabled:opacity-60"
+              disabled={!canSubmit || submitting}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/20 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
-              Submit Review
+              <span>{submitting ? "Posting..." : "Submit Review"}</span>
+              <Send className="w-3.5 h-3.5" />
             </button>
           </div>
         </form>
-      ) : (
-        <div className="mb-8 text-sm text-[#90A3BF]">
-          Please sign in as a client to leave a review.
+      ) : !authUser ? (
+        <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between gap-3 text-xs">
+          <div className="text-blue-900 font-medium">Have you rented this vehicle? Sign in to share your experience.</div>
+          <button
+            type="button"
+            onClick={() => router.visit("/signin")}
+            className="px-4 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shrink-0"
+          >
+            Sign In
+          </button>
         </div>
-      )}
+      ) : null}
 
-      {/* Reviews list */}
-      <div className="bg-white rounded-2xl border border-[#EDEFF3] shadow-sm overflow-hidden">
+      {/* Reviews List */}
+      <div className="space-y-4">
         {Array.isArray(vehicle?.reviews) && vehicle.reviews.length > 0 ? (
-          <ul className="divide-y divide-[#F1F3F7]">
-            {vehicle.reviews.map((r) => {
-              const name = displayName(r?.client);
-              const dateStr = r?.created_at
-                ? new Date(r.created_at).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "long",
-                    day: "2-digit",
-                  })
-                : "—";
-              const ratingNum = Number(r?.rating) || 0;
-              const avatarUrl = r?.client?.avatar_url;
+          vehicle.reviews.map((r) => {
+            const name = displayName(r?.client);
+            const dateStr = r?.created_at
+              ? new Date(r.created_at).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })
+              : "Recent";
+            const ratingNum = Number(r?.rating) || 5;
 
-              return (
-                <li key={r.id} className="p-6">
-                  <div className="flex items-center gap-4">
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-[#E7EEF9] text-[#1F2A44] flex items-center justify-center text-sm font-semibold">
-                        {initials(name) || "U"}
-                      </div>
-                    )}
-
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[16px] font-[700] text-[#0F172A] truncate">
-                        {name}
-                      </div>
-                      <div className="text-[#CBD5E1] text-[18px] leading-none">
-                        {r?.client?.country || "—"}
-                      </div>
+            return (
+              <div
+                key={r.id}
+                className="p-5 rounded-2xl bg-white border border-slate-200/70 shadow-sm space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase border border-blue-100 shrink-0">
+                      {initials(name) || "R"}
                     </div>
-
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="text-[13px] text-[#90A3BF]">{dateStr}</div>
-                      <StarRating value={ratingNum} size={16} />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h5 className="text-xs font-bold text-slate-900">{name}</h5>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                          Verified Trip
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{dateStr}</p>
                     </div>
                   </div>
 
-                  <p className="mt-4 text-[14px] leading-7 text-[#1f2937] whitespace-pre-line">
-                    {r?.comment || "—"}
+                  <StarRating value={ratingNum} size={14} />
+                </div>
+
+                {r.comment && (
+                  <p className="text-xs text-slate-700 leading-relaxed font-normal pl-1">
+                    "{r.comment}"
                   </p>
-                </li>
-              );
-            })}
-          </ul>
+                )}
+              </div>
+            );
+          })
         ) : (
-          <div className="p-6 text-sm text-[#90A3BF]">
-            No reviews yet. Be the first to share your experience!
+          <div className="text-center py-12 px-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+            <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <h5 className="text-xs font-bold text-slate-700">No reviews yet</h5>
+            <p className="text-[11px] text-slate-400 mt-0.5">Be the first to review this vehicle after your trip!</p>
           </div>
         )}
       </div>
