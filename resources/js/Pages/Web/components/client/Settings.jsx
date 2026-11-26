@@ -211,7 +211,7 @@ const Settings = ({ user = {} }) => {
                 }
             }
         } catch (_) {}
-        return "/client/settings";
+        return "/clientDashboardSettings";
     };
 
     const updateUrl = resolveUpdateUrl();
@@ -301,6 +301,17 @@ const Settings = ({ user = {} }) => {
         }
 
         if (hasErrors) return;
+
+        // Strip password fields when saving non-security sections to avoid
+        // accidentally updating passwords on every settings save.
+        if (sectionName !== "security") {
+            setData((prev) => ({
+                ...prev,
+                current_password: "",
+                new_password: "",
+                confirm_password: "",
+            }));
+        }
 
         post(updateUrl, {
             preserveScroll: true,
@@ -803,7 +814,7 @@ const Settings = ({ user = {} }) => {
                                     </div>
                                     {editing.payment && (
                                         <p className="mt-4 text-xs text-gray-500">
-                                            Tip: Integrate Stripe/PayHere and collect a payment method token on the frontend; submit that token here instead of card numbers.
+                                            Tip: Integrate Payments.lk and collect a payment method token on the frontend; submit that token here instead of card numbers.
                                         </p>
                                     )}
                                 </EditableSection>

@@ -71,7 +71,7 @@ class TransportCompareController extends Controller
             'count' => $schedules->count(),
             'cheapest' => $this->formatTrainOption($cheapest),
             'fastest' => $this->formatTrainOption($fastest),
-            'searchUrl' => '/trainTicketBookingDetails?' . http_build_query([
+            'searchUrl' => '/landTicketBooking?' . http_build_query([
                 'from' => $fromStations->first()->name,
                 'to' => $toStations->first()->name,
                 'departureDate' => $date,
@@ -111,7 +111,7 @@ class TransportCompareController extends Controller
             'count' => $schedules->count(),
             'cheapest' => $this->formatBusOption($cheapest),
             'fastest' => $this->formatBusOption($fastest),
-            'searchUrl' => '/busTicketBookingDetails?' . http_build_query([
+            'searchUrl' => '/landTicketBooking?' . http_build_query([
                 'from' => $fromStations->first()->name,
                 'to' => $toStations->first()->name,
                 'date' => $date,

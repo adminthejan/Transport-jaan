@@ -8,7 +8,7 @@ export default function Dashboard({ user }) {
     useEffect(() => {
         if (user) {
             const redirectPath = {
-                'client': '/clientAllBookings',
+                'client': '/client/dashboard',
                 'vendor': '/vendorAllBookings',
                 'SuperAdmin': '/superadmin/dashboard',
                 'admin': '/'

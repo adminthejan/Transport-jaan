@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Records / reverses the platform commission for a vehicle rental booking.
  * Driven from BookingObserver on the confirmed / cancelled status transitions,
- * so it covers manual confirmation today and the PayHere webhook later (both
+ * so it covers manual confirmation today and the Payments.lk webhook later (both
  * land the booking in 'confirmed'). Uses the super-admin-configured rate from
  * the `commissions` table (service_type = 'vehicle').
  */

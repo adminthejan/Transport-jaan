@@ -203,10 +203,10 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
         Route::post('/{shipment}/retry', [CourierPaymentController::class, 'retry'])
             ->whereNumber('shipment')
             ->name('retry');
-        Route::get('/payhere/return', [CourierPaymentController::class, 'handleReturn'])
-            ->name('payhere.return');
-        Route::get('/payhere/cancel', [CourierPaymentController::class, 'handleCancel'])
-            ->name('payhere.cancel');
+        Route::get('/paymentslk/return', [CourierPaymentController::class, 'handleReturn'])
+            ->name('paymentslk.return');
+        Route::get('/paymentslk/cancel', [CourierPaymentController::class, 'handleCancel'])
+            ->name('paymentslk.cancel');
     });
 
     Route::middleware('auth')->group(function () {
@@ -250,13 +250,13 @@ Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 
 // Ticket booking (public screens)
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
-Route::get('/trainTicketBookingDetails', [TrainController::class, 'search'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
+Route::get('/trainTicketBookingDetails', fn (\Illuminate\Http\Request $r) => redirect()->route('landTicketBooking', $r->query()))->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
 Route::get('/trainTicketBookingDetails/json', [TrainController::class, 'searchJson'])->name('trainTicketBookingDetails.json');
 Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview');
 Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store')->middleware('auth');
 Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success')->middleware('auth');
 // Bus booking routes (all routes are public - no auth required)
-Route::get('/busTicketBookingDetails', [BusBookingController::class, 'search'])->name('busTicketBookingDetails.busTicketBookingDetails');
+Route::get('/busTicketBookingDetails', fn (\Illuminate\Http\Request $r) => redirect()->route('landTicketBooking', $r->query()))->name('busTicketBookingDetails.busTicketBookingDetails');
 Route::get('/busTicketBookingDetails/json', [BusBookingController::class, 'searchJson'])->name('busTicketBookingDetails.json');
 Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
 Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
@@ -278,42 +278,42 @@ Route::post('/bus-bookings/{reference}/cancel', [BusBookingController::class, 'c
 Route::get('/train-bookings/{reference}/cancellation-policy', [TrainController::class, 'getCancellationPolicy'])->name('train.booking.cancellation.policy')->middleware('auth');
 Route::post('/train-bookings/{reference}/cancel', [TrainController::class, 'cancelBooking'])->name('train.booking.cancel')->middleware('auth');
 
-// Bus booking payment flow (PayHere / Wallet checkout added right after
+// Bus booking payment flow (Payments.lk / Wallet checkout added right after
 // booking creation — see BusBookingController::store()). Mirrors the
-// warehouse-bookings/payhere/* structure.
+// warehouse-bookings/paymentslk/* structure.
 Route::prefix('bus-bookings')->name('bus-bookings.')->group(function () {
-    // PayHere callbacks — deliberately outside the auth middleware. The
-    // notify webhook carries no session at all (PayHere calls it server-to-
+    // Payments.lk callbacks — deliberately outside the auth middleware. The
+    // notify webhook carries no session at all (Payments.lk calls it server-to-
     // server), and the browser return redirect shouldn't be blocked by
     // session state either — resolution happens by gateway_order_id, not
-    // Auth::user(), same pattern as client.wallet.payhere.* / warehouse.
-    // NOTE: the notify path here ("bus-bookings/payhere/notify") is
+    // Auth::user(), same pattern as client.wallet.paymentslk.* / warehouse.
+    // NOTE: the notify path here ("bus-bookings/paymentslk/notify") is
     // pre-registered as CSRF-exempt in bootstrap/app.php — do not rename it.
-    Route::prefix('payhere')->name('payhere.')->group(function () {
-        Route::get('/return', [BusBookingController::class, 'handlePayHereReturn'])->name('return');
-        Route::get('/cancel', [BusBookingController::class, 'handlePayHereCancel'])->name('cancel');
+    Route::prefix('paymentslk')->name('paymentslk.')->group(function () {
+        Route::get('/return', [BusBookingController::class, 'handleGatewayReturn'])->name('return');
+        Route::get('/cancel', [BusBookingController::class, 'handleGatewayCancel'])->name('cancel');
     });
 
     Route::middleware('auth')->group(function () {
-        Route::get('/payhere/checkout/{booking}', [BusBookingController::class, 'paymentCheckout'])->name('payhere.checkout');
-        Route::get('/payhere/status/{booking}', [BusBookingController::class, 'paymentStatus'])->name('payhere.status');
-        Route::post('/payhere/retry/{booking}', [BusBookingController::class, 'paymentRetry'])->name('payhere.retry');
+        Route::get('/paymentslk/checkout/{booking}', [BusBookingController::class, 'paymentCheckout'])->name('paymentslk.checkout');
+        Route::get('/paymentslk/status/{booking}', [BusBookingController::class, 'paymentStatus'])->name('paymentslk.status');
+        Route::post('/paymentslk/retry/{booking}', [BusBookingController::class, 'paymentRetry'])->name('paymentslk.retry');
     });
 });
 
 // Train booking payment flow — same structure as bus-bookings above.
 Route::prefix('train-bookings')->name('train-bookings.')->group(function () {
-    // NOTE: the notify path here ("train-bookings/payhere/notify") is
+    // NOTE: the notify path here ("train-bookings/paymentslk/notify") is
     // pre-registered as CSRF-exempt in bootstrap/app.php — do not rename it.
-    Route::prefix('payhere')->name('payhere.')->group(function () {
-        Route::get('/return', [TrainController::class, 'handlePayHereReturn'])->name('return');
-        Route::get('/cancel', [TrainController::class, 'handlePayHereCancel'])->name('cancel');
+    Route::prefix('paymentslk')->name('paymentslk.')->group(function () {
+        Route::get('/return', [TrainController::class, 'handleGatewayReturn'])->name('return');
+        Route::get('/cancel', [TrainController::class, 'handleGatewayCancel'])->name('cancel');
     });
 
     Route::middleware('auth')->group(function () {
-        Route::get('/payhere/checkout/{booking}', [TrainController::class, 'paymentCheckout'])->name('payhere.checkout');
-        Route::get('/payhere/status/{booking}', [TrainController::class, 'paymentStatus'])->name('payhere.status');
-        Route::post('/payhere/retry/{booking}', [TrainController::class, 'paymentRetry'])->name('payhere.retry');
+        Route::get('/paymentslk/checkout/{booking}', [TrainController::class, 'paymentCheckout'])->name('paymentslk.checkout');
+        Route::get('/paymentslk/status/{booking}', [TrainController::class, 'paymentStatus'])->name('paymentslk.status');
+        Route::post('/paymentslk/retry/{booking}', [TrainController::class, 'paymentRetry'])->name('paymentslk.retry');
     });
 });
 
@@ -433,16 +433,16 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
     Route::post('/book', [WarehouseBookingController::class, 'store'])->name('book');
     Route::post('/store', [WarehouseBookingController::class, 'store'])->name('store');
 
-    // PayHere callbacks — deliberately outside the auth middleware. The
-    // notify webhook carries no session at all (PayHere calls it server-to-
+    // Payments.lk callbacks — deliberately outside the auth middleware. The
+    // notify webhook carries no session at all (Payments.lk calls it server-to-
     // server), and the browser return redirect shouldn't be blocked by
     // session state either — resolution happens by gateway_order_id, not
-    // Auth::user(), same pattern as client.wallet.payhere.* / couriers.
-    // NOTE: the notify path here ("warehouse-bookings/payhere/notify") is
+    // Auth::user(), same pattern as client.wallet.paymentslk.* / couriers.
+    // NOTE: the notify path here ("warehouse-bookings/paymentslk/notify") is
     // pre-registered as CSRF-exempt in bootstrap/app.php — do not rename it.
-    Route::prefix('payhere')->name('payhere.')->group(function () {
-        Route::get('/return', [WarehouseBookingController::class, 'handlePayHereReturn'])->name('return');
-        Route::get('/cancel', [WarehouseBookingController::class, 'handlePayHereCancel'])->name('cancel');
+    Route::prefix('paymentslk')->name('paymentslk.')->group(function () {
+        Route::get('/return', [WarehouseBookingController::class, 'handleGatewayReturn'])->name('return');
+        Route::get('/cancel', [WarehouseBookingController::class, 'handleGatewayCancel'])->name('cancel');
     });
 
     // Protected routes (require authentication)
@@ -458,10 +458,10 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
         Route::get('/booking/{id}/cancel-preview', [\App\Http\Controllers\WarehouseBookingCancellationController::class, 'preview'])->name('cancel-preview');
         Route::post('/booking/{id}/cancel', [\App\Http\Controllers\WarehouseBookingCancellationController::class, 'cancel'])->name('cancel');
 
-        // PayHere checkout step for bookings paid via PayHere (see store())
-        Route::get('/payhere/checkout/{booking}', [WarehouseBookingController::class, 'paymentCheckout'])->name('payhere.checkout');
-        Route::get('/payhere/status/{booking}', [WarehouseBookingController::class, 'paymentStatus'])->name('payhere.status');
-        Route::post('/payhere/retry/{booking}', [WarehouseBookingController::class, 'paymentRetry'])->name('payhere.retry');
+        // Payments.lk checkout step for bookings paid via Payments.lk (see store())
+        Route::get('/paymentslk/checkout/{booking}', [WarehouseBookingController::class, 'paymentCheckout'])->name('paymentslk.checkout');
+        Route::get('/paymentslk/status/{booking}', [WarehouseBookingController::class, 'paymentStatus'])->name('paymentslk.status');
+        Route::post('/paymentslk/retry/{booking}', [WarehouseBookingController::class, 'paymentRetry'])->name('paymentslk.retry');
 
         // Customer asks the warehouse owner for a quote (owner replies with final charges)
         Route::post('/quote-requests', [\App\Http\Controllers\WarehouseControllers\Client\WarehouseQuoteRequestController::class, 'store'])->middleware('throttle:10,1')->name('quote-requests.store');
@@ -537,10 +537,10 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
         Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
 
-        // Land vehicle PayHere checkout (authenticated leg — return/cancel/notify are public, see below)
-        Route::get('/bookings/{booking}/payhere/checkout', [ClientBookingController::class, 'paymentCheckout'])->name('bookings.payhere.checkout');
-        Route::get('/bookings/{booking}/payhere/status', [ClientBookingController::class, 'paymentStatus'])->name('bookings.payhere.status');
-        Route::post('/bookings/{booking}/payhere/retry', [ClientBookingController::class, 'paymentRetry'])->name('bookings.payhere.retry');
+        // Land vehicle Payments.lk checkout (authenticated leg — return/cancel/notify are public, see below)
+        Route::get('/bookings/{booking}/paymentslk/checkout', [ClientBookingController::class, 'paymentCheckout'])->name('bookings.paymentslk.checkout');
+        Route::get('/bookings/{booking}/paymentslk/status', [ClientBookingController::class, 'paymentStatus'])->name('bookings.paymentslk.status');
+        Route::post('/bookings/{booking}/paymentslk/retry', [ClientBookingController::class, 'paymentRetry'])->name('bookings.paymentslk.retry');
 
         // Central client wallet
         Route::get('/wallet', [WalletController::class, 'dashboard'])->name('wallet.dashboard');
@@ -566,10 +566,10 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/airBookings/{airVehicleBooking}/cancellation-policy', [ClientBookingController::class, 'getAirVehicleCancellationPolicy'])->name('airBookings.cancellation-policy');
         Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
 
-        // Air vehicle PayHere checkout (authenticated leg — return/cancel/notify are public, see below)
-        Route::get('/airBookings/{airVehicleBooking}/payhere/checkout', [ClientBookingController::class, 'airPaymentCheckout'])->name('airBookings.payhere.checkout');
-        Route::get('/airBookings/{airVehicleBooking}/payhere/status', [ClientBookingController::class, 'airPaymentStatus'])->name('airBookings.payhere.status');
-        Route::post('/airBookings/{airVehicleBooking}/payhere/retry', [ClientBookingController::class, 'airPaymentRetry'])->name('airBookings.payhere.retry');
+        // Air vehicle Payments.lk checkout (authenticated leg — return/cancel/notify are public, see below)
+        Route::get('/airBookings/{airVehicleBooking}/paymentslk/checkout', [ClientBookingController::class, 'airPaymentCheckout'])->name('airBookings.paymentslk.checkout');
+        Route::get('/airBookings/{airVehicleBooking}/paymentslk/status', [ClientBookingController::class, 'airPaymentStatus'])->name('airBookings.paymentslk.status');
+        Route::post('/airBookings/{airVehicleBooking}/paymentslk/retry', [ClientBookingController::class, 'airPaymentRetry'])->name('airBookings.paymentslk.retry');
 
         // Sea Vehicle Booking Routes
         Route::get('/seaBookings/quote', [ClientBookingController::class, 'seaVehicleQuote'])->name('seaBookings.quote');
@@ -583,10 +583,10 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/seaBookings/{seaVehicleBooking}/cancellation-policy', [ClientBookingController::class, 'getSeaVehicleCancellationPolicy'])->name('seaBookings.cancellation-policy');
         Route::post('/seaBookings/{seaVehicleBooking}/cancel', [ClientBookingController::class, 'seaVehicleCancel'])->name('seaBookings.cancel');
 
-        // Sea vehicle PayHere checkout (authenticated leg — return/cancel/notify are public, see below)
-        Route::get('/seaBookings/{seaVehicleBooking}/payhere/checkout', [ClientBookingController::class, 'seaPaymentCheckout'])->name('seaBookings.payhere.checkout');
-        Route::get('/seaBookings/{seaVehicleBooking}/payhere/status', [ClientBookingController::class, 'seaPaymentStatus'])->name('seaBookings.payhere.status');
-        Route::post('/seaBookings/{seaVehicleBooking}/payhere/retry', [ClientBookingController::class, 'seaPaymentRetry'])->name('seaBookings.payhere.retry');
+        // Sea vehicle Payments.lk checkout (authenticated leg — return/cancel/notify are public, see below)
+        Route::get('/seaBookings/{seaVehicleBooking}/paymentslk/checkout', [ClientBookingController::class, 'seaPaymentCheckout'])->name('seaBookings.paymentslk.checkout');
+        Route::get('/seaBookings/{seaVehicleBooking}/paymentslk/status', [ClientBookingController::class, 'seaPaymentStatus'])->name('seaBookings.paymentslk.status');
+        Route::post('/seaBookings/{seaVehicleBooking}/paymentslk/retry', [ClientBookingController::class, 'seaPaymentRetry'])->name('seaBookings.paymentslk.retry');
 
 
 
@@ -599,33 +599,33 @@ Route::prefix('client')->as('client.')->group(function () {
     });
 });
 
-// Wallet PayHere callbacks — deliberately outside the auth:client group.
-// The notify webhook carries no session at all (PayHere calls it server-to-
+// Wallet Payments.lk callbacks — deliberately outside the auth:client group.
+// The notify webhook carries no session at all (Payments.lk calls it server-to-
 // server), and the browser return redirect shouldn't be blocked by session
 // state either — resolution happens by gateway_order_id, not Auth::user(),
-// same pattern as couriers.payments.payhere.*.
+// same pattern as couriers.payments.paymentslk.*.
 Route::prefix('client/wallet')->name('client.wallet.')->group(function () {
-    Route::get('/payhere/return', [WalletController::class, 'handleReturn'])->name('payhere.return');
-    Route::get('/payhere/cancel', [WalletController::class, 'handleCancel'])->name('payhere.cancel');
+    Route::get('/paymentslk/return', [WalletController::class, 'handleReturn'])->name('paymentslk.return');
+    Route::get('/paymentslk/cancel', [WalletController::class, 'handleCancel'])->name('paymentslk.cancel');
 });
 
-// Vehicle rental (land/air/sea) PayHere callbacks — same reasoning as the
+// Vehicle rental (land/air/sea) Payments.lk callbacks — same reasoning as the
 // wallet block above: notify is server-to-server with no session, and return
 // resolves purely by gateway_order_id. All three prefixes share the same
 // handler methods on ClientBookingController, which dispatch internally by
 // the order_id prefix (VEH-/AIR-/SEA-). Paths must stay exactly as below —
 // bootstrap/app.php has these three CSRF-exempted by literal path.
 Route::prefix('client/bookings')->name('client.bookings.')->group(function () {
-    Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
-    Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
+    Route::get('/paymentslk/return', [ClientBookingController::class, 'handleGatewayReturn'])->name('paymentslk.return');
+    Route::get('/paymentslk/cancel', [ClientBookingController::class, 'handleGatewayCancel'])->name('paymentslk.cancel');
 });
 Route::prefix('client/airBookings')->name('client.airBookings.')->group(function () {
-    Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
-    Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
+    Route::get('/paymentslk/return', [ClientBookingController::class, 'handleGatewayReturn'])->name('paymentslk.return');
+    Route::get('/paymentslk/cancel', [ClientBookingController::class, 'handleGatewayCancel'])->name('paymentslk.cancel');
 });
 Route::prefix('client/seaBookings')->name('client.seaBookings.')->group(function () {
-    Route::get('/payhere/return', [ClientBookingController::class, 'handlePayHereReturn'])->name('payhere.return');
-    Route::get('/payhere/cancel', [ClientBookingController::class, 'handlePayHereCancel'])->name('payhere.cancel');
+    Route::get('/paymentslk/return', [ClientBookingController::class, 'handleGatewayReturn'])->name('paymentslk.return');
+    Route::get('/paymentslk/cancel', [ClientBookingController::class, 'handleGatewayCancel'])->name('paymentslk.cancel');
 });
 
 /*
@@ -1227,11 +1227,6 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 });
 
-// Client Dashboard Route with proper verification
-Route::get('/client/dashboard', [ClientDashboardController::class, 'dashboard'])->name('client.dashboard');
-
-// Main client dashboard route (referenced by auth controllers)
-Route::get('/client/main-dashboard', [ClientDashboardController::class, 'dashboard'])->name('client.mainDashboard');
 
 // Legacy client dashboard routes (public shell) - keep for backward compatibility
 Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('ClientDashboard');
@@ -2063,411 +2058,6 @@ Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->
     Route::post('/submit-new-services', [\App\Http\Controllers\VendorProfileController::class, 'submitNewServices'])->name('submit-new-services');
     Route::delete('/logo', [\App\Http\Controllers\VendorProfileController::class, 'removeLogo'])->name('logo.remove');
 });
-
-Route::get('/clientAllBookings', function () {
-    $clientId = Auth::id();
-    
-    // Fetch all booking types with relationships
-    $vehicleBookings = \App\Models\Booking::where('client_id', $clientId)
-        ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
-        ->get()
-        ->map(function($booking) {
-            $vehicle = $booking->vehicle;
-            $provider = $vehicle?->provider;
-            $client = $booking->client;
-            $customer = $booking->customer;
-            $schedule = $booking->schedule;
-            
-            return [
-                'id' => $booking->id,
-                'booking_type' => 'vehicle',
-                'service_name' => $vehicle->name ?? 'Vehicle Rental',
-                'vehicle_name' => $vehicle->name ?? null,
-                'vehicle_category' => $vehicle->category ?? null,
-                'status' => $booking->status,
-                'total_amount' => $booking->total_amount,
-                'amount' => $booking->total_amount,
-                'booking_date' => $booking->created_at->format('Y-m-d'),
-                'start_date' => $booking->start_date,
-                'end_date' => $booking->end_date,
-                'pickup_location' => $schedule->pickup_location ?? null,
-                'dropoff_location' => $schedule->dropoff_location ?? null,
-                'booking_code' => $booking->booking_code ?? 'BK-' . $booking->id,
-                'reference_number' => $booking->booking_code ?? 'REF-' . $booking->id,
-                'currency' => $booking->currency ?? 'LKR',
-                'created_at' => $booking->created_at,
-                
-                // User/Client Information
-                'user' => $client ? [
-                    'name' => $client->name,
-                    'email' => $client->email,
-                    'phone' => $client->phone,
-                    'address' => $client->address,
-                ] : null,
-                'customer_name' => $customer->name ?? $client->name ?? null,
-                'customer_email' => $customer->email ?? $client->email ?? null,
-                'customer_phone' => $customer->phone ?? $client->phone ?? null,
-                'customer_address' => $customer->address ?? $client->address ?? null,
-                
-                // Vendor/Provider Information
-                'vendor' => $provider ? [
-                    'name' => $provider->name,
-                    'email' => $provider->email,
-                    'phone' => $provider->phone,
-                    'address' => $provider->address,
-                ] : null,
-                'vendor_name' => $provider->name ?? null,
-                'vendor_email' => $provider->email ?? null,
-                'vendor_phone' => $provider->phone ?? null,
-                'vendor_address' => $provider->address ?? null,
-                'company_name' => $provider->company_name ?? $provider->name ?? null,
-                
-                // Payment Information
-                'payment_method' => $booking->payments->first()->payment_method ?? 'Not specified',
-                'payment_status' => $booking->payments->first()->status ?? $booking->status,
-                
-                // Additional Details
-                'notes' => $booking->notes,
-                'subtotal' => $booking->subtotal,
-                'deposit_amount' => $booking->deposit_amount,
-                'price_per_day' => $booking->price_per_day,
-                'rental_days' => $booking->rental_days,
-            ];
-        });
-
-    $airVehicleBookings = \App\Models\AirVehicleBookings::where('client_id', $clientId)
-        ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
-        ->get()
-        ->map(function($booking) {
-            $vehicle = $booking->vehicle;
-            $provider = $vehicle?->provider;
-            $client = $booking->client;
-            $customer = $booking->customer;
-            $schedule = $booking->schedule;
-
-            return [
-                'id' => 'air-' . $booking->id,
-                'source_id' => $booking->id,
-                'booking_type' => 'air',
-                'service_name' => $vehicle->name ?? $vehicle->model ?? 'Air Vehicle Rental',
-                'vehicle_name' => $vehicle->name ?? $vehicle->model ?? 'Air Vehicle',
-                'vehicle_category' => 'air',
-                'status' => $booking->status,
-                'total_amount' => $booking->total_amount,
-                'amount' => $booking->total_amount,
-                'booking_date' => $booking->created_at?->format('Y-m-d'),
-                'start_date' => $schedule?->pickup_at,
-                'end_date' => $schedule?->dropoff_at,
-                'pickup_location' => $schedule->pickup_location ?? null,
-                'dropoff_location' => $schedule->dropoff_location ?? null,
-                'booking_code' => 'ABK-' . $booking->id,
-                'reference_number' => 'ABK-' . $booking->id,
-                'currency' => $booking->currency ?? 'LKR',
-                'created_at' => $booking->created_at,
-                'user' => $client ? [
-                    'name' => $client->name,
-                    'email' => $client->email,
-                    'phone' => $client->phone,
-                    'address' => $client->address,
-                ] : null,
-                'customer_name' => $customer->name ?? $client->name ?? null,
-                'customer_email' => $customer->email ?? $client->email ?? null,
-                'customer_phone' => $customer->phone ?? $client->phone ?? null,
-                'customer_address' => $customer->address ?? $client->address ?? null,
-                'vendor' => $provider ? [
-                    'name' => $provider->name,
-                    'email' => $provider->email,
-                    'phone' => $provider->phone,
-                    'address' => $provider->address,
-                ] : null,
-                'vendor_name' => $provider->name ?? null,
-                'vendor_email' => $provider->email ?? null,
-                'vendor_phone' => $provider->phone ?? null,
-                'vendor_address' => $provider->address ?? null,
-                'company_name' => $provider->company_name ?? $provider->name ?? null,
-                'payment_method' => $booking->payments->first()->method ?? 'Not specified',
-                'payment_status' => $booking->payments->first()->status ?? $booking->status,
-                'notes' => $booking->notes,
-                'subtotal' => $booking->subtotal,
-                'deposit_amount' => $booking->deposit_amount,
-                'price_per_day' => $booking->price_per_day,
-                'rental_days' => $booking->rental_days,
-            ];
-        });
-
-    $seaVehicleBookings = \App\Models\SeaVehicleBookings::where('client_id', $clientId)
-        ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
-        ->get()
-        ->map(function($booking) {
-            $vehicle = $booking->vehicle;
-            $provider = $vehicle?->provider;
-            $client = $booking->client;
-            $customer = $booking->customer;
-            $schedule = $booking->schedule;
-
-            return [
-                'id' => 'sea-' . $booking->id,
-                'source_id' => $booking->id,
-                'booking_type' => 'sea',
-                'service_name' => $vehicle->name ?? $vehicle->model ?? 'Sea Vehicle Rental',
-                'vehicle_name' => $vehicle->name ?? $vehicle->model ?? 'Sea Vehicle',
-                'vehicle_category' => 'sea',
-                'status' => $booking->status,
-                'total_amount' => $booking->total_amount,
-                'amount' => $booking->total_amount,
-                'booking_date' => $booking->created_at?->format('Y-m-d'),
-                'start_date' => $schedule?->pickup_at,
-                'end_date' => $schedule?->dropoff_at,
-                'pickup_location' => $schedule->pickup_location ?? null,
-                'dropoff_location' => $schedule->dropoff_location ?? null,
-                'booking_code' => 'SBK-' . $booking->id,
-                'reference_number' => 'SBK-' . $booking->id,
-                'currency' => $booking->currency ?? 'LKR',
-                'created_at' => $booking->created_at,
-                'user' => $client ? [
-                    'name' => $client->name,
-                    'email' => $client->email,
-                    'phone' => $client->phone,
-                    'address' => $client->address,
-                ] : null,
-                'customer_name' => $customer->name ?? $client->name ?? null,
-                'customer_email' => $customer->email ?? $client->email ?? null,
-                'customer_phone' => $customer->phone ?? $client->phone ?? null,
-                'customer_address' => $customer->address ?? $client->address ?? null,
-                'vendor' => $provider ? [
-                    'name' => $provider->name,
-                    'email' => $provider->email,
-                    'phone' => $provider->phone,
-                    'address' => $provider->address,
-                ] : null,
-                'vendor_name' => $provider->name ?? null,
-                'vendor_email' => $provider->email ?? null,
-                'vendor_phone' => $provider->phone ?? null,
-                'vendor_address' => $provider->address ?? null,
-                'company_name' => $provider->company_name ?? $provider->name ?? null,
-                'payment_method' => $booking->payments->first()->method ?? 'Not specified',
-                'payment_status' => $booking->payments->first()->status ?? $booking->status,
-                'notes' => $booking->notes,
-                'subtotal' => $booking->subtotal,
-                'deposit_amount' => $booking->deposit_amount,
-                'price_per_day' => $booking->price_per_day,
-                'rental_days' => $booking->rental_days,
-            ];
-        });
-
-    // Fetch train bookings
-    $trainBookings = \App\Models\TrainBooking::where('user_id', $clientId)
-        ->with(['user', 'trainSchedule.train'])
-        ->get()
-        ->map(function($booking) {
-            return [
-                'id' => $booking->id,
-                'booking_type' => 'train',
-                'service_name' => 'Train Ticket - ' . ($booking->trainSchedule?->train?->name ?? 'Train'),
-                'status' => $booking->status,
-                'total_amount' => $booking->total_amount,
-                'amount' => $booking->total_amount,
-                'booking_date' => $booking->created_at->format('Y-m-d'),
-                'reference_number' => $booking->booking_reference,
-                'booking_code' => $booking->booking_reference,
-                'currency' => 'LKR',
-                'created_at' => $booking->created_at,
-                'user' => $booking->user ? [
-                    'name' => $booking->user->name,
-                    'email' => $booking->user->email,
-                    'phone' => $booking->user->phone,
-                    'address' => $booking->user->address,
-                ] : null,
-                'customer_name' => $booking->passenger_name,
-                'customer_email' => $booking->passenger_email,
-                'customer_phone' => $booking->passenger_phone,
-                'payment_status' => $booking->payment_status,
-                'notes' => "Adults: {$booking->adults}, Children: {$booking->children}, Infants: {$booking->infants}",
-            ];
-        });
-
-    // Fetch bus bookings
-    $busBookings = \App\Models\BusBooking::where('user_id', $clientId)
-        ->with(['user', 'busSchedule'])
-        ->get()
-        ->map(function($booking) {
-            return [
-                'id' => $booking->id,
-                'booking_type' => 'bus',
-                'service_name' => 'Bus Ticket',
-                'status' => $booking->status,
-                'total_amount' => $booking->total_price,
-                'amount' => $booking->total_price,
-                'booking_date' => $booking->booking_date?->format('Y-m-d') ?? $booking->created_at->format('Y-m-d'),
-                'reference_number' => $booking->booking_reference,
-                'booking_code' => $booking->booking_reference,
-                'currency' => 'LKR',
-                'created_at' => $booking->created_at,
-                'user' => $booking->user ? [
-                    'name' => $booking->user->name,
-                    'email' => $booking->user->email,
-                    'phone' => $booking->user->phone,
-                    'address' => $booking->user->address,
-                ] : null,
-                'customer_name' => $booking->passenger_name,
-                'customer_email' => $booking->passenger_email,
-                'customer_phone' => $booking->passenger_phone,
-                'notes' => "Passengers: {$booking->passenger_count}, Seats: " . implode(', ', $booking->seat_numbers ?? []),
-            ];
-        });
-
-    // Fetch flight bookings
-    $flightBookings = \App\Models\FlightBooking::when(
-        Schema::hasColumn('flight_bookings', 'user_id'),
-        fn($q) => $q->where('user_id', $clientId),
-        fn($q) => $q->where('email', Auth::user()->email)
-    )
-        ->with(['user'])
-        ->get()
-        ->map(function($booking) {
-            return [
-                'id' => $booking->id,
-                'booking_type' => 'flight',
-                'service_name' => 'Flight Booking',
-                'status' => $booking->status,
-                'booking_date' => $booking->created_at->format('Y-m-d'),
-                'start_date' => $booking->departure_date,
-                'end_date' => $booking->return_date,
-                'pickup_location' => $booking->departure_airport,
-                'dropoff_location' => $booking->arriving_airport,
-                'reference_number' => 'FL-' . $booking->id,
-                'booking_code' => 'FL-' . $booking->id,
-                'currency' => 'LKR',
-                'created_at' => $booking->created_at,
-                'user' => $booking->user ? [
-                    'name' => $booking->user->name,
-                    'email' => $booking->user->email,
-                    'phone' => $booking->user->phone,
-                    'address' => $booking->user->address,
-                ] : null,
-                'customer_name' => $booking->name,
-                'customer_email' => $booking->email,
-                'customer_phone' => $booking->phone,
-                'notes' => "Trip: {$booking->trip_type}. " . ($booking->special_requests ? "Requests: {$booking->special_requests}" : ''),
-            ];
-        });
-
-    // Fetch courier shipments
-    $courierShipmentTransformer = app(ClientCourierShipmentTransformer::class);
-
-    $courierShipments = \App\Models\Courier\CourierShipment::where('requested_by_user_id', $clientId)
-        ->with(['requestedBy', 'sender', 'recipient', 'senderAddress', 'recipientAddress', 'packages', 'latestPayment'])
-        ->get()
-        ->map(function ($shipment) use ($courierShipmentTransformer) {
-            $booking = $courierShipmentTransformer->forUnifiedBooking($shipment);
-
-            $paymentStatus = $booking['payment_status'] ?? $booking['paymentStatus'] ?? null;
-            $paymentMethod = $booking['payment_method'] ?? $booking['paymentMethod'] ?? null;
-            $paymentReference = $booking['payment_reference'] ?? $booking['paymentReference'] ?? null;
-
-            return array_merge($booking, [
-                'payment_status' => $paymentStatus,
-                'payment_method' => $paymentMethod,
-                'payment_reference' => $paymentReference,
-                'paymentStatus' => $paymentStatus ? \Illuminate\Support\Str::title(str_replace('_', ' ', (string) $paymentStatus)) : null,
-                'paymentMethod' => $paymentMethod,
-                'paymentReference' => $paymentReference,
-            ]);
-        });
-
-    // Fetch warehouse bookings
-    $warehouseBookings = \App\Models\Warehouse\WarehouseBooking::where('user_id', $clientId)
-        ->with(['user', 'warehouseUnit.owner'])
-        ->get()
-        ->map(function($booking) {
-            $unit = $booking->warehouseUnit;
-            return [
-                'id' => $booking->id,
-                'booking_type' => 'warehouse',
-                'service_name' => 'Warehouse Storage',
-                'status' => $booking->status,
-                'total_amount' => $booking->final_amount,
-                'amount' => $booking->final_amount,
-                'booking_date' => $booking->created_at->format('Y-m-d'),
-                'start_date' => $booking->start_date,
-                'end_date' => $booking->end_date,
-                'reference_number' => $booking->booking_reference,
-                'booking_code' => $booking->booking_reference,
-                'currency' => 'LKR',
-                'created_at' => $booking->created_at,
-                'user' => $booking->user ? [
-                    'name' => $booking->user->name,
-                    'email' => $booking->user->email,
-                    'phone' => $booking->user->phone,
-                    'address' => $booking->user->address,
-                ] : null,
-                'customer_name' => $booking->contact_person ?? $booking->company_name,
-                'customer_email' => $booking->email,
-                'customer_phone' => $booking->phone,
-                'company_name' => $booking->company_name,
-                'vendor_name' => $unit?->owner?->name ?? 'Warehouse Provider',
-                'vendor_email' => $unit?->owner?->email,
-                'vendor_phone' => $unit?->owner?->phone,
-                'payment_method' => $booking->payment_method,
-                'payment_status' => $booking->payment_status,
-                'notes' => "Storage: {$booking->storage_type}, Space: {$booking->required_space} sq ft. " . ($booking->notes ?? ''),
-                'subtotal' => $booking->total_amount,
-                'deposit_amount' => $booking->security_deposit,
-            ];
-        });
-
-    // Combine all bookings
-    $allBookings = collect($vehicleBookings)
-        ->merge($airVehicleBookings)
-        ->merge($seaVehicleBookings)
-        ->merge($trainBookings)
-        ->merge($busBookings)
-        ->merge($flightBookings)
-        ->merge($courierShipments)
-        ->merge($warehouseBookings)
-        ->sortByDesc('created_at')
-        ->values();
-
-    // Calculate statistics
-    $statistics = [
-        'total_bookings' => $allBookings->count(),
-        'active_bookings' => $allBookings->whereIn('status', ['confirmed', 'paid', 'active'])->count(),
-        'total_spent' => $allBookings->sum('total_amount'),
-        'this_month' => $allBookings->filter(function($b) {
-            return \Carbon\Carbon::parse($b['created_at'])->isCurrentMonth();
-        })->count(),
-    ];
-
-    // Monthly data for charts
-    $monthlyData = [];
-    for ($i = 5; $i >= 0; $i--) {
-        $month = now()->subMonths($i);
-        $monthBookings = $allBookings->filter(function($b) use ($month) {
-            return \Carbon\Carbon::parse($b['created_at'])->isSameMonth($month);
-        });
-        
-        $monthlyData[] = [
-            'month' => $month->format('M'),
-            'vehicle' => $monthBookings->whereIn('booking_type', ['vehicle', 'air', 'sea'])->count(),
-            'tickets' => $monthBookings->whereIn('booking_type', ['train', 'bus', 'flight'])->count(),
-            'logistics' => $monthBookings->whereIn('booking_type', ['warehouse', 'courier', 'freight'])->count(),
-        ];
-    }
-
-    return Inertia::render('Web/home/client/ClientAllBookings', [
-        'allBookings' => $allBookings,
-        'statistics' => $statistics,
-        'monthlyData' => $monthlyData,
-        'support' => (function () {
-            try {
-                $site = \App\Models\WebsiteSetting::query()->first();
-                return ['name' => $site?->site_name, 'phone' => $site?->contact_phone, 'email' => $site?->contact_email, 'address' => trim(implode(', ', array_filter([$site?->address, $site?->city, $site?->country])))];
-            } catch (\Throwable $e) {
-                return ['name' => null, 'phone' => null, 'email' => null, 'address' => ''];
-            }
-        })(),
-    ]);
-})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientAllBookings');
 
 // Warehouse Booking Dashboard - clients only (guests go to sign-in, unverified to approval)
 Route::get('/warehouseBookingDashboard', function () {

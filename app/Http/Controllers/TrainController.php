@@ -400,7 +400,7 @@ class TrainController extends Controller
             // Both legs of a round trip are created in ONE transaction: either
             // both bookings succeed, or neither does — never a stranded outbound
             // leg with a failed return leg. The payment step (wallet debit or a
-            // pending PayHere payment row) happens inside the same transaction,
+            // pending Payments.lk payment row) happens inside the same transaction,
             // so a wallet InsufficientWalletBalanceException (or any other
             // failure) rolls back the seat reservations too instead of leaving
             // an orphaned pending booking with no way to pay.
@@ -434,7 +434,7 @@ class TrainController extends Controller
                 }
 
                 // A round trip is ONE payment for the combined total of both
-                // legs, not two separate PayHere/wallet charges.
+                // legs, not two separate Payments.lk/wallet charges.
                 $combinedTotal = (float) $outbound->total_amount + ($return ? (float) $return->total_amount : 0.0);
 
                 if ($paymentMethod === 'Wallet') {
@@ -466,8 +466,8 @@ class TrainController extends Controller
                         $return->forceFill(['status' => 'confirmed', 'payment_status' => 'paid'])->save();
                     }
                 } else {
-                    // PayHere is asynchronous — the payment starts pending and is
-                    // only marked paid once handlePayHereReturn()/handlePayHereNotify()
+                    // Payments.lk is asynchronous — the payment starts pending and is
+                    // only marked paid once handleGatewayReturn()/applyPaymentsLkResult()
                     // confirm the charge. The booking(s) stay 'pending' until then,
                     // protected by their existing 15-minute expires_at hold.
                     TrainBookingPayment::create([
@@ -496,8 +496,8 @@ class TrainController extends Controller
             ]);
 
             if ($paymentMethod === 'Card') {
-                $redirectUrl = route('train-bookings.payhere.checkout', ['booking' => $booking->id]);
-                $message = 'Booking created. Continue with PayHere to complete your payment.';
+                $redirectUrl = route('train-bookings.paymentslk.checkout', ['booking' => $booking->id]);
+                $message = 'Booking created. Continue with Payments.lk to complete your payment.';
 
                 return redirect($redirectUrl)->with('success', $message);
             }
@@ -593,7 +593,7 @@ class TrainController extends Controller
     }
 
     /**
-     * Render the PayHere checkout step for a train booking (or round-trip
+     * Render the Payments.lk checkout step for a train booking (or round-trip
      * pair) created with payment_method = 'Card'. Mirrors
      * WarehouseBookingController::paymentCheckout(). The payment row lives on
      * the outbound leg and covers the combined total of both legs.
@@ -610,7 +610,7 @@ class TrainController extends Controller
         if ($payment->isPending() && $booking->isExpired()) {
             // The 15-minute seat hold lapsed before the customer paid — the
             // seats may already be released, so surface a clear message
-            // instead of sending them into a confusing PayHere failure.
+            // instead of sending them into a confusing Payments.lk failure.
             $payment->markFailed('Booking hold expired before payment was completed.');
         }
 
@@ -621,8 +621,8 @@ class TrainController extends Controller
         $payload = [
             'booking' => $this->serializeTrainBookingForCheckout($booking, $payment),
             'checkout' => $checkout,
-            'pollingUrl' => route('train-bookings.payhere.status', ['booking' => $booking->id]),
-            'retryUrl' => route('train-bookings.payhere.retry', ['booking' => $booking->id]),
+            'pollingUrl' => route('train-bookings.paymentslk.status', ['booking' => $booking->id]),
+            'retryUrl' => route('train-bookings.paymentslk.retry', ['booking' => $booking->id]),
             'bookingListUrl' => route('train.booking.success', $booking->booking_reference),
         ];
 
@@ -635,7 +635,7 @@ class TrainController extends Controller
 
     /**
      * JSON polling endpoint used by the checkout page while waiting for the
-     * PayHere webhook/return to resolve. Mirrors WalletController::status().
+     * Payments.lk webhook/return to resolve. Mirrors WalletController::status().
      */
     public function paymentStatus(TrainBooking $booking)
     {
@@ -650,8 +650,8 @@ class TrainController extends Controller
     }
 
     /**
-     * Retry a failed/cancelled PayHere payment: mints a fresh gateway_order_id
-     * (PayHere order ids can't be reused) and resets the payment state back to
+     * Retry a failed/cancelled Payments.lk payment: mints a fresh gateway_order_id
+     * (Payments.lk order ids can't be reused) and resets the payment state back to
      * pending — but only if the 15-minute seat hold hasn't lapsed, since a
      * lapsed hold means the seats may already be released/rebooked.
      */
@@ -661,14 +661,14 @@ class TrainController extends Controller
 
         $payment = $booking->payments()->where('method', 'Card')->latest('id')->first();
         if (!$payment) {
-            return response()->json(['success' => false, 'message' => 'No PayHere payment found for this booking.'], 422);
+            return response()->json(['success' => false, 'message' => 'No Payments.lk payment found for this booking.'], 422);
         }
 
         if ($payment->isPaid()) {
             return response()->json([
                 'success' => true,
                 'message' => 'This booking is already paid.',
-                'redirect' => route('train-bookings.payhere.checkout', ['booking' => $booking->id]),
+                'redirect' => route('train-bookings.paymentslk.checkout', ['booking' => $booking->id]),
             ]);
         }
 
@@ -692,7 +692,7 @@ class TrainController extends Controller
             'initiated_at' => now(),
         ])->save();
 
-        $redirectUrl = route('train-bookings.payhere.checkout', ['booking' => $booking->id]);
+        $redirectUrl = route('train-bookings.paymentslk.checkout', ['booking' => $booking->id]);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'redirect' => $redirectUrl]);
@@ -707,18 +707,18 @@ class TrainController extends Controller
      * and resolved here; either way the customer ends up on the checkout page
      * that reflects the current state.
      */
-    public function handlePayHereReturn(Request $request)
+    public function handleGatewayReturn(Request $request)
     {
         $orderId = trim((string) $request->query('order_id', ''));
         $payment = TrainBookingPayment::where('gateway_order_id', $orderId)->first();
 
         if (!$payment) {
-            return redirect()->route('TrainTicketBookingDetails.TrainTicketBookingDetails')->with('error', 'We could not find that booking payment.');
+            return redirect()->route('landTicketBooking')->with('error', 'We could not find that booking payment.');
         }
 
         $booking = TrainBooking::find($payment->train_booking_id);
         if (!$booking) {
-            return redirect()->route('TrainTicketBookingDetails.TrainTicketBookingDetails')->with('error', 'We could not find that booking.');
+            return redirect()->route('landTicketBooking')->with('error', 'We could not find that booking.');
         }
 
         if ($payment->isPending()) {
@@ -728,10 +728,10 @@ class TrainController extends Controller
             }
         }
 
-        return redirect()->route('train-bookings.payhere.checkout', ['booking' => $booking->id]);
+        return redirect()->route('train-bookings.paymentslk.checkout', ['booking' => $booking->id]);
     }
 
-    public function handlePayHereCancel(Request $request)
+    public function handleGatewayCancel(Request $request)
     {
         $orderId = trim((string) $request->query('order_id', ''));
         $payment = TrainBookingPayment::where('gateway_order_id', $orderId)->first();
@@ -740,7 +740,7 @@ class TrainController extends Controller
             $payment->markFailed('Cancelled by customer at Payments.lk.');
         }
 
-        return redirect()->route('TrainTicketBookingDetails.TrainTicketBookingDetails')->with('error', 'Payment cancelled.');
+        return redirect()->route('landTicketBooking')->with('error', 'Payment cancelled.');
     }
 
     /** Called by PaymentsLkWebhookController for TRP-* references. */
@@ -772,7 +772,7 @@ class TrainController extends Controller
     }
 
     /**
-     * Confirms both legs of a round trip together, since one PayHere payment
+     * Confirms both legs of a round trip together, since one Payments.lk payment
      * covers the combined total for both.
      */
     private function confirmTrainBookingAfterPayment(TrainBooking $booking): void
@@ -794,8 +794,8 @@ class TrainController extends Controller
             'amount' => (float) $payment->amount_paid,
             'currency' => 'LKR',
             'description' => 'Train booking #' . $booking->booking_reference,
-            'successUrl' => route('train-bookings.payhere.return', ['order_id' => $payment->gateway_order_id]),
-            'cancelUrl' => route('train-bookings.payhere.cancel', ['order_id' => $payment->gateway_order_id]),
+            'successUrl' => route('train-bookings.paymentslk.return', ['order_id' => $payment->gateway_order_id]),
+            'cancelUrl' => route('train-bookings.paymentslk.cancel', ['order_id' => $payment->gateway_order_id]),
             'customerName' => (string) ($booking->passenger_name ?: ($user->name ?? 'Customer')),
             'customerEmail' => (string) ($booking->passenger_email ?: ($user->email ?? '')),
             'customerPhone' => (string) ($booking->passenger_phone ?: ''),
@@ -837,7 +837,7 @@ class TrainController extends Controller
     private function generateTrainPaymentOrderId(): string
     {
         // Deliberately NOT the "TRN-" prefix used by booking_reference
-        // (BookingReferenceGenerator::forTrain()) — this is the PayHere
+        // (BookingReferenceGenerator::forTrain()) — this is the Payments.lk
         // *payment* order id, a separate identifier space.
         return 'TRP-' . now()->format('ymd') . '-' . strtoupper(Str::random(8));
     }

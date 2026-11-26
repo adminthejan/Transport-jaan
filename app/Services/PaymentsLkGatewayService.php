@@ -100,6 +100,17 @@ class PaymentsLkGatewayService
                 if ($this->isCheckoutOpen($existing)) {
                     return $this->readyPayload($existing);
                 }
+
+                // Never open a second checkout for money that is already taken (the
+                // webhook may simply not have arrived): record the result instead.
+                $paymentStatus = strtolower((string) ($existing['payment']['status'] ?? ''));
+                if (in_array($paymentStatus, ['succeeded', 'processing'], true)) {
+                    if ($paymentStatus === 'succeeded') {
+                        $this->dispatchResult($this->resultFromCheckout($existing, $orderId));
+                    }
+
+                    return $blank('This payment has already been submitted. Refresh the page to see its latest status.');
+                }
             }
 
             $customer = array_filter([
@@ -121,7 +132,10 @@ class PaymentsLkGatewayService
                 $body['customer'] = $customer;
             }
 
-            $checkout = $client->checkouts->create($body, ['idempotencyKey' => 'order-' . $orderId]);
+            // A replayed idempotency key returns the original (now dead) checkout for
+            // 24 hours, so a replacement needs a key of its own.
+            $idempotencyKey = 'order-' . $orderId . ($existingId !== null ? ':' . $existingId : '');
+            $checkout = $client->checkouts->create($body, ['idempotencyKey' => $idempotencyKey]);
         } catch (\Throwable $e) {
             Log::error('Payments.lk: could not create checkout', [
                 'order_id' => $orderId,
@@ -137,6 +151,21 @@ class PaymentsLkGatewayService
         }
 
         return $this->readyPayload($checkout);
+    }
+
+    /** Hand a normalized result to the module that owns the order (by order-id prefix). */
+    public function dispatchResult(array $result): bool
+    {
+        $prefix = strtoupper(explode('-', (string) $result['orderId'])[0] ?? '');
+        $handler = config("services.paymentslk.handlers.{$prefix}");
+        if (!is_array($handler)) {
+            return false;
+        }
+
+        [$class, $method] = $handler;
+        app($class)->{$method}($result);
+
+        return true;
     }
 
     /** Re-read the checkout stored on a payment row from the API. */

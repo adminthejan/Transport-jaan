@@ -294,7 +294,7 @@ const WarehousePayments = () => {
         };
         sessionStorage.setItem('warehouseBookingData', JSON.stringify(updatedBookingData));
 
-        // Backend validates payment_method as a strict enum (PayHere|Wallet) —
+        // Backend validates payment_method as a strict enum (Card|Wallet) —
         // pass it through unchanged rather than normalizing to snake_case.
         const normalizedPaymentMethod = paymentData.payment_method;
 

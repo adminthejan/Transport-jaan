@@ -82,7 +82,7 @@ class WarehouseBooking extends Model
         'refund_percentage',
         'refund_amount',
 
-        // Payment gateway fields (PayHere / wallet)
+        // Payment gateway fields (Payments.lk / wallet)
         'provider',
         'gateway_order_id',
         'gateway_payment_id',

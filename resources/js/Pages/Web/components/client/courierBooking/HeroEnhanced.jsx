@@ -3,11 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, router } from '@inertiajs/react';
 import { route } from "ziggy-js";
 import jsPDF from "jspdf";
-import {
-    launchPayHereOnsiteCheckout,
-    launchPayHereRedirectCheckout,
-    preloadPayHereOnsiteSdk,
-} from "../../../courier/payhereCheckout";
+import { redirectToCheckout } from "../../../../../utils/paymentsLkCheckout";
 import {
     Package,
     FileText,
@@ -152,8 +148,6 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
         setShipmentPaymentLaunching(shipmentId, true);
 
         try {
-            preloadPayHereOnsiteSdk().catch(() => {});
-
             let checkoutSession = paymentCheckoutSessionByShipment[shipmentId];
             if (!checkoutSession?.checkout?.isReady) {
                 const response = await fetch(checkoutUrl, {
@@ -174,30 +168,10 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                 setPaymentCheckoutSessionByShipment((previous) => ({ ...previous, [shipmentId]: result }));
             }
 
-            await launchPayHereOnsiteCheckout(checkoutSession.checkout, {
-                onCompleted: () => {
-                    router.reload({ only: ["shipments", "statistics", "monthlyData"], preserveScroll: true });
-                },
-                onDismissed: () => {
-                    setShipmentPaymentError(shipmentId, "Checkout was closed before completion. You can continue payment anytime.");
-                },
-                onError: () => {
-                    setShipmentPaymentError(shipmentId, "PayHere reported an issue while starting onsite checkout.");
-                },
-            });
+            redirectToCheckout(checkoutSession.checkout);
         } catch (error) {
-            console.warn("[CourierDashboard] Onsite checkout unavailable. Falling back to checkout page.", error);
-            try {
-                const checkoutSession = paymentCheckoutSessionByShipment[shipmentId];
-                if (checkoutSession?.checkout?.isReady) {
-                    launchPayHereRedirectCheckout(checkoutSession.checkout);
-                    return;
-                }
-
-                router.visit(checkoutUrl, { method: "get", preserveScroll: true });
-            } catch (fallbackError) {
-                setShipmentPaymentError(shipmentId, "Unable to start checkout right now. Please try again.");
-            }
+            console.warn("Courier checkout could not be started.", error);
+            setShipmentPaymentError(shipmentId, "Unable to start checkout right now. Please try again.");
         } finally {
             setShipmentPaymentLaunching(shipmentId, false);
         }

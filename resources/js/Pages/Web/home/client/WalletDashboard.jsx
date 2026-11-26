@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { router, usePage } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, RefreshCcw, SlidersHorizontal } from "lucide-react";
 import BackToDashboard from "./BackToDashboard";
@@ -60,6 +60,7 @@ const WalletDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC]">
+      <Head title="Wallet & Payments" />
       <ClientHeader />
       <BackToDashboard />
 

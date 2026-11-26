@@ -2,7 +2,7 @@ import React from 'react';
 import Header from "./ClientHeader";
 import BackToDashboard from "./BackToDashboard";
 import Settings from '../../components/client/Settings';
-import { usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 
 const ClientDashboardSettings = ({ user }) => {
   const { auth } = usePage().props;
@@ -10,6 +10,7 @@ const ClientDashboardSettings = ({ user }) => {
   
   return (
     <div>
+     <Head title="Account Settings" />
      <Header />
      <BackToDashboard />
      <Settings user={fullUser} />

@@ -309,7 +309,7 @@ function HeroDetailsInner({
     // search form — lets people browse nearby dates for a cheaper/earlier trip.
     const changeDate = (newDate) => {
         if (newDate === searchParams.departureDate || inline) return;
-        router.get('/trainTicketBookingDetails', { ...searchParams, departureDate: newDate }, { preserveScroll: true });
+        router.get('/landTicketBooking', { ...searchParams, date: newDate }, { preserveScroll: true });
     };
 
     return (

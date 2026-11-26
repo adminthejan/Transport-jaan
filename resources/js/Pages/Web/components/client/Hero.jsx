@@ -315,6 +315,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
             let label = "No bookings";
             if (activeCount > 0) label = "Active";
             else if (upcomingCount > 0) label = "Upcoming";
+            else if (rows.length > 0) label = `${rows.length} ${rows.length === 1 ? "booking" : "bookings"}`;
             return { count: rows.length, label };
         };
         return { land: build("land"), air: build("air"), sea: build("sea") };
@@ -920,9 +921,9 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                     <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
                                     <RTooltip />
                                     <Legend wrapperStyle={{ fontSize: "11px" }} />
-                                    <Line type="monotone" dataKey="land" name="Land" stroke="#3b82f6" strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 4 }} />
-                                    <Line type="monotone" dataKey="air" name="Air" stroke="#10b981" strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 4 }} />
-                                    <Line type="monotone" dataKey="sea" name="Sea" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 4 }} />
+                                    <Line type="monotone" dataKey="land" name="Land" stroke="#3b82f6" strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                                    <Line type="monotone" dataKey="air" name="Air" stroke="#10b981" strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                                    <Line type="monotone" dataKey="sea" name="Sea" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 4 }} isAnimationActive={false} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -934,7 +935,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                         <div className="relative h-[180px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
-                                    <Pie data={pieData} innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" nameKey="name" cornerRadius={6}>
+                                    <Pie data={pieData} innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" nameKey="name" cornerRadius={6} isAnimationActive={false}>
                                         {pieData.map((d) => (
                                             <Cell key={d.name} fill={pieColors[d.name]} />
                                         ))}
@@ -976,7 +977,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                     <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
                                     <YAxis tickLine={false} axisLine={false} fontSize={11} width={44} tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
                                     <RTooltip formatter={(value) => formatMoney(value)} />
-                                    <Bar dataKey="value" name="Spending" fill="#0955AC" radius={[6, 6, 0, 0]} />
+                                    <Bar dataKey="value" name="Spending" fill="#0955AC" radius={[6, 6, 0, 0]} isAnimationActive={false} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>

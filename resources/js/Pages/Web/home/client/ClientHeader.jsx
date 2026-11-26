@@ -223,8 +223,10 @@ const ClientHeader = () => {
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-    const currentPath =
-        typeof window !== "undefined" ? window.location.pathname : "";
+    // Use Inertia's server-side URL for active-state detection so it is correct
+    // immediately on mount (before any client-side navigation).
+    const { url: pageUrl } = usePage();
+    const currentPath = (pageUrl || (typeof window !== "undefined" ? window.location.pathname : "")).split("?")[0].split("#")[0];
     const isActivePath = (path) => currentPath === path;
 
     const initials = (auth?.user?.name || "?")
@@ -381,13 +383,20 @@ const ClientHeader = () => {
                                 Login
                             </Link>
                         )}
-                        <div className="size-[48px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
+                        <button
+                            type="button"
+                            onClick={() => router.visit("/client/dashboard#actions")}
+                            className="relative size-[48px] rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] flex justify-center items-center transition"
+                            aria-label="Notifications"
+                            title="Notifications & action items"
+                        >
                             <img
                                 src={bell}
                                 className="size-[20px]"
-                                alt="Notifications"
+                                alt=""
+                                aria-hidden="true"
                             />
-                        </div>
+                        </button>
                         <div className="relative">
                             <button
                                 onClick={() => setIsProfileOpen((prev) => !prev)}
@@ -422,7 +431,7 @@ const ClientHeader = () => {
                                                 <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
                                             </div>
                                         )}
-                                        {window.location.pathname === "/clientDashboardSettings" ? (
+                                        {isActivePath("/clientDashboardSettings") ? (
                                             <Link
                                                 href={"/client/dashboard"}
                                                 onClick={() => setIsProfileOpen(false)}
@@ -561,6 +570,7 @@ const ClientHeader = () => {
                                 onToggle={() => toggleDropdown("vehicle")}
                                 panelId="vehicle-dropdown"
                             >
+                                <SidebarSubLink href="/clientVehicleDashboard" label="Vehicle Dashboard" onClick={toggleMenu} />
                                 <SidebarSubLink href="/vehicleList" label="Land" onClick={toggleMenu} />
                                 <SidebarSubLink href="/airVehicleList" label="Air" onClick={toggleMenu} />
                                 <SidebarSubLink href="/seaVehicleList" label="Sea" onClick={toggleMenu} />
@@ -574,6 +584,7 @@ const ClientHeader = () => {
                                 onToggle={() => toggleDropdown("ticket")}
                                 panelId="ticket-dropdown"
                             >
+                                <SidebarSubLink href="/clientTicketBookingDashboard" label="Ticket Dashboard" onClick={toggleMenu} />
                                 <SidebarSubLink href="/landTicketBooking" label="Land (Bus & Train)" onClick={toggleMenu} />
                                 <SidebarSubLink href="/ticketBooking?type=flight" label="Air" onClick={toggleMenu} />
                                 <SidebarSubLink href="/seaTicketBooking" label="Sea" onClick={toggleMenu} />
@@ -587,16 +598,16 @@ const ClientHeader = () => {
                                 onToggle={() => toggleDropdown("courier")}
                                 panelId="courier-dropdown"
                             >
-                                <SidebarSubLink href="/couriers/create" label="Domestic" onClick={toggleMenu} />
-                                <SidebarSubLink href="/courierBookingDashboard" label="My Shipments" onClick={toggleMenu} />
+                                <SidebarSubLink href="/courierBookingDashboard" label="Courier Dashboard" onClick={toggleMenu} />
+                                <SidebarSubLink href="/couriers/create" label="New Shipment (Domestic)" onClick={toggleMenu} />
                                 <SidebarSubLink href="/track-shipment" label="Track Shipment" onClick={toggleMenu} />
                             </SidebarAccordion>
 
                             <SidebarLink
-                                href="/warehouseList"
+                                href="/warehouseBookingDashboard"
                                 icon={Warehouse}
                                 label="Warehouse Booking"
-                                active={isActivePath("/warehouseList")}
+                                active={isActivePath("/warehouseBookingDashboard")}
                                 onClick={toggleMenu}
                             />
                             <SidebarLink
@@ -614,10 +625,10 @@ const ClientHeader = () => {
                                 onClick={toggleMenu}
                             />
                             <SidebarLink
-                                href={route("clientAllBookings")}
+                                href={route("client.mainDashboard") + "#bookings"}
                                 icon={ClipboardList}
                                 label="My Bookings"
-                                active={isActivePath("/clientAllBookings")}
+                                active={false}
                                 onClick={toggleMenu}
                             />
                             {isChatClient && (

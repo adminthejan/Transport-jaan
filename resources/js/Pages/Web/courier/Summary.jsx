@@ -2,11 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Head, Link, usePage, router } from "@inertiajs/react";
 import Header from "../home/client/ClientHeader";
 import Footer from "../layouts/Footer";
-import {
-    launchPayHereOnsiteCheckout,
-    launchPayHereRedirectCheckout,
-    preloadPayHereOnsiteSdk,
-} from "./payhereCheckout";
+import { redirectToCheckout } from "../../../utils/paymentsLkCheckout";
 import { computeVolumetricWeightKg, formatWeightKg } from "./courierPricing";
 import { fetchWithCsrf, refreshCsrfToken, friendlyFailureMessage } from "./csrfFetch";
 
@@ -123,13 +119,6 @@ const Summary = ({
         }
     }, [initialData]);
 
-    useEffect(() => {
-        if (!Boolean(formState?.shipment?.requiresCardPayment || formState?.shipment?.paymentOptions?.card)) {
-            return;
-        }
-
-        preloadPayHereOnsiteSdk().catch(() => {});
-    }, [formState?.shipment?.paymentOptions?.card, formState?.shipment?.requiresCardPayment]);
 
     if (!formState) {
         if (inline) {
@@ -317,19 +306,6 @@ const Summary = ({
         return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
     };
 
-    const launchPayHereCheckout = async (checkout, callbacks = {}) => {
-        if (!checkout?.checkoutUrl || !checkout?.fields) {
-            throw new Error("Checkout session is unavailable.");
-        }
-
-        try {
-            await launchPayHereOnsiteCheckout(checkout, callbacks);
-        } catch (error) {
-            console.warn("[CourierSummary] Onsite checkout unavailable. Falling back to redirect checkout.", error);
-            launchPayHereRedirectCheckout(checkout);
-        }
-    };
-
     const handleConfirm = async () => {
         if (!formState || isSubmitting) {
             console.debug('[CourierSummary] handleConfirm blocked — formState:', !!formState, '| isSubmitting:', isSubmitting);
@@ -413,29 +389,11 @@ const Summary = ({
                     return;
                 }
 
-                await launchPayHereCheckout(checkoutSession.checkout, {
-                    onCompleted: () => {
-                        const nextUrl = checkoutSession?.fallbackCheckoutUrl || checkoutSession?.shipment?.detailUrl;
-                        if (nextUrl) {
-                            router.visit(nextUrl, {
-                                method: "get",
-                                preserveScroll: true,
-                            });
-                        }
-                    },
-                    onDismissed: () => {
-                        setSubmitError("Checkout was closed before completion. Your shipment is saved, and you can resume payment anytime.");
-                        scrollToTop();
-                    },
-                    onError: () => {
-                        setSubmitError("PayHere reported an issue while starting onsite checkout.");
-                        scrollToTop();
-                    },
-                });
+                redirectToCheckout(checkoutSession.checkout);
                 return;
             } catch (error) {
                 console.error("[CourierSummary] Checkout initialization failed", error);
-                setSubmitError("Unable to initialize PayHere checkout right now. Please try again.");
+                setSubmitError("Unable to start the card checkout right now. Please try again.");
                 scrollToTop();
                 return;
             } finally {

@@ -247,7 +247,7 @@ const Payments = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Credit / Debit Card (PayHere) */}
+              {/* Credit / Debit Card (Payments.lk) */}
               <label
                 className={`relative flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                   selectedPayment === "Card"
@@ -271,7 +271,7 @@ const Payments = () => {
                 </div>
                 <div className="flex-1">
                   <span className="text-sm font-bold text-slate-900 block">Credit / Debit Card</span>
-                  <span className="text-[11px] text-slate-500">Visa, Mastercard, AMEX via PayHere</span>
+                  <span className="text-[11px] text-slate-500">Visa, Mastercard, AMEX via Payments.lk</span>
                 </div>
                 <div
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${

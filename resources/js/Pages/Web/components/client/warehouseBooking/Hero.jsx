@@ -221,7 +221,7 @@ const Hero = () => {
             }
         }
 
-        return "/api/warehouse/like-toggle";
+        return "/warehouse/like-toggle";
     };
 
     const filteredBookings = useMemo(() => {
@@ -1158,7 +1158,7 @@ const Hero = () => {
                     </div>
                 </div>
 
-                <div className="mb-3 md:mb-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="mb-3 md:mb-4 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
                     <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-xl font-semibold text-slate-900">

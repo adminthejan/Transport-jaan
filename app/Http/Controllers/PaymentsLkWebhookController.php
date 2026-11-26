@@ -37,18 +37,10 @@ class PaymentsLkWebhookController extends Controller
             return response('OK', 200);
         }
 
-        $prefix = strtoupper(explode('-', $result['orderId'])[0] ?? '');
-        $handler = config("services.paymentslk.handlers.{$prefix}");
-        if (!is_array($handler)) {
-            Log::warning('Payments.lk webhook: no handler for reference', ['reference' => $result['orderId'], 'event' => $event['id'] ?? null]);
-
-            return response('OK', 200);
-        }
-
-        [$class, $method] = $handler;
-
         try {
-            app($class)->{$method}($result);
+            if (!$gateway->dispatchResult($result)) {
+                Log::warning('Payments.lk webhook: no handler for reference', ['reference' => $result['orderId'], 'event' => $event['id'] ?? null]);
+            }
         } catch (\Throwable $e) {
             Log::error('Payments.lk webhook: handler failed', [
                 'reference' => $result['orderId'],

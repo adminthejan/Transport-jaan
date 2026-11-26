@@ -544,10 +544,10 @@ class WebController extends Controller
         // instead of rendering them here.
         $type = $request->query('type');
         if ($type === 'bus') {
-            return redirect()->route('busTicketBookingDetails.busTicketBookingDetails', $request->except('type'));
+            return redirect()->route('landTicketBooking', $request->except('type'));
         }
         if ($type === 'train') {
-            return redirect()->route('TrainTicketBookingDetails.TrainTicketBookingDetails', $request->except('type'));
+            return redirect()->route('landTicketBooking', $request->except('type'));
         }
 
         // Allow unauthenticated users to access the page
@@ -1145,7 +1145,7 @@ class WebController extends Controller
 
         switch ($user->role) {
             case 'client':
-                return redirect()->route('clientAllBookings');
+                return redirect()->route('client.mainDashboard');
             case 'vendor':
                 return redirect()->route('vendor.dashboard');
             case 'SuperAdmin':

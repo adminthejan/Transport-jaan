@@ -60,13 +60,13 @@ Route::get('approval-pending', function() {
         if ($user->role === 'vendor') {
             return redirect()->route('vendorAllBookings');
         } elseif ($user->role === 'client') {
-            return redirect()->route('client.dashboard');
+            return redirect()->route('client.mainDashboard');
         } elseif ($user->role === 'SuperAdmin') {
             return redirect()->route('superadmin.Analytics');
         }
         
         // Default fallback
-        return redirect()->route('client.dashboard');
+        return redirect()->route('client.mainDashboard');
     }
 
     // Redirect guests to signin

@@ -425,8 +425,8 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                 return;
                             }
                             const fallback = searchParams
-                                ? `/busTicketBookingDetails?from=${searchParams.from}&to=${searchParams.to}&date=${searchParams.date}&passengers=${searchParams.passengers}`
-                                : "/busTicketBookingDetails";
+                                ? `/landTicketBooking?from=${searchParams.from}&to=${searchParams.to}&date=${searchParams.date}&passengers=${searchParams.passengers}`
+                                : "/landTicketBooking";
                             router.visit(fallback);
                         }}
                         className="inline-flex items-center gap-2 text-[#0955AC] text-[14px] font-[700] hover:text-[#073E82] transition-colors"
@@ -561,7 +561,7 @@ const BusTicketBookingPreviewInner = ({ trip, searchParams, bookedSeats, bookedS
                                                     : "border-[#E2E8F0] text-[#64748B] hover:border-[#0955AC]/40"
                                             }`}
                                         >
-                                            Pay with PayHere
+                                            Pay with Payments.lk
                                         </button>
                                         <button
                                             type="button"

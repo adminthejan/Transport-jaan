@@ -349,7 +349,7 @@ export const buildClientDashboardSearchEntries = () => [
     createSearchEntry({
         id: "client-all-bookings",
         title: "All Bookings Dashboard",
-        path: "/clientAllBookings",
+        path: "/client/dashboard",
         manualPath: "Client Dashboard > All Bookings",
         group: "Client",
         description: "View all bookings across every service channel.",

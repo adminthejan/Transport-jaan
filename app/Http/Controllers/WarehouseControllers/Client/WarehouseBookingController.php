@@ -834,10 +834,10 @@ class WarehouseBookingController extends Controller
             // Wallet payments are debited inside the same DB transaction as the
             // booking creation above, so an exception anywhere afterwards rolls
             // the debit back too instead of leaving the customer charged for a
-            // booking that never actually got created/confirmed. PayHere
+            // booking that never actually got created/confirmed. Payments.lk
             // payments are NOT charged here — the booking is created with
             // payment_status 'pending' and the customer is sent to the
-            // PayHere checkout step (see paymentCheckout()/handlePayHereNotify()).
+            // Payments.lk checkout step (see paymentCheckout()/applyPaymentsLkResult()).
             if ($validated['payment_method'] === 'Wallet') {
                 try {
                     $walletTx = $wallets->debit(
@@ -891,7 +891,7 @@ class WarehouseBookingController extends Controller
             ]);
 
             $redirectUrl = $validated['payment_method'] === 'Card'
-                ? route('warehouse-bookings.payhere.checkout', ['booking' => $booking->id])
+                ? route('warehouse-bookings.paymentslk.checkout', ['booking' => $booking->id])
                 : route('warehouse-bookings.summary', $booking->id);
 
             return response()->json([
@@ -934,7 +934,7 @@ class WarehouseBookingController extends Controller
     }
 
     /**
-     * Render the PayHere checkout step for a warehouse booking created with
+     * Render the Payments.lk checkout step for a warehouse booking created with
      * payment_method = 'Card'. Mirrors WalletController::checkout().
      */
     public function paymentCheckout(Request $request, WarehouseBooking $booking, PaymentsLkGatewayService $gateway)
@@ -947,7 +947,7 @@ class WarehouseBookingController extends Controller
 
         if (!$booking->gateway_order_id) {
             // Safety net: shouldn't normally happen since store() always sets
-            // this for PayHere bookings, but avoids a hard failure if it does.
+            // this for Payments.lk bookings, but avoids a hard failure if it does.
             $booking->forceFill(['gateway_order_id' => $this->generateWarehousePaymentOrderId()])->save();
         }
 
@@ -956,8 +956,8 @@ class WarehouseBookingController extends Controller
         $payload = [
             'booking' => $this->serializeWarehouseBookingForCheckout($booking),
             'checkout' => $checkout,
-            'pollingUrl' => route('warehouse-bookings.payhere.status', ['booking' => $booking->id]),
-            'retryUrl' => route('warehouse-bookings.payhere.retry', ['booking' => $booking->id]),
+            'pollingUrl' => route('warehouse-bookings.paymentslk.status', ['booking' => $booking->id]),
+            'retryUrl' => route('warehouse-bookings.paymentslk.retry', ['booking' => $booking->id]),
             'bookingListUrl' => route('warehouse-bookings.list'),
         ];
 
@@ -970,7 +970,7 @@ class WarehouseBookingController extends Controller
 
     /**
      * JSON polling endpoint used by the checkout page while waiting for the
-     * PayHere webhook/return to resolve. Mirrors WalletController::status().
+     * Payments.lk webhook/return to resolve. Mirrors WalletController::status().
      */
     public function paymentStatus(WarehouseBooking $booking)
     {
@@ -980,8 +980,8 @@ class WarehouseBookingController extends Controller
     }
 
     /**
-     * Retry a failed/cancelled PayHere payment for an existing booking: mints
-     * a fresh gateway_order_id (PayHere order ids can't be reused) and resets
+     * Retry a failed/cancelled Payments.lk payment for an existing booking: mints
+     * a fresh gateway_order_id (Payments.lk order ids can't be reused) and resets
      * the payment state back to pending so the checkout page can try again.
      */
     public function paymentRetry(Request $request, WarehouseBooking $booking)
@@ -991,7 +991,7 @@ class WarehouseBookingController extends Controller
         if ($booking->payment_method !== 'Card') {
             return response()->json([
                 'success' => false,
-                'message' => 'Only PayHere payments can be retried.',
+                'message' => 'Only Payments.lk payments can be retried.',
             ], 422);
         }
 
@@ -999,7 +999,7 @@ class WarehouseBookingController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'This booking is already paid.',
-                'redirect' => route('warehouse-bookings.payhere.checkout', ['booking' => $booking->id]),
+                'redirect' => route('warehouse-bookings.paymentslk.checkout', ['booking' => $booking->id]),
             ]);
         }
 
@@ -1013,7 +1013,7 @@ class WarehouseBookingController extends Controller
             'initiated_at' => now(),
         ])->save();
 
-        $redirectUrl = route('warehouse-bookings.payhere.checkout', ['booking' => $booking->id]);
+        $redirectUrl = route('warehouse-bookings.paymentslk.checkout', ['booking' => $booking->id]);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'redirect' => $redirectUrl]);
@@ -1028,7 +1028,7 @@ class WarehouseBookingController extends Controller
      * and resolved here; either way the customer ends up on the checkout page
      * that reflects the current state.
      */
-    public function handlePayHereReturn(Request $request)
+    public function handleGatewayReturn(Request $request)
     {
         $orderId = trim((string) $request->query('order_id', ''));
         $booking = WarehouseBooking::where('gateway_order_id', $orderId)->first();
@@ -1044,10 +1044,10 @@ class WarehouseBookingController extends Controller
             }
         }
 
-        return redirect()->route('warehouse-bookings.payhere.checkout', ['booking' => $booking->id]);
+        return redirect()->route('warehouse-bookings.paymentslk.checkout', ['booking' => $booking->id]);
     }
 
-    public function handlePayHereCancel(Request $request)
+    public function handleGatewayCancel(Request $request)
     {
         $orderId = trim((string) $request->query('order_id', ''));
         $booking = WarehouseBooking::where('gateway_order_id', $orderId)->first();
@@ -1121,8 +1121,8 @@ class WarehouseBookingController extends Controller
             'amount' => (float) $booking->final_amount,
             'currency' => (string) ($booking->currency ?? 'LKR'),
             'description' => 'Warehouse booking #' . $booking->booking_reference,
-            'successUrl' => route('warehouse-bookings.payhere.return', ['order_id' => $booking->gateway_order_id]),
-            'cancelUrl' => route('warehouse-bookings.payhere.cancel', ['order_id' => $booking->gateway_order_id]),
+            'successUrl' => route('warehouse-bookings.paymentslk.return', ['order_id' => $booking->gateway_order_id]),
+            'cancelUrl' => route('warehouse-bookings.paymentslk.cancel', ['order_id' => $booking->gateway_order_id]),
             'customerName' => (string) ($booking->contact_person ?: ($user->name ?? 'Customer')),
             'customerEmail' => (string) ($booking->email ?: ($user->email ?? '')),
             'customerPhone' => (string) ($booking->phone ?: ''),
@@ -1151,7 +1151,7 @@ class WarehouseBookingController extends Controller
     private function generateWarehousePaymentOrderId(): string
     {
         // Deliberately NOT the "WHS-" prefix used by booking_reference
-        // (BookingReferenceGenerator::forWarehouse()) — this is the PayHere
+        // (BookingReferenceGenerator::forWarehouse()) — this is the Payments.lk
         // *payment* order id, a separate identifier space, and using a
         // visually distinct prefix avoids any ambiguity between the two.
         return 'WHP-' . now()->format('ymd') . '-' . strtoupper(Str::random(8));

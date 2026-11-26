@@ -423,7 +423,7 @@ class BusBookingController extends Controller
             // Both legs of a round trip are created in ONE transaction: either
             // both bookings succeed, or neither does — never a stranded
             // outbound leg with a failed return leg. The payment step (wallet
-            // debit or a pending PayHere payment row) happens inside the same
+            // debit or a pending Payments.lk payment row) happens inside the same
             // transaction, so a wallet InsufficientWalletBalanceException (or
             // any other failure) rolls back the seat reservations too instead
             // of leaving an orphaned pending booking with no way to pay.
@@ -457,7 +457,7 @@ class BusBookingController extends Controller
                 }
 
                 // A round trip is ONE payment for the combined total of both
-                // legs, not two separate PayHere/wallet charges.
+                // legs, not two separate Payments.lk/wallet charges.
                 $combinedTotal = (float) $outbound->total_price + ($return ? (float) $return->total_price : 0.0);
 
                 if ($paymentMethod === 'Wallet') {
@@ -489,8 +489,8 @@ class BusBookingController extends Controller
                         $return->forceFill(['status' => 'confirmed', 'payment_status' => 'paid'])->save();
                     }
                 } else {
-                    // PayHere is asynchronous — the payment starts pending and is
-                    // only marked paid once handlePayHereReturn()/handlePayHereNotify()
+                    // Payments.lk is asynchronous — the payment starts pending and is
+                    // only marked paid once handleGatewayReturn()/applyPaymentsLkResult()
                     // confirm the charge. The booking(s) stay 'pending' until then,
                     // protected by their existing 15-minute expires_at hold.
                     BusBookingPayment::create([
@@ -519,8 +519,8 @@ class BusBookingController extends Controller
             ]);
 
             if ($paymentMethod === 'Card') {
-                $redirectUrl = route('bus-bookings.payhere.checkout', ['booking' => $booking->id]);
-                $message = 'Booking created. Continue with PayHere to complete your payment.';
+                $redirectUrl = route('bus-bookings.paymentslk.checkout', ['booking' => $booking->id]);
+                $message = 'Booking created. Continue with Payments.lk to complete your payment.';
             } else {
                 $redirectUrl = route('bus.booking.success', $booking->booking_reference);
                 $message = $isRoundTrip ? 'Round-trip bus booking confirmed successfully!' : 'Bus booking confirmed successfully!';
@@ -718,7 +718,7 @@ class BusBookingController extends Controller
     }
 
     /**
-     * Render the PayHere checkout step for a bus booking (or round-trip pair)
+     * Render the Payments.lk checkout step for a bus booking (or round-trip pair)
      * created with payment_method = 'Card'. Mirrors
      * WarehouseBookingController::paymentCheckout(). The payment row lives on
      * the outbound leg and covers the combined total of both legs.
@@ -735,7 +735,7 @@ class BusBookingController extends Controller
         if ($payment->isPending() && $booking->isExpired()) {
             // The 15-minute seat hold lapsed before the customer paid — the
             // seats may already be released, so surface a clear message
-            // instead of sending them into a confusing PayHere failure.
+            // instead of sending them into a confusing Payments.lk failure.
             $payment->markFailed('Booking hold expired before payment was completed.');
         }
 
@@ -746,8 +746,8 @@ class BusBookingController extends Controller
         $payload = [
             'booking' => $this->serializeBusBookingForCheckout($booking, $payment),
             'checkout' => $checkout,
-            'pollingUrl' => route('bus-bookings.payhere.status', ['booking' => $booking->id]),
-            'retryUrl' => route('bus-bookings.payhere.retry', ['booking' => $booking->id]),
+            'pollingUrl' => route('bus-bookings.paymentslk.status', ['booking' => $booking->id]),
+            'retryUrl' => route('bus-bookings.paymentslk.retry', ['booking' => $booking->id]),
             'bookingListUrl' => route('bus.booking.success', $booking->booking_reference),
         ];
 
@@ -760,7 +760,7 @@ class BusBookingController extends Controller
 
     /**
      * JSON polling endpoint used by the checkout page while waiting for the
-     * PayHere webhook/return to resolve. Mirrors WalletController::status().
+     * Payments.lk webhook/return to resolve. Mirrors WalletController::status().
      */
     public function paymentStatus(BusBooking $booking)
     {
@@ -775,8 +775,8 @@ class BusBookingController extends Controller
     }
 
     /**
-     * Retry a failed/cancelled PayHere payment: mints a fresh gateway_order_id
-     * (PayHere order ids can't be reused) and resets the payment state back to
+     * Retry a failed/cancelled Payments.lk payment: mints a fresh gateway_order_id
+     * (Payments.lk order ids can't be reused) and resets the payment state back to
      * pending — but only if the 15-minute seat hold hasn't lapsed, since a
      * lapsed hold means the seats may already be released/rebooked.
      */
@@ -786,14 +786,14 @@ class BusBookingController extends Controller
 
         $payment = $booking->payments()->where('method', 'Card')->latest('id')->first();
         if (!$payment) {
-            return response()->json(['success' => false, 'message' => 'No PayHere payment found for this booking.'], 422);
+            return response()->json(['success' => false, 'message' => 'No Payments.lk payment found for this booking.'], 422);
         }
 
         if ($payment->isPaid()) {
             return response()->json([
                 'success' => true,
                 'message' => 'This booking is already paid.',
-                'redirect' => route('bus-bookings.payhere.checkout', ['booking' => $booking->id]),
+                'redirect' => route('bus-bookings.paymentslk.checkout', ['booking' => $booking->id]),
             ]);
         }
 
@@ -817,7 +817,7 @@ class BusBookingController extends Controller
             'initiated_at' => now(),
         ])->save();
 
-        $redirectUrl = route('bus-bookings.payhere.checkout', ['booking' => $booking->id]);
+        $redirectUrl = route('bus-bookings.paymentslk.checkout', ['booking' => $booking->id]);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'redirect' => $redirectUrl]);
@@ -832,18 +832,18 @@ class BusBookingController extends Controller
      * and resolved here; either way the customer ends up on the checkout page
      * that reflects the current state.
      */
-    public function handlePayHereReturn(Request $request)
+    public function handleGatewayReturn(Request $request)
     {
         $orderId = trim((string) $request->query('order_id', ''));
         $payment = BusBookingPayment::where('gateway_order_id', $orderId)->first();
 
         if (!$payment) {
-            return redirect()->route('busTicketBookingDetails.busTicketBookingDetails')->with('error', 'We could not find that booking payment.');
+            return redirect()->route('landTicketBooking')->with('error', 'We could not find that booking payment.');
         }
 
         $booking = BusBooking::find($payment->bus_booking_id);
         if (!$booking) {
-            return redirect()->route('busTicketBookingDetails.busTicketBookingDetails')->with('error', 'We could not find that booking.');
+            return redirect()->route('landTicketBooking')->with('error', 'We could not find that booking.');
         }
 
         if ($payment->isPending()) {
@@ -853,10 +853,10 @@ class BusBookingController extends Controller
             }
         }
 
-        return redirect()->route('bus-bookings.payhere.checkout', ['booking' => $booking->id]);
+        return redirect()->route('bus-bookings.paymentslk.checkout', ['booking' => $booking->id]);
     }
 
-    public function handlePayHereCancel(Request $request)
+    public function handleGatewayCancel(Request $request)
     {
         $orderId = trim((string) $request->query('order_id', ''));
         $payment = BusBookingPayment::where('gateway_order_id', $orderId)->first();
@@ -865,7 +865,7 @@ class BusBookingController extends Controller
             $payment->markFailed('Cancelled by customer at Payments.lk.');
         }
 
-        return redirect()->route('busTicketBookingDetails.busTicketBookingDetails')->with('error', 'Payment cancelled.');
+        return redirect()->route('landTicketBooking')->with('error', 'Payment cancelled.');
     }
 
     /** Called by PaymentsLkWebhookController for BUP-* references. */
@@ -897,7 +897,7 @@ class BusBookingController extends Controller
     }
 
     /**
-     * Confirms both legs of a round trip together, since one PayHere payment
+     * Confirms both legs of a round trip together, since one Payments.lk payment
      * covers the combined total for both.
      */
     private function confirmBusBookingAfterPayment(BusBooking $booking): void
@@ -919,8 +919,8 @@ class BusBookingController extends Controller
             'amount' => (float) $payment->amount_paid,
             'currency' => 'LKR',
             'description' => 'Bus booking #' . $booking->booking_reference,
-            'successUrl' => route('bus-bookings.payhere.return', ['order_id' => $payment->gateway_order_id]),
-            'cancelUrl' => route('bus-bookings.payhere.cancel', ['order_id' => $payment->gateway_order_id]),
+            'successUrl' => route('bus-bookings.paymentslk.return', ['order_id' => $payment->gateway_order_id]),
+            'cancelUrl' => route('bus-bookings.paymentslk.cancel', ['order_id' => $payment->gateway_order_id]),
             'customerName' => (string) ($booking->passenger_name ?: ($user->name ?? 'Customer')),
             'customerEmail' => (string) ($booking->passenger_email ?: ($user->email ?? '')),
             'customerPhone' => (string) ($booking->passenger_phone ?: ''),

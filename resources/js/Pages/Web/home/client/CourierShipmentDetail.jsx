@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { usePage, router } from '@inertiajs/react';
 import ChatWithVendorButton from '@/Components/chat/ChatWithVendorButton';
-import {
-    launchPayHereOnsiteCheckout,
-    launchPayHereRedirectCheckout,
-    preloadPayHereOnsiteSdk,
-} from '../../courier/payhereCheckout';
+import { redirectToCheckout } from "../../../../utils/paymentsLkCheckout";
 import {
     Package,
     MapPin,
@@ -101,7 +97,6 @@ const formatAmountWithCurrency = (amount, currencyCode = 'USD') => {
 
 const CourierShipmentDetail = () => {
     const { shipment, flash, auth } = usePage().props;
-    console.log('[CourierChat] hasAssignedVendor:', shipment?.hasAssignedVendor, '| shipment id:', shipment?.id, '| user role:', auth?.user?.role, '| team_membership_role:', auth?.user?.team_membership_role);
     const [successNotice, setSuccessNotice] = useState(flash?.success || null);
     // Right after an order is placed, show the order code in a popup that stays until dismissed.
     const [showOrderPopup, setShowOrderPopup] = useState(Boolean(flash?.success));
@@ -171,8 +166,6 @@ const CourierShipmentDetail = () => {
         setIsLaunchingPayment(true);
 
         try {
-            preloadPayHereOnsiteSdk().catch(() => {});
-
             let checkoutSession = paymentCheckoutSession;
             if (!checkoutSession?.checkout?.isReady) {
                 const response = await fetch(paymentCheckoutUrl, {
@@ -198,35 +191,10 @@ const CourierShipmentDetail = () => {
                 setPaymentCheckoutSession(result);
             }
 
-            await launchPayHereOnsiteCheckout(checkoutSession.checkout, {
-                onCompleted: () => {
-                    router.reload({
-                        only: ['shipment'],
-                        preserveScroll: true,
-                    });
-                },
-                onDismissed: () => {
-                    setPaymentActionError('Checkout was closed before completion. You can continue payment anytime.');
-                },
-                onError: () => {
-                    setPaymentActionError('PayHere reported an issue while starting onsite checkout.');
-                },
-            });
+            redirectToCheckout(checkoutSession.checkout);
         } catch (error) {
-            console.warn('[CourierShipmentDetail] Onsite checkout unavailable. Falling back to checkout page.', error);
-            try {
-                if (paymentCheckoutSession?.checkout?.isReady) {
-                    launchPayHereRedirectCheckout(paymentCheckoutSession.checkout);
-                    return;
-                }
-
-                router.visit(paymentCheckoutUrl, {
-                    method: 'get',
-                    preserveScroll: true,
-                });
-            } catch (fallbackError) {
-                setPaymentActionError('Unable to start checkout right now. Please try again.');
-            }
+            console.warn("Courier checkout could not be started.", error);
+            setPaymentActionError('Unable to start checkout right now. Please try again.');
         } finally {
             setIsLaunchingPayment(false);
         }

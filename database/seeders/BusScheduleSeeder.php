@@ -35,7 +35,7 @@ class BusScheduleSeeder extends Seeder
         $schedules = [];
 
         // Create schedules for the next 7 days
-        for ($day = 0; $day < 7; $day++) {
+        for ($day = 0; $day < 14; $day++) {
             $date = $today->copy()->addDays($day);
             
             // Route 1: Colombo to Negombo
@@ -175,6 +175,56 @@ class BusScheduleSeeder extends Seeder
                 'is_expressway' => false,
                 'status' => 'active'
             ];
+        }
+
+        // Extra demo routes (both directions) so one-way, round-trip and
+        // multi-city searches (e.g. Colombo > Kandy > Anuradhapura > Colombo)
+        // all return results. [from code, to code, minutes, price, expressway,
+        // departure times, bus numbers (cycled per departure)]
+        $byCode = $stations->keyBy('code');
+        $busByNumber = $buses->keyBy('bus_number');
+        $extraRoutes = [
+            ['CCBS', 'KBT',  182, 1900, false, ['06:00', '09:30', '14:00'], ['NA-9912', 'NB-1234', 'NC-4567']],
+            ['KBT',  'ABS',  150, 1500, false, ['07:30', '12:00', '16:30'], ['NA-9912', 'NC-2211', 'NB-1234']],
+            ['CCBS', 'ABS',  270, 2400, false, ['05:30', '10:00', '21:00'], ['NC-2211', 'NA-9912', 'NC-7711']],
+            ['CCBS', 'JBS',  480, 3600, false, ['20:00', '21:30'],          ['NC-7711', 'NC-4567']],
+            ['CCBS', 'KUBS', 120,  900, false, ['06:30', '11:00', '15:30'], ['NB-1234', 'NA-9912', 'NC-2211']],
+            ['CCBS', 'GBS',  150, 1635, true,  ['06:00', '10:30', '15:00'], ['NC-4567', 'NC-7711', 'NC-2211']],
+            ['GBS',  'MBS',   60,  450, false, ['08:00', '13:00', '18:00'], ['NC-2211', 'NC-4567', 'NB-1234']],
+            ['KBT',  'NEBS', 120,  800, false, ['06:45', '11:15', '15:45'], ['NA-9912', 'NB-1234', 'NC-2211']],
+            ['CCBS', 'NEBS', 300, 1750, false, ['05:00', '13:00'],          ['NC-2211', 'NA-9912']],
+            ['CCBS', 'BBS',  420, 2200, false, ['19:00', '20:30'],          ['NC-7711', 'NC-4567']],
+        ];
+        for ($day = 0; $day < 14; $day++) {
+            $date = $today->copy()->addDays($day);
+            foreach ($extraRoutes as [$a, $b, $mins, $price, $express, $times, $busNos]) {
+                if (!isset($byCode[$a], $byCode[$b])) {
+                    continue;
+                }
+                foreach ([[$a, $b], [$b, $a]] as $dirIdx => [$fromCode, $toCode]) {
+                    foreach ($times as $i => $time) {
+                        $busNo = $busNos[($i + $dirIdx) % count($busNos)];
+                        if (!isset($busByNumber[$busNo])) {
+                            continue;
+                        }
+                        // return trips leave a little later in the day
+                        $dep = Carbon::createFromFormat('H:i', $time)->addMinutes($dirIdx * 45);
+                        $schedules[] = [
+                            'bus_id' => $busByNumber[$busNo]->id,
+                            'departure_station_id' => $byCode[$fromCode]->id,
+                            'arrival_station_id' => $byCode[$toCode]->id,
+                            'departure_time' => $dep->format('H:i:s'),
+                            'arrival_time' => $dep->copy()->addMinutes($mins)->format('H:i:s'),
+                            'duration_minutes' => $mins,
+                            'date' => $date,
+                            'price' => $price + ($i * 150), // later/premium departures cost a bit more
+                            'available_seats' => [36, 22, 9, 40][($i + $day) % 4],
+                            'is_expressway' => $express,
+                            'status' => 'active',
+                        ];
+                    }
+                }
+            }
         }
 
         foreach ($schedules as $schedule) {

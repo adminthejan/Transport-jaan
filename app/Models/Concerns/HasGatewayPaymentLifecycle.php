@@ -4,7 +4,7 @@ namespace App\Models\Concerns;
 
 /**
  * Shared status constants + state-transition helpers for every *Payment
- * model that goes through PayHereGatewayService (mirrors the pattern
+ * model that goes through PaymentsLkGatewayService (mirrors the pattern
  * Courier\CourierShipmentPayment already established). Requires the model
  * to have: status, provider, gateway_payment_id, tx_reference,
  * gateway_status, paid_at, failed_at, failure_reason columns.

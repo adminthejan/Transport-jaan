@@ -138,7 +138,7 @@ const TrainBookingSuccess = () => {
                                 <Printer className="w-4 h-4" /> Print Ticket{isRoundTrip ? "s" : ""}
                             </button>
                             <Link
-                                href="/trainTicketBookingDetails"
+                                href="/landTicketBooking"
                                 className="flex-1 h-[52px] inline-flex items-center justify-center gap-2 bg-white border border-[#E2E8F0] hover:border-[#0955AC]/40 text-[#334155] rounded-[12px] font-[700] text-[14px] transition-colors"
                             >
                                 Book Another Ticket <ArrowRight className="w-4 h-4" />

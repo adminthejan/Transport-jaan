@@ -13,8 +13,8 @@ class CourierShipmentPayment extends Model
 
     public const PROVIDER_PAYMENTSLK = 'paymentslk';
 
-    /** Card gateways whose rows the reports should include (PayHere was the gateway before Payments.lk). */
-    public const CARD_PROVIDERS = ['paymentslk', 'payhere'];
+    /** Card gateways whose rows the reports should include. */
+    public const CARD_PROVIDERS = ['paymentslk'];
 
     public const PAYMENT_METHOD_CARD = 'card';
     public const PAYMENT_METHOD_COD = 'cod';

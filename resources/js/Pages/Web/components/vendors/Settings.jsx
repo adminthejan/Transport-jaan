@@ -579,7 +579,7 @@ const Settings = () => {
               </div>
             </div>
             <p className="mt-2 text-xs text-gray-500">
-              Tip: Integrate Stripe/PayHere and collect a payment method token on the frontend.
+              Tip: Integrate Payments.lk and collect a payment method token on the frontend.
             </p>
           </EditableSection>
 

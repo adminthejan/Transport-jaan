@@ -17,6 +17,8 @@ import {
   Wifi,
   Zap,
   ArrowLeftRight,
+  Plus,
+  X,
 } from "lucide-react";
 
 import Header from "../client/ClientHeader";
@@ -135,7 +137,9 @@ const ResultCard = ({ r, formatPrice }) => {
   return r.soldOut ? <div>{body}</div> : <Link href={r.bookUrl} className="block">{body}</Link>;
 };
 
-const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], searched = false, searchParams = {} }) => {
+const MAX_LEGS = 6;
+
+const LandTicketBooking = ({ cities = [], legs = [], searched = false, searchParams = {} }) => {
   const { props } = usePage();
   const { formatPrice } = useLocale();
 
@@ -156,22 +160,60 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
   });
   const [errors, setErrors] = useState({});
 
+  /* multi-city legs (each its own origin / destination / date) */
+  const [multiLegs, setMultiLegs] = useState(
+    searchParams.tripType === "multicity" && searchParams.legs?.length >= 2
+      ? searchParams.legs.map((l) => ({ from: l.from || "", to: l.to || "", date: l.date || "" }))
+      : [
+          { from: searchParams.from || "", to: searchParams.to || "", date: searchParams.date || "" },
+          { from: searchParams.to || "", to: "", date: "" },
+        ]
+  );
+  const updateLeg = (i, patch) =>
+    setMultiLegs((prev) =>
+      prev.map((l, idx) => {
+        if (idx === i) return { ...l, ...patch };
+        // chain: a leg's origin follows the previous leg's destination while still empty
+        if (idx === i + 1 && patch.to !== undefined && !l.from) return { ...l, from: patch.to };
+        return l;
+      })
+    );
+  const addLeg = () =>
+    setMultiLegs((prev) =>
+      prev.length >= MAX_LEGS ? prev : [...prev, { from: prev[prev.length - 1]?.to || "", to: "", date: "" }]
+    );
+  const removeLeg = (i) => setMultiLegs((prev) => (prev.length > 2 ? prev.filter((_, idx) => idx !== i) : prev));
+
+  const [activeLeg, setActiveLeg] = useState(0);
+
   const goSearch = (overrides = {}) => {
-    const next = { from, to, date, ...overrides };
+    const next = { from, to, date, returnDate, ...overrides };
     const e = {};
-    if (!next.from) e.from = "Required";
-    if (!next.to) e.to = "Required";
-    if (!next.date) e.date = "Required";
-    if (tripType === "roundtrip" && !returnDate) e.returnDate = "Required";
-    else if (tripType === "roundtrip" && returnDate < next.date) e.returnDate = "Before departure";
+    if (tripType === "multicity") {
+      const rows = overrides.legs || multiLegs;
+      rows.forEach((l, i) => {
+        if (!l.from) e[`leg${i}from`] = "Required";
+        if (!l.to) e[`leg${i}to`] = "Required";
+        if (!l.date) e[`leg${i}date`] = "Required";
+        else if (i > 0 && rows[i - 1].date && l.date < rows[i - 1].date) e[`leg${i}date`] = "Before previous leg";
+      });
+    } else {
+      if (!next.from) e.from = "Required";
+      if (!next.to) e.to = "Required";
+      if (!next.date) e.date = "Required";
+      if (tripType === "roundtrip" && !next.returnDate) e.returnDate = "Required";
+      else if (tripType === "roundtrip" && next.returnDate < next.date) e.returnDate = "Before departure";
+    }
     setErrors(e);
     if (Object.keys(e).length) return;
+    const multi = tripType === "multicity";
     router.get("/landTicketBooking", {
-      from: next.from,
-      to: next.to,
-      date: next.date,
+      from: multi ? undefined : next.from,
+      to: multi ? undefined : next.to,
+      date: multi ? undefined : next.date,
       tripType,
-      returnDate: tripType === "roundtrip" ? returnDate : undefined,
+      returnDate: tripType === "roundtrip" ? next.returnDate : undefined,
+      legs: multi ? (overrides.legs || multiLegs) : undefined,
       adults: passengers.adults,
       youth: passengers.youth,
       seniors: passengers.seniors,
@@ -188,6 +230,11 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
   const [availableOnly, setAvailableOnly] = useState(false);
   const [timeBuckets, setTimeBuckets] = useState([]);
   const [operators, setOperators] = useState([]);
+
+  const legIndex = Math.min(activeLeg, Math.max(legs.length - 1, 0));
+  const currentLeg = legs[legIndex] || { results: [], nearbyDates: [], from: "", to: "", date: "" };
+  const results = currentLeg.results || [];
+  const nearbyDates = currentLeg.nearbyDates || [];
 
   const modeStats = useMemo(() => {
     const stat = (list) =>
@@ -275,6 +322,92 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
               { value: "multicity", label: "Multi-city" },
             ]}
           />
+          {tripType === "multicity" ? (
+            <div className="space-y-3">
+              {multiLegs.map((l, i) => (
+                <div key={i} className="flex flex-col lg:flex-row items-stretch lg:items-start gap-2.5 sm:gap-3">
+                  <div className="flex items-center lg:pt-6 shrink-0">
+                    <span className="inline-flex items-center justify-center h-7 px-2.5 rounded-full bg-[#EAF1FE] text-[#0955AC] text-[11px] font-[800] tracking-wide">
+                      TRIP {i + 1}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <AutoCompleteField
+                      label="ORIGIN"
+                      id={`landLegFrom${i}`}
+                      value={l.from}
+                      onChange={(v) => updateLeg(i, { from: v })}
+                      placeholder="Departure city"
+                      error={errors[`leg${i}from`]}
+                      icon={MapPin}
+                      variant="outline"
+                      options={cities}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <AutoCompleteField
+                      label="DESTINATION"
+                      id={`landLegTo${i}`}
+                      value={l.to}
+                      onChange={(v) => updateLeg(i, { to: v })}
+                      placeholder="Arrival city"
+                      error={errors[`leg${i}to`]}
+                      icon={MapPin}
+                      iconBg="bg-[#FDEDEA]"
+                      iconColor="text-[#EF3826]"
+                      variant="outline"
+                      options={cities}
+                    />
+                  </div>
+                  <div className="w-full lg:w-[180px] shrink-0">
+                    <DateField
+                      label="DATE"
+                      id={`landLegDate${i}`}
+                      value={l.date}
+                      onChange={(e) => updateLeg(i, { date: e.target.value })}
+                      error={errors[`leg${i}date`]}
+                      icon={CalendarDays}
+                      variant="outline"
+                      min={(i > 0 && multiLegs[i - 1].date) || today}
+                    />
+                  </div>
+                  <div className="w-full lg:w-9 shrink-0 flex lg:pt-6">
+                    {multiLegs.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeLeg(i)}
+                        title="Remove this trip"
+                        className="w-9 h-9 rounded-full border border-gray-200 text-[#64748B] hover:text-red-500 hover:border-red-200 flex items-center justify-center cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={addLeg}
+                  disabled={multiLegs.length >= MAX_LEGS}
+                  className="inline-flex items-center gap-1.5 text-[13px] font-[700] text-[#0955AC] hover:underline disabled:opacity-40 disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-4 h-4" /> Add another trip
+                </button>
+                <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                  <div className="w-full sm:w-[220px]">
+                    <PassengerSelector value={passengers} onChange={setPassengers} />
+                  </div>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center gap-2 bg-[#0955AC] text-white font-[700] h-[46px] sm:h-[48px] px-6 rounded-[10px] hover:bg-[#074494] transition-colors shadow-[0_8px_18px_rgba(9,85,172,0.25)] cursor-pointer"
+                  >
+                    <Search className="w-5 h-5" /> Search
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="flex flex-col lg:flex-row items-stretch lg:items-start gap-2.5 sm:gap-3">
             <div className="flex-1 min-w-0">
               <AutoCompleteField
@@ -356,6 +489,7 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
               </button>
             </div>
           </div>
+          )}
         </form>
       </div>
 
@@ -369,8 +503,17 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
                 type="button"
                 disabled={d.price == null}
                 onClick={() => {
-                  setDate(d.date);
-                  goSearch({ date: d.date });
+                  if (tripType === "multicity") {
+                    const nextLegs = multiLegs.map((l, idx) => (idx === legIndex ? { ...l, date: d.date } : l));
+                    setMultiLegs(nextLegs);
+                    goSearch({ legs: nextLegs });
+                  } else if (tripType === "roundtrip" && legIndex === 1) {
+                    setReturnDate(d.date);
+                    goSearch({ returnDate: d.date });
+                  } else {
+                    setDate(d.date);
+                    goSearch({ date: d.date });
+                  }
                 }}
                 className={`flex-1 min-w-[84px] rounded-[12px] px-3 py-2.5 text-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
                   d.selected ? "bg-white shadow-[0_6px_18px_rgba(9,85,172,0.12)] border border-[#0955AC]/30" : "bg-white/60 hover:bg-white border border-transparent"
@@ -400,6 +543,33 @@ const LandTicketBooking = ({ cities = [], results = [], nearbyDates = [], search
           </div>
         ) : (
           <>
+            {legs.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+                {legs.map((l, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setActiveLeg(i);
+                      clearFilters();
+                    }}
+                    className={`shrink-0 rounded-[12px] px-4 py-2.5 text-left border transition-colors cursor-pointer ${
+                      i === legIndex ? "bg-[#0955AC] text-white border-[#0955AC]" : "bg-white text-[#334155] border-[#E7EAF0] hover:border-[#0955AC]/40"
+                    }`}
+                  >
+                    <span className={`block text-[10px] font-[700] tracking-widest ${i === legIndex ? "text-white/80" : "text-[#64748B]"}`}>
+                      {tripType === "roundtrip" ? (i === 0 ? "OUTBOUND" : "RETURN") : `TRIP ${i + 1}`}
+                    </span>
+                    <span className="block text-[13px] font-[700]">
+                      {l.from} → {l.to}
+                    </span>
+                    <span className={`block text-[11px] ${i === legIndex ? "text-white/80" : "text-[#64748B]"}`}>
+                      {l.date} · {l.results.length} result{l.results.length === 1 ? "" : "s"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
               <div>
                 <p className="text-[10px] font-[700] tracking-widest text-[#64748B]">SELECT YOUR TRIP</p>

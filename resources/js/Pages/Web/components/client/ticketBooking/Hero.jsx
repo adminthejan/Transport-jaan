@@ -1001,7 +1001,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                   <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
                   <YAxis tickLine={false} axisLine={false} fontSize={11} />
                   <RTooltip formatter={(value) => formatMoney(value)} />
-                  <Area type="monotone" dataKey="value" name="Spending" stroke="#0955AC" fill="url(#gSpend)" strokeWidth={2.5} />
+                  <Area type="monotone" dataKey="value" name="Spending" stroke="#0955AC" fill="url(#gSpend)" strokeWidth={2.5} isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -1017,7 +1017,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                   <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} fontSize={12} width={50} />
                   <RTooltip />
-                  <Bar dataKey="value" name="Bookings" fill="#0955AC" radius={[0, 6, 6, 0]} barSize={22} />
+                  <Bar dataKey="value" name="Bookings" fill="#0955AC" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -3,11 +3,7 @@ import { Link } from "@inertiajs/react";
 import { Wallet, CheckCircle, Clock, AlertCircle, CreditCard } from "lucide-react";
 import ClientHeader from "./ClientHeader";
 import Footer from "../../layouts/Footer";
-import {
-    launchPayHereOnsiteCheckout,
-    launchPayHereRedirectCheckout,
-    preloadPayHereOnsiteSdk,
-} from "../../../../utils/payhereCheckout";
+import { redirectToCheckout } from "../../../../utils/paymentsLkCheckout";
 
 const TERMINAL_STATUSES = new Set(["completed", "failed"]);
 
@@ -26,11 +22,6 @@ const WalletTopupCheckout = ({ transaction, checkout, pollingUrl, walletDashboar
         setLive(transaction);
     }, [transaction]);
 
-    useEffect(() => {
-        if (checkout?.isReady) {
-            preloadPayHereOnsiteSdk().catch(() => {});
-        }
-    }, [checkout?.isReady]);
 
     useEffect(() => {
         if (TERMINAL_STATUSES.has(live.status)) return;
@@ -52,28 +43,14 @@ const WalletTopupCheckout = ({ transaction, checkout, pollingUrl, walletDashboar
     const StatusIcon = presentation.icon;
     const canProceed = Boolean(checkout?.isReady) && live.status === "pending";
 
-    const handlePay = async () => {
+    const handlePay = () => {
         setLaunchError("");
         setIsLaunching(true);
         try {
-            await launchPayHereOnsiteCheckout(checkout, {
-                onCompleted: () => {
-                    setIsLaunching(false);
-                },
-                onDismissed: () => {
-                    setIsLaunching(false);
-                },
-                onError: () => {
-                    setIsLaunching(false);
-                },
-            });
-        } catch (_e) {
-            try {
-                launchPayHereRedirectCheckout(checkout);
-            } catch (err) {
-                setLaunchError(err?.message || "Could not start PayHere checkout.");
-                setIsLaunching(false);
-            }
+            redirectToCheckout(checkout);
+        } catch (err) {
+            setLaunchError(err?.message || "Could not start checkout.");
+            setIsLaunching(false);
         }
     };
 
@@ -101,7 +78,7 @@ const WalletTopupCheckout = ({ transaction, checkout, pollingUrl, walletDashboar
 
                 {!checkout?.isReady && live.status === "pending" && (
                     <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-700 text-[14px] mb-6">
-                        {checkout?.reason || "PayHere is not configured yet."}
+                        {checkout?.reason || "Payments.lk is not configured yet."}
                     </div>
                 )}
 
@@ -112,7 +89,7 @@ const WalletTopupCheckout = ({ transaction, checkout, pollingUrl, walletDashboar
                         className="w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] rounded-[12px] flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
                     >
                         <CreditCard className="w-[18px] h-[18px]" />
-                        {isLaunching ? "Opening PayHere..." : "Pay with PayHere"}
+                        {isLaunching ? "Opening Payments.lk..." : "Pay with Payments.lk"}
                     </button>
                 )}
 

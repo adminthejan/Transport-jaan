@@ -2,11 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { CheckCircle, Clock, AlertCircle, CreditCard } from "lucide-react";
-import {
-  launchPayHereOnsiteCheckout,
-  launchPayHereRedirectCheckout,
-  preloadPayHereOnsiteSdk,
-} from "../../../../utils/payhereCheckout";
+import { redirectToCheckout } from "../../../../utils/paymentsLkCheckout";
 
 const TERMINAL_STATUSES = new Set(["paid"]);
 
@@ -42,11 +38,6 @@ const PaymentCheckout = () => {
     setLive(payment);
   }, [payment]);
 
-  useEffect(() => {
-    if (checkout?.isReady) {
-      preloadPayHereOnsiteSdk().catch(() => {});
-    }
-  }, [checkout?.isReady]);
 
   useEffect(() => {
     if (!live || TERMINAL_STATUSES.has(live.status)) return;
@@ -80,23 +71,15 @@ const PaymentCheckout = () => {
   const vehicle = booking?.vehicle || {};
   const schedule = booking?.schedule || {};
 
-  const handlePay = async () => {
-    setLaunchError("");
-    setIsLaunching(true);
-    try {
-      await launchPayHereOnsiteCheckout(checkout, {
-        onCompleted: () => setIsLaunching(false),
-        onDismissed: () => setIsLaunching(false),
-        onError: () => setIsLaunching(false),
-      });
-    } catch (_e) {
+  const handlePay = () => {
+      setLaunchError("");
+      setIsLaunching(true);
       try {
-        launchPayHereRedirectCheckout(checkout);
+          redirectToCheckout(checkout);
       } catch (err) {
-        setLaunchError(err?.message || "Could not start PayHere checkout.");
-        setIsLaunching(false);
+          setLaunchError(err?.message || "Could not start checkout.");
+          setIsLaunching(false);
       }
-    }
   };
 
   const handleRetry = () => {
@@ -140,7 +123,7 @@ const PaymentCheckout = () => {
 
         {!checkout?.isReady && live?.status === "pending" && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-700 text-[14px] mb-6">
-            {checkout?.reason || "PayHere is not configured yet."}
+            {checkout?.reason || "Payments.lk is not configured yet."}
           </div>
         )}
 
@@ -151,7 +134,7 @@ const PaymentCheckout = () => {
             className="w-full h-[52px] bg-[#0955AC] hover:bg-[#073E82] text-white font-[700] rounded-[12px] flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
           >
             <CreditCard className="w-[18px] h-[18px]" />
-            {isLaunching ? "Opening PayHere..." : "Pay with PayHere"}
+            {isLaunching ? "Opening Payments.lk..." : "Pay with Payments.lk"}
           </button>
         )}
 

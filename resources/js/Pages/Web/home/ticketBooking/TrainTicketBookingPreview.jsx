@@ -176,7 +176,7 @@ const TrainTicketBookingPreviewInner = () => {
                                                     : 'border-[#E2E8F0] text-[#64748B] hover:border-[#0955AC]/40'
                                             }`}
                                         >
-                                            Pay with PayHere
+                                            Pay with Payments.lk
                                         </button>
                                         <button
                                             type="button"

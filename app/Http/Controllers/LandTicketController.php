@@ -33,56 +33,92 @@ class LandTicketController extends Controller
             'wheelchairPassengers' => (string) $request->input('wheelchairPassengers', ''),
         ];
 
-        $date = null;
-        try {
-            $date = $dateInput !== '' ? Carbon::parse($dateInput)->startOfDay() : null;
-        } catch (\Throwable $e) {
-            $date = null;
-        }
+        $tripType = in_array($request->input('tripType'), ['oneway', 'roundtrip', 'multicity'], true)
+            ? $request->input('tripType')
+            : 'oneway';
+        $returnDateInput = (string) $request->input('returnDate', '');
 
-        $results = [];
-        $nearbyDates = [];
-        $searched = false;
+        $parseDate = function (string $v): ?Carbon {
+            try {
+                return $v !== '' ? Carbon::parse($v)->startOfDay() : null;
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
 
-        if ($from !== '' && $to !== '' && $date) {
-            $searched = true;
-            $busFrom = $this->stationIds(BusStation::class, $from);
-            $busTo = $this->stationIds(BusStation::class, $to);
-            $trainFrom = $this->stationIds(TrainStation::class, $from);
-            $trainTo = $this->stationIds(TrainStation::class, $to);
-
-            $results = $this->collect($busFrom, $busTo, $trainFrom, $trainTo, $date, $passengers, $from, $to);
-
-            // Cheapest fare per day (either mode) for the day strip above the results.
-            for ($i = -1; $i <= 5; $i++) {
-                $day = $date->copy()->addDays($i);
-                if ($day->lt(Carbon::today())) {
-                    continue;
-                }
-                $price = $this->cheapestOn($busFrom, $busTo, $trainFrom, $trainTo, $day);
-                $nearbyDates[] = [
-                    'date' => $day->format('Y-m-d'),
-                    'dayName' => $day->format('D'),
-                    'dayNumber' => (int) $day->format('j'),
-                    'month' => $day->format('M'),
-                    'price' => $price,
-                    'selected' => $i === 0,
+        // Normalise every trip type into a list of legs: [from, to, date].
+        $legInputs = [];
+        if ($tripType === 'multicity') {
+            foreach ((array) $request->input('legs', []) as $leg) {
+                $legInputs[] = [
+                    'from' => trim((string) ($leg['from'] ?? '')),
+                    'to' => trim((string) ($leg['to'] ?? '')),
+                    'date' => (string) ($leg['date'] ?? ''),
                 ];
+            }
+            $legInputs = array_slice($legInputs, 0, 6);
+        } else {
+            $legInputs[] = ['from' => $from, 'to' => $to, 'date' => $dateInput];
+            if ($tripType === 'roundtrip') {
+                $legInputs[] = ['from' => $to, 'to' => $from, 'date' => $returnDateInput];
             }
         }
 
+        $legs = [];
+        $searched = false;
+        foreach ($legInputs as $leg) {
+            $legDate = $parseDate($leg['date']);
+            $row = [
+                'from' => $leg['from'],
+                'to' => $leg['to'],
+                'date' => $legDate ? $legDate->format('Y-m-d') : '',
+                'results' => [],
+                'nearbyDates' => [],
+                'searched' => false,
+            ];
+            if ($leg['from'] !== '' && $leg['to'] !== '' && $legDate) {
+                $searched = true;
+                $row['searched'] = true;
+                $busFrom = $this->stationIds(BusStation::class, $leg['from']);
+                $busTo = $this->stationIds(BusStation::class, $leg['to']);
+                $trainFrom = $this->stationIds(TrainStation::class, $leg['from']);
+                $trainTo = $this->stationIds(TrainStation::class, $leg['to']);
+
+                $row['results'] = $this->collect($busFrom, $busTo, $trainFrom, $trainTo, $legDate, $passengers, $leg['from'], $leg['to']);
+
+                // Cheapest fare per day (either mode) for the day strip above the results.
+                for ($i = -1; $i <= 5; $i++) {
+                    $day = $legDate->copy()->addDays($i);
+                    if ($day->lt(Carbon::today())) {
+                        continue;
+                    }
+                    $row['nearbyDates'][] = [
+                        'date' => $day->format('Y-m-d'),
+                        'dayName' => $day->format('D'),
+                        'dayNumber' => (int) $day->format('j'),
+                        'month' => $day->format('M'),
+                        'price' => $this->cheapestOn($busFrom, $busTo, $trainFrom, $trainTo, $day),
+                        'selected' => $i === 0,
+                    ];
+                }
+            }
+            $legs[] = $row;
+        }
+
+        $first = $legs[0] ?? ['date' => ''];
+
         return Inertia::render('Web/home/ticketBooking/LandTicketBooking', [
             'cities' => $this->cityOptions(),
-            'results' => $results,
-            'nearbyDates' => $nearbyDates,
+            'legs' => $legs,
             'searched' => $searched,
             'searchParams' => [
                 'from' => $from,
                 'to' => $to,
-                'date' => $date ? $date->format('Y-m-d') : '',
+                'date' => $tripType === 'multicity' ? $first['date'] : ($parseDate($dateInput)?->format('Y-m-d') ?? ''),
                 'mode' => in_array($request->input('mode'), ['bus', 'train'], true) ? $request->input('mode') : 'all',
-                'tripType' => in_array($request->input('tripType'), ['oneway', 'roundtrip', 'multicity'], true) ? $request->input('tripType') : 'oneway',
-                'returnDate' => (string) $request->input('returnDate', ''),
+                'tripType' => $tripType,
+                'returnDate' => $returnDateInput,
+                'legs' => $tripType === 'multicity' ? $legInputs : [],
             ] + $passengers,
         ]);
     }

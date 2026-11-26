@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useForm, usePage, Link, router } from '@inertiajs/react';
+import { Head, useForm, usePage, Link, router } from '@inertiajs/react';
 import Header from "./ClientHeader";
 import BackToDashboard from "./BackToDashboard";
 import HeroEnhanced from "../../components/client/courierBooking/HeroEnhanced";
@@ -104,6 +104,7 @@ const CourierBookingDashboard = () => {
         if (!contactId) {
             return;
         }
+        if (!window.confirm("Remove this saved contact?")) return;
 
         if (String(contactId).startsWith('local-')) {
             if (activeTab === 'recipients') {
@@ -198,7 +199,7 @@ const CourierBookingDashboard = () => {
     };
 
     const favoritesSection = (
-        <div className="w-full max-w-[870px]">
+        <div className="w-full">
             <div className="rounded-2xl border border-[#DDE7F5] bg-white p-4 shadow-sm">
                 <div className="flex flex-col gap-4">
                     {/* Top Level: Flow selection & Add button */}
@@ -313,6 +314,7 @@ const CourierBookingDashboard = () => {
 
     return (
         <div className="bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC] min-h-screen">
+            <Head title="Courier Booking Dashboard" />
             <Header />
 
             <BackToDashboard />

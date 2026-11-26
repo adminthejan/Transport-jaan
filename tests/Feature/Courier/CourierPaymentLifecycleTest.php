@@ -152,7 +152,7 @@ class CourierPaymentLifecycleTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('couriers.payments.payhere.cancel', [
+            ->get(route('couriers.payments.paymentslk.cancel', [
                 'order_id' => (string) $payment->gateway_order_id,
             ]))
             ->assertRedirect(route('courier.shipment.show', ['id' => (int) $shipment->id]));
@@ -179,7 +179,7 @@ class CourierPaymentLifecycleTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('couriers.payments.payhere.cancel', [
+            ->get(route('couriers.payments.paymentslk.cancel', [
                 'order_id' => (string) $payment->gateway_order_id,
             ]))
             ->assertRedirect(route('courier.shipment.show', ['id' => (int) $shipment->id]));
@@ -320,7 +320,7 @@ class CourierPaymentLifecycleTest extends TestCase
         });
 
         $this->actingAs($user)
-            ->getJson(route('couriers.payments.payhere.return', [
+            ->getJson(route('couriers.payments.paymentslk.return', [
                 'order_id' => (string) $payment->gateway_order_id,
             ]))
             ->assertOk()
@@ -348,7 +348,7 @@ class CourierPaymentLifecycleTest extends TestCase
         });
 
         $this->actingAs($user)
-            ->getJson(route('couriers.payments.payhere.return', ['order_id' => (string) $payment->gateway_order_id]))
+            ->getJson(route('couriers.payments.paymentslk.return', ['order_id' => (string) $payment->gateway_order_id]))
             ->assertOk()
             ->assertJson(['paymentStatus' => CourierShipmentPayment::STATUS_PENDING]);
 

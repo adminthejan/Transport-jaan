@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Head } from "@inertiajs/react";
 import ClientHeader from "./ClientHeader";
+import ClientSidebar from "./ClientSidebar";
 import ClientCardDashboard from "../../components/client/ClientCardDashboard";
 
 const ClientMainDashboard = ({ csrf_token }) => {
@@ -17,7 +18,12 @@ const ClientMainDashboard = ({ csrf_token }) => {
         <div className="min-h-screen bg-gradient-to-b from-[#F5F8FF] via-[#F8FAFC] to-[#F8FAFC]">
             <Head title="Client Dashboard" />
             <ClientHeader />
-            <ClientCardDashboard />
+            <div className="mx-auto flex w-full max-w-[1560px] items-start gap-2 px-4 pt-6 sm:px-6 lg:px-8">
+                <ClientSidebar />
+                <main className="min-w-0 flex-1">
+                    <ClientCardDashboard />
+                </main>
+            </div>
         </div>
     );
 };
